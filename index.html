@@ -304,6 +304,19 @@ body.es-admin main section{scroll-margin-top:122px}
 .fechas small{display:block;color:var(--mist);font-size:13px}
 .fechas strong{display:block;font:600 26px/1.1 var(--px);color:var(--sand);margin:6px 0 2px}
 .fechas span{font-size:13px;color:#c3dbe0}
+.wpp-cont{margin-top:24px}
+.wpp-cont h3{font-size:16px;margin:0 0 10px;color:var(--foam)}
+.wpp-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+.wpp{display:grid;gap:2px;background:var(--sea-850);border:2px solid var(--sea-700);border-left:4px solid #25d366;border-radius:var(--r);padding:14px;text-decoration:none;color:var(--foam)}
+.wpp:hover{border-color:#25d366}
+.wpp b{font:600 30px/1.1 var(--px);color:#7ef0a8;font-variant-numeric:tabular-nums}
+.wpp span{font-size:15px;font-weight:600}
+.wpp small{font-size:12.5px;color:var(--mist)}
+.wpp-nota{font-size:12.5px;color:var(--mist);margin:8px 0 0}
+.wpp-hero{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;color:var(--mist);text-decoration:none}
+.wpp-hero i{width:9px;height:9px;border-radius:50%;background:#25d366;flex:none}
+.wpp-hero b{color:#bff5d3;font-variant-numeric:tabular-nums}
+.wpp-hero:hover{color:var(--foam)}
 .enlaces{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .enlace{display:grid;gap:3px;text-decoration:none;color:var(--foam);background:var(--sea-800);border:2px solid var(--sea-700);border-radius:var(--r);padding:14px}
 .enlace:hover{border-color:var(--sand)}
@@ -569,6 +582,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
       <div class="dom" id="dominio"><p class="cargando">Cargando la región…</p></div>
       <div class="cta"><a class="btn sand" href="#teams" data-ir="teams">Elegí tu team</a><a class="btn" href="#atlas" data-ir="atlas">Ver el atlas</a></div>
       <a class="hz-chip" id="hzHero" href="#horario" data-ir="horario"><i></i><span>Horario de conquistas</span></a>
+      <a class="wpp-hero" id="wppHero" href="#comunidad" data-ir="comunidad" hidden></a>
     </div>
     <figure class="carta" id="mapa">
       <div class="ubicando-aviso" id="avisoUbicar" hidden><span>Tocá el mapa donde está <b id="ubicarNombre"></b></span><button class="btn sm" type="button" data-act="cancelar-ubicar" style="border-color:#2b1e05;color:#2b1e05">Cancelar</button></div>
@@ -674,6 +688,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
           <div><small>Salida de la beta final</small><strong>11 abr 2024</strong><span>Pokémon Reloaded · The Last Beta</span></div>
           <div><small>Inicio de la Edición Online</small><strong>29 oct 2026</strong><span>Comunidad y roleo online</span></div>
         </div>
+        <div class="wpp-cont" id="wppCont" hidden></div>
       </div>
       <div class="enlaces">
         <a class="enlace" href="https://reloadedonline.duckdns.org/" target="_blank" rel="noopener"><span>Jugar · PC o Android</span><b>Pokémon Reloaded Online ↗</b></a>
@@ -880,7 +895,8 @@ var Core = (function () {
     guerras: ['id', 'fecha', 'territorioId', 'territorio', 'accion', 'ganador', 'perdedor', 'resumen', 'nota'],
     torneos: ['id', 'nombre', 'fecha', 'formato', 'info', 'enlace', 'creado'],
     noticias: ['id', 'fecha', 'titulo', 'cuerpo'],
-    combates: ['id', 'fecha', 'ganador', 'rival', 'equipoGanador', 'equipoRival', 'formato', 'nota']
+    combates: ['id', 'fecha', 'ganador', 'rival', 'equipoGanador', 'equipoRival', 'formato', 'nota'],
+    grupos: ['id', 'nombre', 'enlace', 'miembros', 'actualizado', 'orden']
   };
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -951,6 +967,10 @@ var Core = (function () {
       if (c) guerras.push({ id: 'g-' + slug(z[0]), fecha: 'Parte inicial', territorioId: id, territorio: z[0], accion: c[2], ganador: c[0], perdedor: c[3], resumen: c[1], nota: '' });
     });
     return {
+      grupos: [
+        { id: 'g-online', nombre: 'Grupo de Online', enlace: 'https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH', miembros: '0', actualizado: '', orden: '1' },
+        { id: 'g-general', nombre: 'Grupo general', enlace: 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6', miembros: '0', actualizado: '', orden: '2' }
+      ],
       equipos: equipos, territorios: territorios, guerras: guerras, torneos: [], combates: [],
       noticias: [{ id: 'n-inicial', fecha: 'Parte territorial', titulo: 'La disputa por Star se intensifica',
         cuerpo: 'La Comisaría confirmó nuevos movimientos: Team Rekiem controla Ciudad Sirio; Team Delta tomó Ciudad Deneb, recuperada previamente del Team Flare; y el Escuadrón Élite resguarda el Bosque Místico. Tras los reportes de policías heridos, las autoridades piden mantener la calma y no involucrarse con organizaciones enemigas. El origen de Team Delta sigue sin esclarecerse.' }]
@@ -1044,6 +1064,13 @@ var Core = (function () {
         return { cambios: ['noticias'].concat(zonaCambios) };
       }
       case 'noticiaBorrar': quitar(db.noticias, p.id); return { cambios: ['noticias'] };
+      case 'grupoMiembros': {
+        db.grupos = db.grupos || [];
+        x = porId(db.grupos, p.id) || falla('Ese grupo ya no existe.');
+        var gm = Math.floor(Number(p.valor));
+        x.miembros = String(isFinite(gm) && gm > 0 ? Math.min(gm, 100000) : 0); x.actualizado = ahora;
+        return { cambios: ['grupos'] };
+      }
       case 'combateGuardar': {
         var gan = txt(p.ganador, 40), riv = txt(p.rival, 40);
         if (!gan || !riv) falla('Completá ganador y rival.');
@@ -1105,7 +1132,8 @@ var Core = (function () {
     return {
       equipos: equipos,
       territorios: db.territorios, guerras: admin ? db.guerras : db.guerras.slice(0, 250),
-      torneos: db.torneos, noticias: db.noticias.slice(0, admin ? 500 : 60), combates: db.combates.slice(0, admin ? 500 : 60)
+      torneos: db.torneos, noticias: db.noticias.slice(0, admin ? 500 : 60), combates: db.combates.slice(0, admin ? 500 : 60),
+      grupos: (db.grupos || []).slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); })
     };
   }
 
@@ -1126,7 +1154,7 @@ const MODO = (window.google && google.script && google.script.run) ? 'drive' : (
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const vacio = () => ({ equipos: [], territorios: [], guerras: [], torneos: [], noticias: [], combates: [], config: {} });
+const vacio = () => ({ equipos: [], territorios: [], guerras: [], torneos: [], noticias: [], combates: [], grupos: [], config: {} });
 const S = { d: vacio(), token: '', rol: '', cargando: true, filtro: 'Todos', q: '', ubicando: null, verGuerras: 12, tipeado: false, mapaKey: '' };
 const almacen = { get(k) { try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { v ? sessionStorage.setItem(k, v) : sessionStorage.removeItem(k); } catch (e) { } } };
 
@@ -1269,6 +1297,7 @@ function render() {
   $$('#adminbar [data-solo-rol]').forEach(e => { e.hidden = (e.dataset.soloRol === 'editor') !== esEditor(); });
   renderClasif();
   renderCarnets();
+  renderGrupos();
   $$('.solo-admin').forEach(e => e.hidden = !esAdmin());
 }
 
@@ -1870,6 +1899,7 @@ function panelAdmin() {
       <div><h3>Publicar</h3><div class="panel-btns">${b('nueva-noticia', 'Publicar noticia', 'Va a la portada')}${b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…')}${b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario')}${b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación')}</div></div>
       <div><h3>Miembros por team</h3><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>
       <div><h3>Mundo</h3><div class="panel-btns">${b('nuevo-team', 'Nuevo team', 'Nombre, color y lore')}${b('nueva-zona', 'Nueva zona', 'Se suma al atlas')}${b('mapa-subir', 'Cambiar mapa', 'Imagen nueva en tu Drive')}</div></div>
+      <div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>
       <div><h3>Comunidad</h3><div class="panel-btns">${b('mensajes', 'Mensajes' + (S.d.config && S.d.config.mensajes ? ' (' + S.d.config.mensajes + ')' : ''), S.d.config && S.d.config.mensajes ? 'Contacto y pedidos de retiro' : 'No hay mensajes nuevos')}</div></div>
       <div><h3>Cuenta</h3><div class="panel-btns">${b('planilla', 'Abrir planilla', 'Los datos en tu Drive')}${b('clave', 'Cambiar clave', 'Para entrar como admin')}${b('clave-editor', 'Clave del noticiero', S.d.config && S.d.config.editor ? 'Activa · cambiarla' : 'Noticias, zonas y crónica')}${S.d.config && S.d.config.editor ? b('quitar-editor', 'Quitar noticiero', 'Su clave deja de andar') : ''}${b('salir', 'Salir', 'Cerrar la sesión de admin')}</div></div>
       <p class="muted">Para editar un team, una zona o un carnet, abrí su ficha: las opciones de admin aparecen ahí.</p>
@@ -1969,6 +1999,7 @@ document.addEventListener('click', async ev => {
       case 'editar-zona': formZona(S.d.territorios.find(x => x.id === id)); break;
       case 'borrar-zona': cerrar($('#dlgZona')); borrar('Borrar zona', 'Se borra la zona del atlas junto con su historial. No se puede deshacer.', 'zonaBorrar', 'Zona borrada'); break;
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
+      case 'gm': { const caja = el.closest('[data-gm]'), inp = $('input', caja); const v = cantGrupo(cantGrupo(inp.value) + Number(el.dataset.paso)); inp.value = v; cambiarGrupo(caja.dataset.gm, v); break; }
       case 'mm': { const caja = el.closest('[data-mm]'), inp = $('input', caja); const v = Core.cantidad(inp.value) + Number(el.dataset.paso); inp.value = Core.cantidad(v); cambiarMiembros(caja.dataset.mm, v); break; }
       case 'borrar-team': cerrar($('#dlgTeam')); borrar('Quitar team', 'El team deja de aparecer. Sus zonas conservan el nombre hasta que las edites.', 'equipoBorrar', 'Team quitado'); break;
       case 'borrar-guerra': borrar('Borrar del historial', 'Se borra este parte de la crónica. El estado actual de la zona no cambia.', 'guerraBorrar', 'Parte borrado'); break;
@@ -2020,12 +2051,68 @@ $('#dlgCarnet').addEventListener('close', () => { if (/^#carnet\//.test(location
 const rutaCarnet = () => { const m = location.hash.match(/^#carnet\/([\w-]+)/); if (m) abrirCarnet(m[1]); };
 window.addEventListener('hashchange', rutaCarnet);
 document.addEventListener('input', ev => { const i = ev.target.closest('[data-mm-input]'); if (i && i.value !== '') cambiarMiembros(i.closest('[data-mm]').dataset.mm, i.value); });
+document.addEventListener('input', ev => { const i = ev.target.closest('[data-gm-input]'); if (i && i.value !== '') cambiarGrupo(i.closest('[data-gm]').dataset.gm, i.value); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.closest('[data-gm-input]')) { ev.preventDefault(); ev.target.blur(); } });
 document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.closest('[data-mm-input]')) { ev.preventDefault(); ev.target.blur(); } });
 document.addEventListener('focusout', ev => { const i = ev.target.closest && ev.target.closest('[data-mm-input]'); if (i && i.value === '') { const e = S.d.equipos.find(x => x.id === i.closest('[data-mm]').dataset.mm); if (e) i.value = Core.cantidad(e.miembros); } });
 $('#buscarZona').addEventListener('input', e => { S.q = e.target.value; renderAtlas(); });
 $('#dialogo').addEventListener('click', ev => { if (ev.target.closest('a')) return; const p = $('#notCuerpo'); if (p.textContent !== p.dataset.texto) { p.dataset.saltar = '1'; p.textContent = p.dataset.texto; } else ir('cronica'); });
 $('#dlgMapa').addEventListener('close', cancelarUbicar);
 $$('dialog').forEach(d => d.addEventListener('click', ev => { if (ev.target === d) { if (d.id === 'dlgMapa') cancelarUbicar(); cerrar(d); } }));
+
+// ---------- Miembros en WhatsApp (los carga el admin desde el Panel) ----------
+const cantGrupo = v => { const n = Math.floor(Number(v)); return isFinite(n) && n > 0 ? Math.min(n, 100000) : 0; };
+const numES = n => Number(n).toLocaleString('es-AR');
+function haceCuanto(iso) {
+  const t = Date.parse(iso); if (!t) return '';
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'recién'; if (m < 60) return 'hace ' + m + ' min';
+  const h = Math.round(m / 60); if (h < 24) return 'hace ' + h + ' h';
+  const d = Math.round(h / 24); return d === 1 ? 'ayer' : 'hace ' + d + ' días';
+}
+function renderGrupos() {
+  const gs = (S.d.grupos || []).filter(g => cantGrupo(g.miembros) > 0);
+  const link = g => /^https:\/\//.test(g.enlace || '') ? g.enlace : '#comunidad';
+  const cont = $('#wppCont'), hero = $('#wppHero');
+  if (cont) {
+    cont.hidden = !gs.length;
+    cont.innerHTML = gs.length ? `<h3>Somos la comunidad en WhatsApp</h3><div class="wpp-g">${gs.map(g => `<a class="wpp" href="${esc(link(g))}" target="_blank" rel="noopener"><b>${numES(cantGrupo(g.miembros))}</b><span>${esc(g.nombre)}</span><small>${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : ''}</small></a>`).join('')}</div><p class="wpp-nota">WhatsApp no comparte este dato automáticamente: lo actualiza la administración.</p>` : '';
+  }
+  if (hero) {
+    hero.hidden = !gs.length;
+    hero.innerHTML = gs.length ? '<i aria-hidden="true"></i><span>' + gs.map(g => '<b>' + numES(cantGrupo(g.miembros)) + '</b> en el ' + esc(String(g.nombre).replace(/^Grupo /i, 'grupo '))).join(' · ') + '</span>' : '';
+  }
+}
+function controlGrupo(g) {
+  const m = cantGrupo(g.miembros);
+  return `<span class="contador" data-gm="${esc(g.id)}"><button type="button" data-act="gm" data-paso="-1" aria-label="Restar uno a ${esc(g.nombre)}">−</button><input type="number" inputmode="numeric" min="0" max="100000" value="${m}" data-gm-input aria-label="Miembros de ${esc(g.nombre)}"><button type="button" data-act="gm" data-paso="1" aria-label="Sumar uno a ${esc(g.nombre)}">+</button></span>`;
+}
+const GM = { timers: {}, optimista: {} };
+function marcarGrupo(id, texto, clase) { $$(`[data-gm-estado="${CSS.escape(id)}"]`).forEach(s => { s.textContent = texto; s.className = 'mm-estado' + (clase ? ' ' + clase : ''); }); }
+function cambiarGrupo(id, valor) {
+  valor = cantGrupo(valor);
+  const g = (S.d.grupos || []).find(x => x.id === id); if (!g) return;
+  GM.optimista[id] = valor; g.miembros = String(valor); g.actualizado = new Date().toISOString();
+  $$(`[data-gm="${CSS.escape(id)}"] input`).forEach(i => { if (document.activeElement !== i) i.value = valor; });
+  marcarGrupo(id, numES(valor) + ' · guardando…'); renderGrupos();
+  clearTimeout(GM.timers[id]);
+  GM.timers[id] = setTimeout(async () => {
+    try {
+      const r = await llamar('grupoMiembros', { id, valor });
+      if (GM.optimista[id] === valor) delete GM.optimista[id];
+      if (r && r.equipos) {
+        S.d = r; aplicarOptimista();
+        Object.keys(GM.optimista).forEach(k => { const x = (S.d.grupos || []).find(y => y.id === k); if (x) x.miembros = String(GM.optimista[k]); });
+        render();
+      }
+      marcarGrupo(id, numES(valor) + ' · guardado', 'ok');
+    } catch (err) {
+      delete GM.optimista[id];
+      marcarGrupo(id, 'No se guardó: ' + err.message, 'mal');
+      if (/sesión de admin venció/i.test(err.message)) salirAdmin(true);
+    }
+  }, 650);
+}
 
 // ---------- Contacto y mensajes ----------
 function pintarMensajes(lista) {
