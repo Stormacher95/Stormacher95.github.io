@@ -119,6 +119,8 @@ p{margin:0}
 .emb-ficha{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:#0b1d26;border:2px solid var(--c);overflow:hidden;flex:none;font-size:30px}
 .ubicando-aviso .serie{display:flex;gap:8px;flex-wrap:wrap}
 .pins-acc{display:inline-flex;gap:6px;margin-left:6px}
+.cupo-ctrl{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--sea-850);border:2px solid var(--sand);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.cupo-ctrl > span:first-child{display:grid;gap:2px}
 @keyframes latido{50%{box-shadow:0 0 0 7px rgba(239,90,95,.25)}}
 @keyframes marcar{0%{box-shadow:0 0 0 0 var(--sand)}100%{box-shadow:0 0 0 22px transparent}}
 
@@ -1178,7 +1180,7 @@ const Demo = {
   guardar() { try { localStorage.setItem(this.k, JSON.stringify(this.mem)); } catch (e) { } },
   vista(admin) {
     const v = JSON.parse(JSON.stringify(Core.vista(this.db(), admin)));
-    v.config = { modo: 'demo', mapa: { url: this.mapa || 'mapa-territorial-reloaded-online.png' }, ahora: new Date().toISOString() };
+    v.config = { modo: 'demo', mapa: { url: this.mapa || 'mapa-territorial-reloaded-online.png' }, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
     return v;
   },
   api(a, p, tok) {
@@ -1212,6 +1214,7 @@ const Demo = {
     if (a === 'adminDatos') return this.vista(true);
     if (a === 'carnetBorrar') { DemoC.guardar(dc.filter(x => x.id !== p.id)); return { borrado: true }; }
     if (a === 'mensajes' || a === 'mensajeBorrar') return [];
+    if (a === 'cupo') { const n = Math.floor(Number(p.valor)); if (!(n >= 1 && n <= 999)) throw new Error('El cupo tiene que ser un número entre 1 y 999.'); this.cupoDemo = n; return this.vista(true); }
     if (a === 'carnetClave') { const c = dbusca(p.id); c.clave = Math.random().toString(36).slice(2, 8); DemoC.guardar(dc); return { clave: c.clave }; }
     if (a === 'clave') throw new Error('En la demostración la clave siempre es "demo". Con Drive conectado se cambia de verdad.');
     if (a === 'mapaSubir') { this.mapa = 'data:' + p.mime + ';base64,' + p.base64; return this.vista(true); }
@@ -1395,13 +1398,13 @@ function renderMapa() {
 function renderTeams() {
   const zonas = {};
   S.d.territorios.forEach(t => { if (t.estado === 'Controlada') zonas[t.equipo] = (zonas[t.equipo] || 0) + 1; });
-  $('#gridTeams').innerHTML = S.d.equipos.length ? S.d.equipos.map(e => { const m = Core.cantidad(e.miembros), lleno = m >= Core.CUPO; return `
-    <button type="button" class="team${lleno ? ' es-lleno' : ''}" data-act="team" data-id="${esc(e.id)}" style="--c:${esc(e.color || '#f4d38b')}" aria-label="${esc(e.nombre)}: ${m} de ${Core.CUPO} miembros${lleno ? ', lleno' : ''}">
+  $('#gridTeams').innerHTML = S.d.equipos.length ? S.d.equipos.map(e => { const m = Core.cantidad(e.miembros), lleno = m >= cupo(); return `
+    <button type="button" class="team${lleno ? ' es-lleno' : ''}" data-act="team" data-id="${esc(e.id)}" style="--c:${esc(e.color || '#f4d38b')}" aria-label="${esc(e.nombre)}: ${m} de ${cupo()} miembros${lleno ? ', lleno' : ''}">
       ${(() => { const lg = emblema(e.nombre); return lg ? `<span class="team-emb con-logo" aria-hidden="true">${imgEmblema(lg)}</span>` : `<span class="team-emb" aria-hidden="true">${esc(e.emoji || '✦')}</span>`; })()}
       <span class="team-nom">${esc(e.nombre)}</span>
       <span class="team-tipo">${esc(e.tipo || 'Equipo comunitario')} · líder ${esc(e.lider && e.lider !== '—' ? e.lider : 'sin asignar')}</span>
-      <span class="team-cupo"><span><b>${m}</b>/ ${Core.CUPO} miembros</span>${lleno ? '<span class="lleno">Lleno</span>' : ''}</span>
-      <span class="team-barra" aria-hidden="true"><i style="width:${Math.min(100, m / Core.CUPO * 100)}%"></i></span>
+      <span class="team-cupo"><span><b>${m}</b>/ ${cupo()} miembros</span>${lleno ? '<span class="lleno">Lleno</span>' : ''}</span>
+      <span class="team-barra" aria-hidden="true"><i style="width:${Math.min(100, m / cupo() * 100)}%"></i></span>
       <span class="team-datos"><span><b>${zonas[e.nombre] || 0}</b>${plural(zonas[e.nombre] || 0, 'zona')}</span><span>Ver ficha</span></span>
     </button>`; }).join('') : `<p class="vacio">${S.cargando ? 'Cargando teams…' : 'No hay teams cargados.'}</p>`;
 }
@@ -1504,14 +1507,14 @@ const confirmar = (titulo, texto, boton, enviar) => formulario({ titulo, texto, 
 function fichaTeam(id) {
   const e = S.d.equipos.find(x => x.id === id); if (!e) return;
   const zonas = S.d.territorios.filter(t => t.estado === 'Controlada' && t.equipo === e.nombre);
-  const m = Core.cantidad(e.miembros), lleno = m >= Core.CUPO;
+  const m = Core.cantidad(e.miembros), lleno = m >= cupo();
   const carnetsTeam = (S.carnets || []).filter(c => c.equipo === e.nombre);
   const d = $('#dlgTeam');
   d.innerHTML = `<div class="dlg" style="--c:${esc(e.color)}"><div class="dlg-cab">${(() => { const lg = emblema(e.nombre); return lg ? `<span class="emb-ficha" aria-hidden="true">${imgEmblema(lg)}</span>` : `<span style="font-size:34px" aria-hidden="true">${esc(e.emoji || '✦')}</span>`; })()}<h2>${esc(e.nombre)}</h2><p class="muted">${esc(e.tipo || 'Equipo comunitario')}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <p class="lore">${esc(e.lore || 'Este team está escribiendo su historia en la comunidad.')}</p>
-      ${lleno ? `<p class="aviso-lleno">${esc(e.nombre)} está lleno: completó su cupo de ${Core.CUPO} miembros. Consultá en el grupo general si se libera un lugar o mirá otros teams.</p>` : `<p class="muted">Para sumarte a ${esc(e.nombre)}, escribile al líder o a un admin en el grupo general de WhatsApp. Quedan ${Core.CUPO - m} ${Core.CUPO - m === 1 ? 'lugar' : 'lugares'}.</p>`}
-      <dl class="ficha"><div><dt>Líder</dt><dd>${esc(e.lider && e.lider !== '—' ? e.lider : 'Sin asignar')}</dd></div><div><dt>Miembros</dt><dd>${esAdmin() ? `<small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(m)}</small>${controlMiembros(e)}` : m + ' de ' + Core.CUPO + (lleno ? ' · Lleno' : '')}</dd></div><div><dt>Zonas controladas</dt><dd>${zonas.length}</dd></div></dl>
+      ${lleno ? `<p class="aviso-lleno">${esc(e.nombre)} está lleno: completó su cupo de ${cupo()} miembros. Consultá en el grupo general si se libera un lugar o mirá otros teams.</p>` : `<p class="muted">Para sumarte a ${esc(e.nombre)}, escribile al líder o a un admin en el grupo general de WhatsApp. Quedan ${cupo() - m} ${cupo() - m === 1 ? 'lugar' : 'lugares'}.</p>`}
+      <dl class="ficha"><div><dt>Líder</dt><dd>${esc(e.lider && e.lider !== '—' ? e.lider : 'Sin asignar')}</dd></div><div><dt>Miembros</dt><dd>${esAdmin() ? `<small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(m)}</small>${controlMiembros(e)}` : m + ' de ' + cupo() + (lleno ? ' · Lleno' : '')}</dd></div><div><dt>Zonas controladas</dt><dd>${zonas.length}</dd></div></dl>
       ${carnetsTeam.length ? `<div><h3 style="font-size:18px;margin-bottom:8px">Entrenadores con carnet</h3><div class="zchips">${carnetsTeam.map(c => `<button type="button" data-act="carnet" data-id="${esc(c.id)}" style="--c:${esc(e.color)}">${esc(c.nombre)}</button>`).join('')}</div></div>` : ''}
       ${zonas.length ? `<div><h3 style="font-size:18px;margin-bottom:8px">Territorio</h3><div class="zchips">${zonas.map(z => `<button type="button" data-act="zona" data-id="${esc(z.id)}" style="--c:${esc(e.color)}">${esc(z.nombre)}</button>`).join('')}</div></div>` : ''}
       <div class="dlg-acc">${esAdmin() ? `<button class="btn danger" type="button" data-act="borrar-team" data-id="${esc(e.id)}">Quitar team</button><button class="btn" type="button" data-act="editar-team" data-id="${esc(e.id)}">Editar</button>` : ''}${lleno ? `<a class="btn" href="${WPP_GENERAL}" target="_blank" rel="noopener">Consultar en el grupo general</a>` : `<a class="btn sand" href="${WPP_GENERAL}" target="_blank" rel="noopener">Pedir ingreso por WhatsApp</a>`}</div>
@@ -1561,7 +1564,7 @@ function formTeam(e) {
     campos: [
       { n: 'nombre', l: 'Nombre', v: e.nombre, req: true, max: 40 }, { n: 'emoji', l: 'Símbolo (emoji)', v: e.emoji || '✦', max: 8 },
       { n: 'lider', l: 'Líder', v: e.lider === '—' ? '' : e.lider, max: 40 }, { n: 'tipo', l: 'Tipo', v: e.tipo || 'Escuadrón', max: 30 },
-      { n: 'color', l: 'Color', t: 'color', v: e.color || '#f4d38b' }, { n: 'miembros', l: 'Miembros (cupo ' + Core.CUPO + ')', t: 'number', v: String(Core.cantidad(e.miembros)) },
+      { n: 'color', l: 'Color', t: 'color', v: e.color || '#f4d38b' }, { n: 'miembros', l: 'Miembros (cupo ' + cupo() + ')', t: 'number', v: String(Core.cantidad(e.miembros)) },
       { n: 'lore', l: 'Lore breve, sin spoilers', t: 'textarea', v: e.lore, max: 600, ancho: true }
     ],
     enviar: async v => { await accion('equipoGuardar', Object.assign({ id: e.id || '' }, v), e.id ? 'Team actualizado' : 'Team creado'); if (e.id) fichaTeam(e.id); }
@@ -1877,7 +1880,8 @@ function controlMiembros(e) {
   const m = Core.cantidad(e.miembros);
   return `<span class="contador" data-mm="${esc(e.id)}"><button type="button" data-act="mm" data-paso="-1" aria-label="Restar un miembro a ${esc(e.nombre)}">−</button><input type="number" inputmode="numeric" min="0" max="999" value="${m}" data-mm-input aria-label="Miembros de ${esc(e.nombre)}"><button type="button" data-act="mm" data-paso="1" aria-label="Sumar un miembro a ${esc(e.nombre)}">+</button></span>`;
 }
-const textoCupo = m => m >= Core.CUPO ? m + ' de ' + Core.CUPO + ' · Lleno' : m + ' de ' + Core.CUPO + ' · quedan ' + (Core.CUPO - m);
+const cupo = () => { const n = Number(S.d.config && S.d.config.cupo); return n >= 1 ? n : Core.CUPO; };
+const textoCupo = m => m >= cupo() ? m + ' de ' + cupo() + ' · Lleno' : m + ' de ' + cupo() + ' · quedan ' + (cupo() - m);
 
 // Guardado instantáneo: se ve al toque y se guarda en Drive en segundo plano.
 const MM = { timers: {}, optimista: {} };
@@ -1900,7 +1904,7 @@ function cambiarMiembros(id, valor) {
       if (MM.optimista[id] === valor) delete MM.optimista[id];
       if (r && r.equipos) { S.d = r; aplicarOptimista(); render(); }
       marcarMiembros(id, textoCupo(valor) + ' · guardado', 'ok');
-      if (valor >= Core.CUPO && antes < Core.CUPO) toast(e.nombre + ' quedó lleno.');
+      if (valor >= cupo() && antes < cupo()) toast(e.nombre + ' quedó lleno.');
     } catch (err) {
       delete MM.optimista[id];
       marcarMiembros(id, 'No se guardó: ' + err.message, 'mal');
@@ -1918,7 +1922,7 @@ function panelAdmin() {
     <div class="dlg-cuerpo panel-g">
       <div class="panel-stats"><div><b>${ctrl}/${z.length}</b><span>zonas con dueño</span></div><div><b>${S.d.guerras.length}</b><span>partes de guerra</span></div><div><b>${(S.carnets || []).length}</b><span>carnets</span></div><div><b>${ubic}</b><span>zonas en el mapa</span></div></div>
       <div><h3>Publicar</h3><div class="panel-btns">${b('nueva-noticia', 'Publicar noticia', 'Va a la portada')}${b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…')}${b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario')}${b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación')}</div></div>
-      <div><h3>Miembros por team</h3><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>
+      <div><h3>Miembros por team</h3><div class="cupo-ctrl"><span><b>Cupo por team</b><small class="mm-estado" id="cupoEstado">Al llegar a este número, el team figura como Lleno.</small></span><span class="contador" data-cupo><button type="button" data-act="cupo" data-paso="-1" aria-label="Bajar el cupo">−</button><input type="number" inputmode="numeric" min="1" max="999" value="${cupo()}" data-cupo-input aria-label="Cupo de miembros por team"><button type="button" data-act="cupo" data-paso="1" aria-label="Subir el cupo">+</button></span></div><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>
       <div><h3>Mundo</h3><div class="panel-btns">${b('nuevo-team', 'Nuevo team', 'Nombre, color y lore')}${b('nueva-zona', 'Nueva zona', 'Se suma al atlas')}${b('mapa-subir', 'Cambiar mapa', 'Imagen nueva en tu Drive')}</div></div>
       <div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>
       <div><h3>Comunidad</h3><div class="panel-btns">${b('mensajes', 'Mensajes' + (S.d.config && S.d.config.mensajes ? ' (' + S.d.config.mensajes + ')' : ''), S.d.config && S.d.config.mensajes ? 'Contacto y pedidos de retiro' : 'No hay mensajes nuevos')}</div></div>
@@ -2041,6 +2045,7 @@ document.addEventListener('click', async ev => {
       case 'editar-zona': formZona(S.d.territorios.find(x => x.id === id)); break;
       case 'borrar-zona': cerrar($('#dlgZona')); borrar('Borrar zona', 'Se borra la zona del atlas junto con su historial. No se puede deshacer.', 'zonaBorrar', 'Zona borrada'); break;
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
+      case 'cupo': { const inp = $('[data-cupo-input]'); const v = Math.min(999, Math.max(1, (Number(inp.value) || cupo()) + Number(el.dataset.paso))); inp.value = v; cambiarCupo(v); break; }
       case 'gm': { const caja = el.closest('[data-gm]'), inp = $('input', caja); const v = cantGrupo(cantGrupo(inp.value) + Number(el.dataset.paso)); inp.value = v; cambiarGrupo(caja.dataset.gm, v); break; }
       case 'mm': { const caja = el.closest('[data-mm]'), inp = $('input', caja); const v = Core.cantidad(inp.value) + Number(el.dataset.paso); inp.value = Core.cantidad(v); cambiarMiembros(caja.dataset.mm, v); break; }
       case 'borrar-team': cerrar($('#dlgTeam')); borrar('Quitar team', 'El team deja de aparecer. Sus zonas conservan el nombre hasta que las edites.', 'equipoBorrar', 'Team quitado'); break;
@@ -2093,6 +2098,7 @@ $('#dlgCarnet').addEventListener('close', () => { if (/^#carnet\//.test(location
 const rutaCarnet = () => { const m = location.hash.match(/^#carnet\/([\w-]+)/); if (m) abrirCarnet(m[1]); };
 window.addEventListener('hashchange', rutaCarnet);
 document.addEventListener('input', ev => { const i = ev.target.closest('[data-mm-input]'); if (i && i.value !== '') cambiarMiembros(i.closest('[data-mm]').dataset.mm, i.value); });
+document.addEventListener('input', ev => { const i = ev.target.closest('[data-cupo-input]'); if (i && i.value !== '') cambiarCupo(i.value); });
 document.addEventListener('input', ev => { const i = ev.target.closest('[data-gm-input]'); if (i && i.value !== '') cambiarGrupo(i.closest('[data-gm]').dataset.gm, i.value); });
 document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.closest('[data-gm-input]')) { ev.preventDefault(); ev.target.blur(); } });
 document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.closest('[data-mm-input]')) { ev.preventDefault(); ev.target.blur(); } });
@@ -2128,6 +2134,32 @@ function renderGrupos() {
 function controlGrupo(g) {
   const m = cantGrupo(g.miembros);
   return `<span class="contador" data-gm="${esc(g.id)}"><button type="button" data-act="gm" data-paso="-1" aria-label="Restar uno a ${esc(g.nombre)}">−</button><input type="number" inputmode="numeric" min="0" max="100000" value="${m}" data-gm-input aria-label="Miembros de ${esc(g.nombre)}"><button type="button" data-act="gm" data-paso="1" aria-label="Sumar uno a ${esc(g.nombre)}">+</button></span>`;
+}
+const CP = { timer: 0, optimista: null };
+function cambiarCupo(valor) {
+  valor = Math.floor(Number(valor));
+  const est = $('#cupoEstado');
+  if (!(valor >= 1 && valor <= 999)) { if (est) { est.textContent = 'Tiene que ser un número entre 1 y 999.'; est.className = 'mm-estado mal'; } return; }
+  S.d.config = Object.assign({}, S.d.config, { cupo: valor }); CP.optimista = valor;
+  S.d.equipos.forEach(e => marcarMiembros(e.id, textoCupo(Core.cantidad(e.miembros))));
+  renderTeams();
+  if (est) { est.textContent = 'Cupo ' + valor + ' · guardando…'; est.className = 'mm-estado'; }
+  clearTimeout(CP.timer);
+  CP.timer = setTimeout(async () => {
+    try {
+      const r = await llamar('cupo', { valor });
+      if (r && r.equipos) {
+        S.d = r; aplicarOptimista();
+        if (CP.optimista !== valor) S.d.config.cupo = CP.optimista;
+        render();
+      }
+      CP.optimista = null;
+      const e2 = $('#cupoEstado'); if (e2) { e2.textContent = 'Cupo ' + valor + ' · guardado'; e2.className = 'mm-estado ok'; }
+    } catch (err) {
+      const e2 = $('#cupoEstado'); if (e2) { e2.textContent = 'No se guardó: ' + err.message; e2.className = 'mm-estado mal'; }
+      if (/sesión de admin venció/i.test(err.message)) salirAdmin(true);
+    }
+  }, 650);
 }
 const GM = { timers: {}, optimista: {} };
 function marcarGrupo(id, texto, clase) { $$(`[data-gm-estado="${CSS.escape(id)}"]`).forEach(s => { s.textContent = texto; s.className = 'mm-estado' + (clase ? ' ' + clase : ''); }); }
