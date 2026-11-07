@@ -106,6 +106,19 @@ p{margin:0}
 .pin-et{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);background:var(--paper);color:var(--ink);font:500 13px/1.2 var(--sans);padding:4px 7px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
 .pin:hover .pin-et,.pin:focus-visible .pin-et,.grande .pin-et{opacity:1}
 .pin.marcado{animation:marcar 1.2s ease-out 2}
+.escena{container-type:inline-size}
+.pin.logo{width:clamp(20px,4.6cqw,44px);height:clamp(20px,4.6cqw,44px);margin:0;transform:translate(-50%,-50%);background:#0b1d26;border:clamp(2px,.35cqw,3px) solid var(--c);box-shadow:0 2px 6px rgba(0,0,0,.45);display:grid;place-items:center;overflow:visible}
+.pin.logo img{width:72%;height:72%;object-fit:contain;pointer-events:none;border-radius:4px}
+.pin.logo img.cubre{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.pin.logo.disputa{border-style:dashed;animation:latido 1.6s ease-in-out infinite}
+.pin.logo.disputa::after{content:'⚔';position:absolute;right:-6px;top:-6px;font-size:12px;line-height:1;background:var(--sand);color:#2b1e05;border-radius:50%;padding:2px}
+.pin.logo.marcado{animation:marcar 1.2s ease-out 2}
+.team-emb img,.emb-ficha img{width:72%;height:72%;object-fit:contain}
+.team-emb img.cubre,.emb-ficha img.cubre{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.team-emb.con-logo{background:#0b1d26;overflow:hidden}
+.emb-ficha{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:#0b1d26;border:2px solid var(--c);overflow:hidden;flex:none;font-size:30px}
+.ubicando-aviso .serie{display:flex;gap:8px;flex-wrap:wrap}
+.pins-acc{display:inline-flex;gap:6px;margin-left:6px}
 @keyframes latido{50%{box-shadow:0 0 0 7px rgba(239,90,95,.25)}}
 @keyframes marcar{0%{box-shadow:0 0 0 0 var(--sand)}100%{box-shadow:0 0 0 22px transparent}}
 
@@ -585,7 +598,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
       <a class="wpp-hero" id="wppHero" href="#comunidad" data-ir="comunidad" hidden></a>
     </div>
     <figure class="carta" id="mapa">
-      <div class="ubicando-aviso" id="avisoUbicar" hidden><span>Tocá el mapa donde está <b id="ubicarNombre"></b></span><button class="btn sm" type="button" data-act="cancelar-ubicar" style="border-color:#2b1e05;color:#2b1e05">Cancelar</button></div>
+      <div class="ubicando-aviso" id="avisoUbicar" hidden><span>Tocá el mapa donde está <b id="ubicarNombre"></b><small class="ubicar-falta"></small></span><span class="serie"><button class="btn sm" type="button" data-act="saltar-ubicar" data-serie hidden style="border-color:#2b1e05;color:#2b1e05">Saltar</button><button class="btn sm" type="button" data-act="cancelar-ubicar" style="border-color:#2b1e05;color:#2b1e05">Terminar</button></span></div>
       <div class="carta-marco">
         <div class="escena" data-escena>
           <img class="mapa-img" alt="Mapa territorial de la Región Star con los emblemas de cada team">
@@ -799,7 +812,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
     <div class="legal-g">
       <article class="legal-c"><h3>Un espacio de la comunidad</h3><p>Esta web junta en un solo lugar la información que la comunidad usa todos los días: teams, zonas, torneos, carnets y enlaces útiles. Es un proyecto de fans, gratuito y sin fines de lucro: no vende nada, no tiene publicidad y no acepta donaciones.</p></article>
       <article class="legal-c"><h3>De quién es cada cosa</h3><p>Pokémon Reloaded le pertenece a Fer (F3R) y su equipo: es un juego hecho por fans y para fans, sin fines de lucro. Reloaded Online es una creación aparte de su propio autor. Esta web es independiente de los dos y no habla en su nombre. Los enlaces al online están para que tengas la información a mano: no lo promocionamos ni lo respaldamos, y no participamos en su desarrollo.</p></article>
-      <article class="legal-c"><h3>Marcas y derechos</h3><p>Pokémon y los nombres de sus personajes, especies y movimientos son marcas de Nintendo, Game Freak, Creatures Inc. y The Pokémon Company. Este sitio no está afiliado, patrocinado ni aprobado por ellas. Acá no se aloja ni se comparte ningún juego, ROM ni archivo del juego: para descargar, te mandamos a la página oficial de cada creador. El diseño, los textos y los íconos de la web son de la comunidad; no usamos sprites ni arte oficial.</p></article>
+      <article class="legal-c"><h3>Marcas y derechos</h3><p>Pokémon y los nombres de sus personajes, especies y movimientos son marcas de Nintendo, Game Freak, Creatures Inc. y The Pokémon Company. Este sitio no está afiliado, patrocinado ni aprobado por ellas. Acá no se aloja ni se comparte ningún juego, ROM ni archivo del juego: para descargar, te mandamos a la página oficial de cada creador. El diseño, los textos y los íconos de la web son de la comunidad. Los emblemas de los teams pertenecen a sus dueños y se usan solo para identificar a cada team en el mapa; no usamos sprites ni otro arte oficial.</p></article>
       <article class="legal-c"><h3>Tus datos</h3><p>Solo se guarda lo que cargás en tu carnet (nombre de entrenador, team, usuario del juego, lema, equipo Pokémon y si aceptás PvP) y lo que envíes por el formulario de contacto. Queda en una planilla de Google Drive de la administración. El carnet es público y su clave se guarda cifrada. No pedimos nombre real, teléfono ni dirección: no los pongas. Podés borrar tu carnet cuando quieras desde “Editar carnet”. Según la Ley 25.326, podés pedir acceso, corrección o eliminación de tus datos con el formulario de abajo.</p></article>
       <article class="legal-c"><h3>Lo que publica la comunidad</h3><p>Noticias, partes de guerra y carnets los cargan miembros de la comunidad. La administración puede corregir o borrar lo que rompa las reglas o afecte derechos de otros. Tu navegador solo recuerda cosas tuyas, como cuál es tu carnet, y no se comparten con nadie.</p></article>
     </div>
@@ -863,7 +876,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
   <div class="dlg">
     <div class="dlg-cab"><h2>Mapa de la Región Star</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
-      <div class="ubicando-aviso" id="avisoUbicar2" hidden style="top:0"><span>Tocá el mapa donde está <b id="ubicarNombre2"></b></span><button class="btn sm" type="button" data-act="cancelar-ubicar" style="border-color:#2b1e05;color:#2b1e05">Cancelar</button></div>
+      <div class="ubicando-aviso" id="avisoUbicar2" hidden style="top:0"><span>Tocá el mapa donde está <b id="ubicarNombre2"></b><small class="ubicar-falta"></small></span><span class="serie"><button class="btn sm" type="button" data-act="saltar-ubicar" data-serie hidden style="border-color:#2b1e05;color:#2b1e05">Saltar</button><button class="btn sm" type="button" data-act="cancelar-ubicar" style="border-color:#2b1e05;color:#2b1e05">Terminar</button></span></div>
       <div class="zoom"><div class="escena grande" data-escena><img class="mapa-img" alt="Mapa territorial de la Región Star ampliado"><div class="pins"></div><div class="vacio-mapa" hidden><p>El mapa territorial todavía no está cargado.</p></div></div></div>
     </div>
   </div>
@@ -1368,12 +1381,15 @@ function renderMapa() {
     const pins = S.d.territorios.filter(t => t.x !== '' && t.x != null && !isNaN(parseFloat(t.x)));
     $('.pins', esc_).innerHTML = img.hidden ? '' : pins.map(t => {
       const cl = t.estado === 'Controlada' ? '' : t.estado === 'En disputa' ? 'disputa' : t.estado === 'Punto Muerto' ? 'muerto' : 'neutral';
-      return `<button type="button" class="pin ${cl}" data-act="zona" data-id="${esc(t.id)}" style="left:${parseFloat(t.x)}%;top:${parseFloat(t.y)}%;--c:${esc(colorZona(t))}" aria-label="${esc(t.nombre)}: ${esc(t.estado === 'Controlada' ? t.equipo : t.estado)}"><span class="pin-et">${esc(t.nombre)}</span></button>`;
+      const logo = (t.estado === 'Controlada' || t.estado === 'En disputa') && t.equipo ? emblema(t.equipo) : null;
+      return `<button type="button" class="pin ${cl}${logo ? ' logo' : ''}" data-act="zona" data-id="${esc(t.id)}" style="left:${parseFloat(t.x)}%;top:${parseFloat(t.y)}%;--c:${esc(colorZona(t))}" aria-label="${esc(t.nombre)}: ${esc(t.estado === 'Controlada' ? t.equipo : t.estado + (t.equipo ? ' (' + t.equipo + ')' : ''))}">${logo ? imgEmblema(logo) : ''}<span class="pin-et">${esc(t.nombre)}</span></button>`;
     }).join('');
   });
   S.mapaKey = key;
   const ubicadas = S.d.territorios.filter(t => t.x !== '' && t.x != null).length;
-  $('#pinsInfo').textContent = ubicadas ? `${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa. Tocá un punto para ver quién la controla.` : (puedeGuerra() ? 'Todavía no hay zonas marcadas. Abrí una zona del atlas y elegí “Ubicar en el mapa”.' : 'Los emblemas muestran qué team controla cada parte de la región.');
+  const faltan = S.d.territorios.length - ubicadas;
+  $('#pinsInfo').innerHTML = esc(ubicadas ? `${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa: cada emblema muestra qué team la controla y cambia solo al registrar una guerra.` : (puedeGuerra() ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.'))
+    + (puedeGuerra() && faltan > 0 ? ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>` : '');
 }
 
 function renderTeams() {
@@ -1381,7 +1397,7 @@ function renderTeams() {
   S.d.territorios.forEach(t => { if (t.estado === 'Controlada') zonas[t.equipo] = (zonas[t.equipo] || 0) + 1; });
   $('#gridTeams').innerHTML = S.d.equipos.length ? S.d.equipos.map(e => { const m = Core.cantidad(e.miembros), lleno = m >= Core.CUPO; return `
     <button type="button" class="team${lleno ? ' es-lleno' : ''}" data-act="team" data-id="${esc(e.id)}" style="--c:${esc(e.color || '#f4d38b')}" aria-label="${esc(e.nombre)}: ${m} de ${Core.CUPO} miembros${lleno ? ', lleno' : ''}">
-      <span class="team-emb" aria-hidden="true">${esc(e.emoji || '✦')}</span>
+      ${(() => { const lg = emblema(e.nombre); return lg ? `<span class="team-emb con-logo" aria-hidden="true">${imgEmblema(lg)}</span>` : `<span class="team-emb" aria-hidden="true">${esc(e.emoji || '✦')}</span>`; })()}
       <span class="team-nom">${esc(e.nombre)}</span>
       <span class="team-tipo">${esc(e.tipo || 'Equipo comunitario')} · líder ${esc(e.lider && e.lider !== '—' ? e.lider : 'sin asignar')}</span>
       <span class="team-cupo"><span><b>${m}</b>/ ${Core.CUPO} miembros</span>${lleno ? '<span class="lleno">Lleno</span>' : ''}</span>
@@ -1491,7 +1507,7 @@ function fichaTeam(id) {
   const m = Core.cantidad(e.miembros), lleno = m >= Core.CUPO;
   const carnetsTeam = (S.carnets || []).filter(c => c.equipo === e.nombre);
   const d = $('#dlgTeam');
-  d.innerHTML = `<div class="dlg" style="--c:${esc(e.color)}"><div class="dlg-cab"><span style="font-size:34px" aria-hidden="true">${esc(e.emoji || '✦')}</span><h2>${esc(e.nombre)}</h2><p class="muted">${esc(e.tipo || 'Equipo comunitario')}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+  d.innerHTML = `<div class="dlg" style="--c:${esc(e.color)}"><div class="dlg-cab">${(() => { const lg = emblema(e.nombre); return lg ? `<span class="emb-ficha" aria-hidden="true">${imgEmblema(lg)}</span>` : `<span style="font-size:34px" aria-hidden="true">${esc(e.emoji || '✦')}</span>`; })()}<h2>${esc(e.nombre)}</h2><p class="muted">${esc(e.tipo || 'Equipo comunitario')}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <p class="lore">${esc(e.lore || 'Este team está escribiendo su historia en la comunidad.')}</p>
       ${lleno ? `<p class="aviso-lleno">${esc(e.nombre)} está lleno: completó su cupo de ${Core.CUPO} miembros. Consultá en el grupo general si se libera un lugar o mirá otros teams.</p>` : `<p class="muted">Para sumarte a ${esc(e.nombre)}, escribile al líder o a un admin en el grupo general de WhatsApp. Quedan ${Core.CUPO - m} ${Core.CUPO - m === 1 ? 'lugar' : 'lugares'}.</p>`}
@@ -1636,6 +1652,15 @@ const TIPO_CLARO = ['Normal', 'Eléctrico', 'Hielo', 'Tierra', 'Bicho', 'Roca', 
 const tipoChip = t => t ? `<span class="tipo" style="--tc:${COLOR_TIPO[t] || '#3d9ab8'};--tt:${TIPO_CLARO.indexOf(t) >= 0 ? '#1d2327' : '#fff'}">${esc(t)}</span>` : '';
 const numCarnet = n => 'N.º ' + String(n || 0).padStart(4, '0');
 const DEX_URL = 'https://stormacher95.github.io/pokedex.json';
+// Emblemas de los teams (pertenecen a sus dueños; se usan solo para identificar a cada team en el mapa).
+const EMBLEMAS_URL = 'https://stormacher95.github.io/emblemas/';
+const EMBLEMAS = [[/rocket/, 'rocket'], [/magma/, 'magma'], [/aqua/, 'aqua'], [/galax|galactic/, 'galaxia'], [/plasma/, 'plasma'], [/flare/, 'flare'], [/skull/, 'skull'], [/re[qk]u?iem|rekiem/, 'rekiem'], [/elite/, 'elite'], [/delta/, 'delta']];
+function emblema(nombre) {
+  const n = String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const e = EMBLEMAS.find(([re]) => re.test(n));
+  return e ? { url: EMBLEMAS_URL + e[1] + '.png', cubre: e[1] === 'delta' } : null;
+}
+const imgEmblema = lg => `<img src="${esc(lg.url)}" alt=""${lg.cubre ? ' class="cubre"' : ''} loading="lazy" decoding="async" onerror="this.remove()">`;
 const MI = {
   get() { try { return JSON.parse(localStorage.getItem('rlo-mi-carnet') || 'null'); } catch (e) { return null; } },
   set(v) { try { localStorage.setItem('rlo-mi-carnet', JSON.stringify(v)); } catch (e) { } },
@@ -1939,15 +1964,31 @@ function salirAdmin(vencida) {
   if (!vencida) cargar(true); else render();
 }
 
-function ubicar(id) {
+function ubicar(id, serie) {
   const t = S.d.territorios.find(x => x.id === id); if (!t) return;
-  S.ubicando = id; document.body.classList.add('ubicando');
+  S.ubicando = id; S.ubicarSerie = !!serie; document.body.classList.add('ubicando');
   $('#ubicarNombre').textContent = t.nombre; $('#ubicarNombre2').textContent = t.nombre;
+  const quedan = pendientesUbicar().length;
+  $$('.ubicar-falta').forEach(s => { s.textContent = serie ? ' · faltan ' + quedan : ''; });
+  $$('[data-serie]').forEach(b => { b.hidden = !serie; });
+  $$('[data-act="cancelar-ubicar"]').forEach(b => { b.textContent = serie ? 'Terminar' : 'Cancelar'; });
   $('#avisoUbicar').hidden = false; $('#avisoUbicar2').hidden = false;
   cerrar($('#dlgZona')); abrir($('#dlgMapa'));
 }
+/** Zonas sin lugar en el mapa: primero las que tienen dueño o están en disputa (son las que llevan emblema). */
+function pendientesUbicar() {
+  const sin = S.d.territorios.filter(t => (t.x === '' || t.x == null) && !(S.saltadas || []).includes(t.id));
+  const peso = t => t.estado === 'Controlada' || t.estado === 'En disputa' ? 0 : 1;
+  return sin.sort((a, b) => peso(a) - peso(b));
+}
+function ubicarSiguiente() {
+  const sig = pendientesUbicar()[0];
+  if (!sig) { cancelarUbicar(); cerrar($('#dlgMapa')); S.saltadas = []; toast('Listo: no quedan zonas por ubicar.'); renderMapa(); return; }
+  ubicar(sig.id, true);
+}
 function cancelarUbicar() {
-  S.ubicando = null; document.body.classList.remove('ubicando');
+  if (S.ubicarSerie) S.saltadas = [];
+  S.ubicando = null; S.ubicarSerie = false; document.body.classList.remove('ubicando');
   $('#avisoUbicar').hidden = true; $('#avisoUbicar2').hidden = true;
 }
 function marcarPin(id) {
@@ -1967,9 +2008,12 @@ document.addEventListener('click', async ev => {
     const r = img.getBoundingClientRect();
     const x = (ev.clientX - r.left) / r.width * 100, y = (ev.clientY - r.top) / r.height * 100;
     if (x < 0 || x > 100 || y < 0 || y > 100) return;
-    const id = S.ubicando, t = S.d.territorios.find(z => z.id === id);
-    cancelarUbicar();
-    try { await accion('zonaUbicar', { id, x, y }, (t ? t.nombre : 'La zona') + ' quedó marcada en el mapa'); cerrar($('#dlgMapa')); marcarPin(id); } catch (e) { toast(e.message, 'error'); }
+    const id = S.ubicando, t = S.d.territorios.find(z => z.id === id), serie = S.ubicarSerie;
+    if (serie) { S.ubicando = null; } else cancelarUbicar();
+    try {
+      await accion('zonaUbicar', { id, x, y }, (t ? t.nombre : 'La zona') + ' quedó marcada en el mapa');
+      if (serie) ubicarSiguiente(); else { cerrar($('#dlgMapa')); marcarPin(id); }
+    } catch (e) { toast(e.message, 'error'); if (serie) ubicar(id, true); }
     return;
   }
   const el = ev.target.closest('[data-act]'); if (!el) return;
@@ -1989,7 +2033,9 @@ document.addEventListener('click', async ev => {
       case 'mas-guerras': S.verGuerras += 20; renderCronica(); break;
       case 'ampliar': abrir($('#dlgMapa')); break;
       case 'ver-en-mapa': marcarPin(id); break;
-      case 'cancelar-ubicar': cancelarUbicar(); break;
+      case 'cancelar-ubicar': { const eraSerie = S.ubicarSerie; cancelarUbicar(); if (eraSerie) { cerrar($('#dlgMapa')); renderMapa(); } break; }
+      case 'saltar-ubicar': S.saltadas = (S.saltadas || []).concat(S.ubicando ? [S.ubicando] : []); ubicarSiguiente(); break;
+      case 'ubicar-pendientes': S.saltadas = []; ubicarSiguiente(); break;
       case 'ubicar': ubicar(id); break;
       case 'desubicar': await accion('zonaUbicar', { id, x: '' }, 'Zona quitada del mapa'); fichaZona(id); break;
       case 'editar-zona': formZona(S.d.territorios.find(x => x.id === id)); break;
