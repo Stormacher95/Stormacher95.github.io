@@ -1689,12 +1689,10 @@ function miniCarnet(c) {
 function pokeHTML(x) {
   if (!x) return '<article class="poke libre"><span>Espacio libre</span></article>';
   const c1 = COLOR_TIPO[x.tipo1] || '#3d9ab8', c2 = COLOR_TIPO[x.tipo2] || c1;
-  const ef = x.naturaleza ? Core.NATURALEZAS[x.naturaleza] : '';
-  const nat = x.naturaleza ? esc(x.naturaleza) + ' <small>' + (ef || 'neutral') + '</small>' : '—';
   return `<article class="poke" style="--t1:${c1};--t2:${c2}">
     <header><div><b>${esc(x.apodo || x.especie)}${x.shiny ? ' <span class="shiny" title="Shiny">✨</span>' : ''}</b>${x.apodo ? `<small>${esc(x.especie)}</small>` : ''}</div>${x.nivel ? `<span class="nv">Nv. ${esc(x.nivel)}</span>` : ''}</header>
     ${x.tipo1 ? `<div class="tipos">${tipoChip(x.tipo1)}${tipoChip(x.tipo2)}</div>` : ''}
-    <dl class="poke-dl"><div><dt>Habilidad</dt><dd>${esc(x.habilidad || '—')}</dd></div><div><dt>Objeto</dt><dd>${esc(x.objeto || '—')}</dd></div><div><dt>Naturaleza</dt><dd>${nat}</dd></div></dl>
+    <dl class="poke-dl"><div><dt>Habilidad</dt><dd>${esc(x.habilidad || '—')}</dd></div><div><dt>Objeto</dt><dd>${esc(x.objeto || '—')}</dd></div></dl>
     ${x.movimientos && x.movimientos.length ? `<ul class="movs">${x.movimientos.map(m => `<li title="${esc(m)}">${esc(m)}</li>`).join('')}</ul>` : ''}
   </article>`;
 }
@@ -1756,7 +1754,6 @@ function formCarnet(c, clave) {
   const d = $('#dlgCarnetForm');
   const optEq = '<option value="">Sin team</option>' + S.d.equipos.map(e => `<option${e.nombre === c.equipo ? ' selected' : ''}>${esc(e.nombre)}</option>`).join('');
   const optTipo = v => '<option value="">—</option>' + Core.TIPOS.map(x => `<option${x === v ? ' selected' : ''}>${x}</option>`).join('');
-  const optNat = v => '<option value="">—</option>' + Object.keys(Core.NATURALEZAS).map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n}${Core.NATURALEZAS[n] ? ' (' + Core.NATURALEZAS[n] + ')' : ' (neutral)'}</option>`).join('');
   const slot = i => {
     const x = c.pokemon[i] || {}, m = x.movimientos || [];
     return `<details class="slot" data-slot="${i}"${i === 0 || x.especie ? ' open' : ''}><summary><span class="slot-n">${i + 1}</span><span class="slot-t">${esc(x.especie || 'Espacio libre')}</span></summary>
@@ -1766,11 +1763,10 @@ function formCarnet(c, clave) {
         <label class="campo">Tipo 1<select name="p${i}-tipo1">${optTipo(x.tipo1)}</select></label>
         <label class="campo">Tipo 2<select name="p${i}-tipo2">${optTipo(x.tipo2)}</select></label>
         <label class="campo">Nivel<input name="p${i}-nivel" type="number" inputmode="numeric" min="1" max="100" value="${esc(x.nivel || '')}"></label>
-        <label class="campo">Naturaleza<select name="p${i}-naturaleza">${optNat(x.naturaleza)}</select></label>
         <label class="campo">Habilidad<input name="p${i}-habilidad" list="dl-hab-${i}" maxlength="28" value="${esc(x.habilidad || '')}"><datalist id="dl-hab-${i}"></datalist></label>
         <label class="campo">Objeto<input name="p${i}-objeto" list="dl-objs" maxlength="28" value="${esc(x.objeto || '')}"></label>
+        <label class="chk" style="align-self:end;min-height:44px"><input type="checkbox" name="p${i}-shiny"${x.shiny ? ' checked' : ''}> Es shiny ✨</label>
         ${[0, 1, 2, 3].map(k => `<label class="campo">Movimiento ${k + 1}<input name="p${i}-m${k}" list="dl-movs" maxlength="24" value="${esc(m[k] || '')}"></label>`).join('')}
-        <label class="chk" style="grid-column:1/-1"><input type="checkbox" name="p${i}-shiny"${x.shiny ? ' checked' : ''}> Es shiny ✨</label>
       </div></details>`;
   };
   d.innerHTML = `<form class="dlg" novalidate autocomplete="off">
@@ -1814,7 +1810,7 @@ function formCarnet(c, clave) {
     const v = n => (f.elements[n] ? f.elements[n].value : '');
     const datos = {
       nombre: v('nombre'), equipo: v('equipo'), usuario: v('usuario'), lema: v('lema'), pvp: f.elements.pvp.checked, web: v('web'),
-      pokemon: [0, 1, 2, 3, 4, 5].map(i => ({ especie: v(`p${i}-especie`), apodo: v(`p${i}-apodo`), nivel: v(`p${i}-nivel`), tipo1: v(`p${i}-tipo1`), tipo2: v(`p${i}-tipo2`), habilidad: v(`p${i}-habilidad`), objeto: v(`p${i}-objeto`), naturaleza: v(`p${i}-naturaleza`), movimientos: [0, 1, 2, 3].map(k => v(`p${i}-m${k}`)), shiny: f.elements[`p${i}-shiny`].checked }))
+      pokemon: [0, 1, 2, 3, 4, 5].map(i => ({ especie: v(`p${i}-especie`), apodo: v(`p${i}-apodo`), nivel: v(`p${i}-nivel`), tipo1: v(`p${i}-tipo1`), tipo2: v(`p${i}-tipo2`), habilidad: v(`p${i}-habilidad`), objeto: v(`p${i}-objeto`), movimientos: [0, 1, 2, 3].map(k => v(`p${i}-m${k}`)), shiny: f.elements[`p${i}-shiny`].checked }))
     };
     const c1 = v('clave1'), c2 = v('clave2');
     if (datos.nombre.trim().length < 2) { err.textContent = 'Escribí tu nombre de entrenador.'; f.elements.nombre.focus(); return; }
