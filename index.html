@@ -411,16 +411,63 @@ body.es-admin main section{scroll-margin-top:122px}
 .hitos span{font-size:15px;color:#cfe3e6}
 .creditos{margin-top:44px;padding-top:28px;border-top:2px solid var(--sea-700)}
 .creditos>p{color:var(--mist);font-size:15px;margin:-6px 0 18px;max-width:720px}
-.creditos-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.creditos-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
 .credito{display:grid;gap:6px;align-content:start;background:var(--sea-800);border:2px solid var(--sea-700);border-radius:var(--r);padding:16px}
 .credito small{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--sand)}
 .credito b{font-size:17px;font-weight:600}
 .credito p{font-size:14px;color:#cfe3e6;margin:0}
 .credito-l{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px}
 .credito-l a{font-size:14px;color:var(--sand)}
-@media (max-width:1100px){.creditos-g{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.creditos-g{grid-template-columns:minmax(0,1fr)}}
 .fuentes{margin-top:26px;font-size:13px;color:var(--mist)}
+/* wiki */
+.wk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px}
+.wk-card{display:grid;gap:6px;align-content:start;text-align:left;background:var(--sea-800);border:2px solid var(--sea-700);border-top:4px solid var(--c);border-radius:var(--r);padding:14px;cursor:pointer;color:var(--foam);font:inherit;min-height:150px}
+.wk-card:hover{border-color:var(--c)}
+.wk-card-cab{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.wk-card-cab b{font-size:16px;font-weight:600}
+.wk-card-cab small{font-size:12px;color:var(--mist);white-space:nowrap}
+.wk-card-res{font-size:13.5px;color:#cfe3e6;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.wk-card-est{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--c);font-weight:600;margin-top:auto;padding-top:4px}
+.mini{width:24px;height:24px;border-radius:50%;background:#0b1d26;border:2px solid var(--c);display:inline-grid;place-items:center;overflow:hidden;flex:none}
+.mini img{width:72%;height:72%;object-fit:contain}.mini img.cubre{width:100%;height:100%;object-fit:cover}
+.mini.punto{width:10px;height:10px;background:var(--c)}
+.wk-fuente{margin-top:18px;font-size:13px;color:var(--mist)}
+.wk-poke{margin-bottom:14px;background:var(--sea-850);border:2px solid var(--sand);border-radius:var(--r);padding:16px}
+.wk-poke h3{font-size:18px;margin:0 0 6px}
+.wk-poke p{font-size:14px;color:var(--mist);margin:0 0 10px}
+.wk-poke ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.wk-poke li button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;text-align:left;background:var(--sea-800);border:2px solid var(--sea-700);border-left:5px solid var(--c);border-radius:10px;padding:10px 12px;color:var(--foam);font:inherit;cursor:pointer}
+.wk-poke li button:hover{border-color:var(--c)}
+.wk-poke li small{grid-column:1/-1;color:#cfe3e6;font-size:13px}
+.wk-poke a{color:var(--sand)}
+#dlgWiki{max-width:min(880px,calc(100vw - 24px))}
+.wk-art{display:grid;gap:18px}
+.wk-control{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px}
+.wk-control .mini{width:34px;height:34px}
+.wk-control .acc{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.wk-resumen{font-size:16px;line-height:1.6;margin:0}
+.wk-notas{background:#1c3a3a;border:2px solid #6d6a2e;border-radius:10px;padding:12px 14px;font-size:15px;white-space:pre-line}
+.wk-notas b{display:block;color:var(--sand);font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.wk-art h3{font-size:18px;margin:0 0 8px}
+.wk-gym{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;background:var(--sea-800);border:2px solid var(--sea-700);border-radius:10px;padding:12px}
+.wk-gym small{display:block;font-size:12px;color:var(--mist)}
+.wk-gym b{font-size:15px;font-weight:600}
+.wk-metodo{font-size:13px;color:var(--sand);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.05em}
+.wk-tabla{width:100%;border-collapse:collapse;font-size:14px}
+.wk-tabla th,.wk-tabla td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--sea-700);vertical-align:top}
+.wk-tabla th{font-size:12px;color:var(--mist);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.wk-tabla a{color:var(--foam);text-decoration:none}.wk-tabla a:hover{color:var(--sand);text-decoration:underline}
+.wk-tabla td small{color:var(--mist)}
+.wk-lista{columns:2 240px;padding-left:18px;margin:0;font-size:14px;color:#cfe3e6}
+.wk-lista li{margin-bottom:5px;break-inside:avoid}
+.wk-lista small{color:var(--mist)}
+.wk-art details summary{cursor:pointer;color:var(--sand);font-weight:600;font-size:14px;margin:8px 0}
+.wk-cargando{color:var(--mist);font-size:14px;display:flex;gap:10px;align-items:center}
+.wk-cargando i{width:10px;height:10px;border-radius:50%;background:var(--sand);animation:latido 1.2s infinite}
+.wk-error{background:#3a1c1c;border:2px solid #8a3b3b;border-radius:10px;padding:12px 14px;font-size:14px}
+.wk-pie{font-size:12.5px;color:var(--mist);border-top:1px solid var(--sea-700);padding-top:10px;margin:0}
+.wk-pie a{color:var(--sand)}
+@media (max-width:560px){.wk-tabla{font-size:13px}.wk-tabla th,.wk-tabla td{padding:6px 5px}.wk-control .acc{margin-left:0}}
 /* aviso legal y contacto */
 .legal-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
 .legal-c{background:var(--sea-850);border:2px solid var(--sea-700);border-radius:var(--r);padding:18px}
@@ -583,7 +630,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
       <span><b>Reloaded Online</b><small>Comunidad de Pokémon Reloaded</small></span>
     </a>
     <nav class="nav" aria-label="Secciones">
-      <a href="#sumate" data-ir="sumate">Empezá</a><a href="#teams" data-ir="teams">Teams</a><a href="#entrenadores" data-ir="entrenadores">Carnets</a><a href="#atlas" data-ir="atlas">Atlas</a><a href="#cronica" data-ir="cronica">Crónica</a><a href="#torneos" data-ir="torneos">Torneos</a><a href="#comunidad" data-ir="comunidad">Comunidad</a><a href="#reglas" data-ir="reglas">Reglas</a><a href="#juego" data-ir="juego">El juego</a>
+      <a href="#sumate" data-ir="sumate">Empezá</a><a href="#teams" data-ir="teams">Teams</a><a href="#entrenadores" data-ir="entrenadores">Carnets</a><a href="#atlas" data-ir="atlas">Atlas</a><a href="#wiki" data-ir="wiki">Wiki</a><a href="#cronica" data-ir="cronica">Crónica</a><a href="#torneos" data-ir="torneos">Torneos</a><a href="#comunidad" data-ir="comunidad">Comunidad</a><a href="#reglas" data-ir="reglas">Reglas</a><a href="#juego" data-ir="juego">El juego</a>
     </nav>
     <div class="top-acc">
       <button class="btn sm menu-btn" id="btnMenu" type="button" aria-haspopup="dialog">Menú</button>
@@ -667,6 +714,20 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
     </div>
     <div class="zonas" id="gridZonas"></div>
     <p class="vacio" id="zonasVacio" hidden>Ninguna zona coincide con la búsqueda.</p>
+  </div>
+</section>
+
+<section class="sec" id="wiki">
+  <div class="wrap">
+    <div class="sec-cab"><h2>Wiki de la Región Star</h2><p>Cada zona con sus Pokémon salvajes, gimnasio, objetos y conexiones, y quién la controla hoy en la guerra de teams.</p></div>
+    <div class="herr">
+      <input class="buscar" id="buscarWiki" type="search" placeholder="Buscá una zona o un Pokémon (ej.: Riolu)" aria-label="Buscar en la wiki" autocomplete="off">
+      <div class="chips" id="filtrosWiki" role="group" aria-label="Filtrar por tipo de lugar"></div>
+    </div>
+    <div class="wk-poke" id="wikiPoke" hidden aria-live="polite"></div>
+    <div class="wk-grid" id="gridWiki"></div>
+    <p class="vacio" id="wikiVacio" hidden>Ninguna zona coincide con la búsqueda.</p>
+    <p class="wk-fuente">Los datos de cada zona se leen en vivo de la <a href="https://pokemonreloaded.fandom.com/es/wiki/Wiki_PokemonReloaded" target="_blank" rel="noopener">Wiki PokemonReloaded</a>, hecha por su comunidad de editores (licencia CC BY-SA). Los resúmenes son de esta web.</p>
   </div>
 </section>
 
@@ -808,6 +869,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
       <div class="creditos-g">
         <div class="credito"><small>El juego</small><b>Pokémon Reloaded</b><p>Le pertenece a Fer (F3R) y su equipo. Un juego de fans para fans, sin fines de lucro, con años de desarrollo para darle vida a la Región Star.</p><div class="credito-l"><a href="https://pokemon-reloaded.blogspot.com/?m=1" target="_blank" rel="noopener">Blog</a><a href="https://discord.com/invite/Yz46C9uBtU" target="_blank" rel="noopener">Discord</a></div></div>
         <div class="credito"><small>La edición online</small><b>Reloaded Online</b><p>Creación aparte de su autor y la gente de Rebelión Celestial, para jugar Reloaded con otros entrenadores. Es un proyecto propio de ellos, independiente de esta web.</p><div class="credito-l"><a href="https://reloadedonline.duckdns.org/" target="_blank" rel="noopener">Jugar</a><a href="https://discord.gg/ZpN99eUtR" target="_blank" rel="noopener">Discord</a></div></div>
+        <div class="credito"><small>La guía de zonas</small><b>Wiki PokemonReloaded</b><p>Los datos de Pokémon, gimnasios y objetos de cada zona salen en vivo de esta wiki, hecha por su comunidad de editores (licencia CC BY-SA).</p><div class="credito-l"><a href="https://pokemonreloaded.fandom.com/es/wiki/Wiki_PokemonReloaded" target="_blank" rel="noopener">Visitarla</a></div></div>
         <div class="credito"><small>Pokémon exclusivos</small><b>The Patathan</b><p>Créditos por los Pokémon propios de Reloaded que pueblan la región.</p></div>
         <div class="credito"><small>Este sitio</small><b>La comunidad</b><p>Teams, guerras, torneos y carnets los arma y los cuida la comunidad. Es un espacio no oficial que junta la información para que todos la tengan a mano. <a href="#legal" data-ir="legal">Aviso legal</a></p></div>
       </div>
@@ -821,7 +883,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
     <div class="legal-g">
       <article class="legal-c"><h3>Un espacio de la comunidad</h3><p>Esta web junta en un solo lugar la información que la comunidad usa todos los días: teams, zonas, torneos, carnets y enlaces útiles. Es un proyecto de fans, gratuito y sin fines de lucro: no vende nada, no tiene publicidad y no acepta donaciones.</p></article>
       <article class="legal-c"><h3>De quién es cada cosa</h3><p>Pokémon Reloaded le pertenece a Fer (F3R) y su equipo: es un juego hecho por fans y para fans, sin fines de lucro. Reloaded Online es una creación aparte de su propio autor. Esta web es independiente de los dos y no habla en su nombre. Los enlaces al online están para que tengas la información a mano: no lo promocionamos ni lo respaldamos, y no participamos en su desarrollo.</p></article>
-      <article class="legal-c"><h3>Marcas y derechos</h3><p>Pokémon y los nombres de sus personajes, especies y movimientos son marcas de Nintendo, Game Freak, Creatures Inc. y The Pokémon Company. Este sitio no está afiliado, patrocinado ni aprobado por ellas. Acá no se aloja ni se comparte ningún juego, ROM ni archivo del juego: para descargar, te mandamos a la página oficial de cada creador. El diseño, los textos y los íconos de la web son de la comunidad. Los emblemas de los teams pertenecen a sus dueños y se usan solo para identificar a cada team en el mapa; no usamos sprites ni otro arte oficial.</p></article>
+      <article class="legal-c"><h3>Marcas y derechos</h3><p>Pokémon y los nombres de sus personajes, especies y movimientos son marcas de Nintendo, Game Freak, Creatures Inc. y The Pokémon Company. Este sitio no está afiliado, patrocinado ni aprobado por ellas. Acá no se aloja ni se comparte ningún juego, ROM ni archivo del juego: para descargar, te mandamos a la página oficial de cada creador. El diseño, los textos y los íconos de la web son de la comunidad. Los emblemas de los teams pertenecen a sus dueños y se usan solo para identificar a cada team en el mapa; no usamos sprites ni otro arte oficial. La guía de zonas muestra datos de la Wiki PokemonReloaded (licencia CC BY-SA) con enlace a cada página original.</p></article>
       <article class="legal-c"><h3>Tus datos</h3><p>Solo se guarda lo que cargás en tu carnet (nombre de entrenador, team, usuario del juego, lema, equipo Pokémon y si aceptás PvP) y lo que envíes por el formulario de contacto. Queda en una planilla de Google Drive de la administración. El carnet es público y su clave se guarda cifrada. No pedimos nombre real, teléfono ni dirección: no los pongas. Podés borrar tu carnet cuando quieras desde “Editar carnet”. Según la Ley 25.326, podés pedir acceso, corrección o eliminación de tus datos con el formulario de abajo.</p></article>
       <article class="legal-c"><h3>Lo que publica la comunidad</h3><p>Noticias, partes de guerra y carnets los cargan miembros de la comunidad. La administración puede corregir o borrar lo que rompa las reglas o afecte derechos de otros. Tu navegador solo recuerda cosas tuyas, como cuál es tu carnet, y no se comparten con nadie.</p></article>
     </div>
@@ -866,7 +928,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
   <div class="dlg"><div class="dlg-cab"><h2>Menú</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <nav class="menu-lista" aria-label="Secciones">
-        <a href="#inicio" data-ir="inicio">Inicio</a><a href="#sumate" data-ir="sumate">Empezá a jugar</a><a href="#teams" data-ir="teams">Teams</a><a href="#entrenadores" data-ir="entrenadores">Carnets de entrenador</a><a href="#atlas" data-ir="atlas">Atlas de la Región Star</a><a href="#cronica" data-ir="cronica">Crónica y clasificación</a><a href="#torneos" data-ir="torneos">Torneos y PvP</a><a href="#comunidad" data-ir="comunidad">Comunidad</a><a href="#reglas" data-ir="reglas">Reglas</a><a href="#juego" data-ir="juego">Sobre el juego</a>
+        <a href="#inicio" data-ir="inicio">Inicio</a><a href="#sumate" data-ir="sumate">Empezá a jugar</a><a href="#teams" data-ir="teams">Teams</a><a href="#entrenadores" data-ir="entrenadores">Carnets de entrenador</a><a href="#atlas" data-ir="atlas">Atlas de la Región Star</a><a href="#wiki" data-ir="wiki">Wiki de la región</a><a href="#cronica" data-ir="cronica">Crónica y clasificación</a><a href="#torneos" data-ir="torneos">Torneos y PvP</a><a href="#comunidad" data-ir="comunidad">Comunidad</a><a href="#reglas" data-ir="reglas">Reglas</a><a href="#juego" data-ir="juego">Sobre el juego</a>
       <a href="#legal" data-ir="legal">Aviso legal y contacto</a>
       </nav>
       <div class="menu-acc"><a class="btn sand" href="https://reloadedonline.duckdns.org/" target="_blank" rel="noopener">Jugar online</a><a class="btn" href="https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH" target="_blank" rel="noopener">Grupo de WhatsApp de Online</a></div>
@@ -879,6 +941,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
 <datalist id="dl-especies"></datalist><datalist id="dl-movs"></datalist><datalist id="dl-habs"></datalist><datalist id="dl-objs"></datalist>
 <dialog id="dlgTeam"></dialog>
 <dialog id="dlgZona"></dialog>
+<dialog id="dlgWiki"></dialog>
 <dialog id="dlgForm"></dialog>
 <dialog id="dlgLista"></dialog>
 <dialog id="dlgMapa">
@@ -919,7 +982,8 @@ var Core = (function () {
     noticias: ['id', 'fecha', 'titulo', 'cuerpo'],
     combates: ['id', 'fecha', 'ganador', 'rival', 'equipoGanador', 'equipoRival', 'formato', 'nota'],
     grupos: ['id', 'nombre', 'enlace', 'miembros', 'actualizado', 'orden'],
-    reglas: ['id', 'orden', 'titulo', 'texto', 'nota', 'destacada']
+    reglas: ['id', 'orden', 'titulo', 'texto', 'nota', 'destacada'],
+    wiki: ['id', 'zona', 'resumen', 'notas', 'actualizado']
   };
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -931,6 +995,59 @@ var Core = (function () {
     v = (v == null ? '' : String(v)).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
     return max ? v.slice(0, max) : v;
   }
+  // Resúmenes propios de cada zona para la wiki (el admin los puede cambiar desde la web).
+  var WIKI_RESUMENES = {
+    "Pueblo Alba": "El pueblo donde arranca la aventura. El Profesor Oak entrega el primer compañero (Pikachu, Riolu o Eevee) y en la casa del protagonista se consiguen el mapa y las primeras pociones. Más adelante se abre la Granja Pokémon.",
+    "Pueblo Valde": "Segunda parada del viaje, después de vencer al rival en la Ruta 1. Es el primer pueblo con Centro Pokémon y tienda, y tiene una Escuela Pokémon.",
+    "Ciudad Spica": "La primera ciudad, tranquila y sencilla, a la que se llega por la Ruta 3. Tiene el primer gimnasio de la región, el Museo de la Ciencia, el laboratorio del Profesor Serbal y una casa donde los Pokémon pueden olvidar movimientos.",
+    "Bosque Spica": "Bosque laberíntico entre las rutas 2 y 3, paso obligado hacia Ciudad Spica. Es el lugar ideal para sumar Pokémon tipo Bicho, Planta y Fantasma al principio; algunos árboles se cortan con Corte.",
+    "Pueblo Talo": "Pueblo de lluvia constante donde los Slowpoke son queridos porque la invocan. Acá aparece por primera vez una banda criminal, y para seguir hacia la Ruta 6 hay que resolver lo que pasa en el Pozo Talo.",
+    "Ciudad Naos": "Segunda ciudad del viaje, en el noroeste, con casas de tejado azul. Su gimnasio es de tipo Agua y tiene la Guardería Pokémon, donde se cruza por primera vez al Team Rocket.",
+    "Ciudad Sirio": "Tercera ciudad, en el centro de la región, a la que se llega por la Ruta 10. Tiene un aire sombrío que combina con su gimnasio de tipo Siniestro y Fantasma.",
+    "Ciudad Deneb": "Cuarta ciudad, cubierta de nieve casi todo el año; se llega por el Túnel Yucca. Al principio el gimnasio está cerrado y para el combate hay que atravesar la Cueva Helada.",
+    "Bosque Místico": "Bosque al oeste de Ciudad Antares que se abre recién después de la Liga Star, cuando la historia avanza en Kanto y se gana la medalla de Lt. Surge.",
+    "Ciudad Vega": "Quinta ciudad, tropical y con playa, a la que se llega por la Ruta 16. Tiene gimnasio de tipo Planta, el laboratorio del Profesor Elm, una carrera Pokémon y una comisaría.",
+    "Playa Vega": "Playa al sur de Ciudad Vega a la que se entra después de conseguir la Regadera. En su extremo sur está la entrada a la Cueva Moonlight.",
+    "Ciudad Polar": "Una de las ciudades más grandes, con casino y centro comercial, y con bandas criminales metidas en todo. Su gimnasio de tipo Dragón es el séptimo de la Liga Star.",
+    "Ciudad Rigel": "Ciudad del desierto con estética de lejano oeste, a la que se llega cruzando el Desierto del Gaara. Lo primero es pasar por el Saloon Rigel; su gimnasio es de tipo Fuego.",
+    "Ciudad Antares": "Ciudad exclusiva de Reloaded y la más avanzada de la región, con teletransportadores y suelo fotovoltaico. Su gimnasio es de tipo Psíquico y ahí se levanta el edificio más alto de Star.",
+    "Pueblo Kena": "Cuarto pueblo de la región, con hierba alta propia y un intercambio Pokémon.",
+    "Pueblo Luna": "Pueblo exclusivo de Star al que se llega después de la séptima medalla, por la Cueva Moonlight y la Ruta 19. La Ruta 20 lo une con Ciudad Antares y al norte están las Ruinas Omega.",
+    "Pueblo Arcturus": "Uno de los asentamientos principales de La Jungla, escondido detrás de la Cueva Chuzo. Remoto y difícil de alcanzar, es el refugio ideal para quien no quiere ser encontrado.",
+    "Pueblo Wezen": "Segundo pueblo de La Jungla, con nombre de una estrella del Can Mayor. Tiene encuentros especiales y mucho para surfear y pescar.",
+    "Pueblo Régulo": "Pueblo de La Jungla que toma su nombre de la estrella Régulo.",
+    "Pueblo Procyon": "Pueblo de La Jungla bautizado por Procyon, la estrella más brillante del Can Menor.",
+    "Pueblo Niza": "La wiki lo registra como otro nombre de Pueblo Alba, el pueblo inicial. En la guerra de teams cuenta como una zona propia.",
+    "Puerto Luz": "Puerto en el camino de Ciudad Antares hacia la Cueva Ardiente y la Isla Sol, entre las rutas 21, 22 y 24. Es de los lugares con más variedad de Pokémon en hierba, agua y pesca.",
+    "Playa Naos": "Playa pegada a Ciudad Naos, del lado oeste de la ciudad.",
+    "Isla Sol": "La isla de la Liga Pokémon. Antes hay que superar la Calle Victoria, llena de entrenadores de otros juegos; después de la Liga se abre la Ruta 25, donde esperan Latios y Latias.",
+    "Isla Urano": "Primera isla del Archipiélago Solar y la que abre el viaje hacia las demás. Gira alrededor del tipo Volador: ahí está el gran estadio de Flygol.",
+    "Isla Venus": "Isla del Archipiélago Solar dedicada al tipo Veneno, con mayoría de población femenina; ahí vive Tina, del Alto Mando Star. Su gran desafío es la Cueva Neith.",
+    "Isla Terra": "Isla del Archipiélago Solar entre la Isla Magmática y la Isla Oceánica. Ahí está el Santuario Terra.",
+    "Isla Marte": "Isla del Archipiélago Solar con el Dojo Marte: ganándolo se enfrenta a Aníbal por la Medalla Tormenta. Si se gana cinco veces seguidas, se abre la Cueva Roja.",
+    "Isla Júpiter": "Isla del Archipiélago Solar con la Universidad Pokémon. Ahí está Petra, líder de Hoenn: para enfrentarla hay que sacarse un 10 en su examen.",
+    "Isla Saturno": "Isla del Archipiélago Solar dedicada al tipo Eléctrico. Su gran desafío es el Laboratorio Voltio.",
+    "Isla Neptuno": "Una de las islas del Archipiélago Solar, con nombre de planeta como sus vecinas.",
+    "Islas Cometa": "Archipiélago parecido al Solar, con mapa propio. Se desbloquea después de la misión \"Encarcelado ¿Injustamente?\", del evento de Lem en la Isla Halley y de vencer a Violeta, la primera líder de Kalos.",
+    "Archipiélago Solar": "Conjunto de islas con nombres de planetas del Sistema Solar, más algunas islas externas como la Isla del Frente o la Isla Halley.",
+    "Gran Isla Estelar": "La isla principal de la Región Star, donde pasa casi toda la historia: los gimnasios, la Liga Star y la mayoría de las capturas.",
+    "Zona Safari": "Área especial con Pokémon que no aparecen en otro lado. La entrada cuesta 5 € y tiene cuatro sectores (noroeste, noreste, suroeste y sureste), cada uno con encuentros distintos.",
+    "La Jungla": "La segunda isla más grande de la región, tropical, calurosa y llena de Pokémon. Es la guarida del Team Rekiem, la organización criminal propia de Star, que bloquea el Teletransporte en la zona.",
+    "Paraíso Floral": "Zona verde de la Ruta 20, entre Pueblo Luna y Ciudad Antares, con el suelo cubierto de flores y caminos unidos por puentes y escaleras. Abundan los Pokémon Bicho/Volador con forma de mariposa.",
+    "Pantano Swamp": "Pantano entre Pueblo Kena y Ciudad Deneb que une la Ruta 15 con la Cueva Extravío. No tiene entrenadores; sobre el barro conviene moverse con Velocidad Extrema.",
+    "Desierto de Gaara": "El único desierto de la región; hace falta la bicicleta para las rampas. Lo más buscado es Regigigas, cuya cueva se abre los domingos.",
+    "Ruinas Omega": "Laberinto de salas y pasillos metido en una montaña al norte de Pueblo Luna.",
+    "Cueva Helada": "Cueva de Ciudad Deneb que hay que cruzar para la cuarta medalla y la MO Vuelo. El hielo hace deslizar al personaje sin control, y de eso se tratan sus rompecabezas.",
+    "Cueva Neith": "Cueva de la Isla Venus con niebla espesa y rocas que hay que mover para avanzar. Su nombre viene de una diosa egipcia.",
+    "Cueva Rocosa": "Une Ciudad Polar con el Desierto del Gaara. Hace falta Fuerza: cada roca que se encaja en un hueco hace desaparecer otra grande. Conviene guardar seguido.",
+    "Cueva Moonlight": "Conecta la Playa Vega con la Ruta 19. Tiene mucha variedad, incluida la legendaria Cresselia, y Pokémon que pueden llevar Piedra Solar o Piedra Lunar.",
+    "Cueva Roja": "Cueva de la Isla Marte que se abre al ganar el Dojo Marte cinco veces. Adentro esperan Deoxys y la Mewtwoita.",
+    "Liga Star": "La Liga de la Región Star, en la Isla Sol: el desafío final después de las ocho medallas.",
+    "Torre pokémon": "Cementerio de la Ruta 9 donde se despide a los Pokémon, lleno de tipo Fantasma. Arriba vive el Gran Sabio Anciano, del que se dice que ve el futuro.",
+    "Isla Calor": "Una de las tres islas, con Isla Energía e Isla Viento, que hay que recorrer para reunir las armas que abren el gimnasio de Locke y la Medalla Fábula.",
+    "Isla Energía": "La segunda de las tres islas de las armas, junto a Isla Calor e Isla Viento. Paso obligado antes del gimnasio de Locke.",
+    "Isla Viento": "La tercera isla de las armas. En la superficie no hay mucho: todo pasa adentro de la Cueva Vendaval."
+    };
   function slug(s) {
     return txt(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
@@ -1000,6 +1117,7 @@ var Core = (function () {
         { id: 'r7', orden: '7', titulo: 'Recuperar territorio', texto: 'Si un team vuelve a reclutar miembros y su ciudad está ocupada, tiene que luchar para recuperarla.', nota: '', destacada: '' },
         { id: 'r8', orden: '8', titulo: 'Intervención del Escuadrón Élite', texto: 'Si el Escuadrón Élite derrota a 4 o 5 miembros de un team en guerra, el castigo previsto es que todo ese team quede preso por 4 días.', nota: 'La aplicación de esta sanción todavía está en construcción.', destacada: '1' }
       ],
+      wiki: Object.keys(WIKI_RESUMENES).map(function (z) { return { id: 'w-' + slug(z), zona: z, resumen: WIKI_RESUMENES[z], notas: '', actualizado: '' }; }),
       grupos: [
         { id: 'g-online', nombre: 'Grupo de Online', enlace: 'https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH', miembros: '0', actualizado: '', orden: '1' },
         { id: 'g-general', nombre: 'Grupo general', enlace: 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6', miembros: '0', actualizado: '', orden: '2' }
@@ -1122,6 +1240,14 @@ var Core = (function () {
         lista.forEach(function (r, k) { r.orden = String(k + 1); });
         return { cambios: ['reglas'] };
       }
+      case 'wikiGuardar': {
+        db.wiki = db.wiki || [];
+        var zw = txt(p.zona, 80); if (!zw) falla('Falta la zona.');
+        x = db.wiki.find(function (w) { return w.zona === zw; });
+        if (!x) { x = { id: 'w-' + slug(zw), zona: zw }; db.wiki.push(x); }
+        x.resumen = largo(p.resumen, 1200); x.notas = largo(p.notas, 1500); x.actualizado = ahora;
+        return { cambios: ['wiki'] };
+      }
       case 'grupoMiembros': {
         db.grupos = db.grupos || [];
         x = porId(db.grupos, p.id) || falla('Ese grupo ya no existe.');
@@ -1192,7 +1318,8 @@ var Core = (function () {
       territorios: db.territorios, guerras: admin ? db.guerras : db.guerras.slice(0, 250),
       torneos: db.torneos, noticias: db.noticias.slice(0, admin ? 500 : 60), combates: db.combates.slice(0, admin ? 500 : 60),
       grupos: (db.grupos || []).slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); }),
-      reglas: (db.reglas || []).slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); })
+      reglas: (db.reglas || []).slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); }),
+      wiki: db.wiki || []
     };
   }
 
@@ -1359,6 +1486,7 @@ function render() {
   renderCarnets();
   renderGrupos();
   renderReglas();
+  renderWiki();
   $$('.solo-admin').forEach(e => e.hidden = !esAdmin());
 }
 
@@ -1577,7 +1705,7 @@ function fichaZona(id) {
   d.innerHTML = `<div class="dlg" style="--c:${esc(c)}"><div class="dlg-cab"><p class="muted">${esc(t.tipo)}</p><h2>${esc(t.nombre)}</h2><p style="margin-top:10px"><span class="pill" style="--c:${esc(c)}">${esc(t.estado === 'Controlada' ? 'Controlada por ' + t.equipo : t.estado)}</span></p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <dl class="ficha"><div><dt>Último parte</dt><dd>${pintar(t.ultimo || 'Zona neutral')}</dd></div>${t.retador ? `<div><dt>Retador</dt><dd>${pintar(t.retador)}</dd></div>` : ''}<div><dt>Referencia en el mapa</dt><dd>${esc(t.referencia || 'Por confirmar')}</dd></div></dl>
-      ${enMapa ? `<button class="btn sm" type="button" data-act="ver-en-mapa" data-id="${esc(t.id)}">Ver en el mapa</button>` : ''}
+      <div class="dlg-acc" style="justify-content:flex-start">${enMapa ? `<button class="btn sm" type="button" data-act="ver-en-mapa" data-id="${esc(t.id)}">Ver en el mapa</button>` : ''}<button class="btn sm sand" type="button" data-act="wiki" data-zona="${esc(t.nombre)}">Guía de la zona</button></div>
       <div><h3 style="font-size:18px;margin-bottom:8px">Historial de guerras</h3>${hist.length ? `<ol class="hist">${hist.slice(0, 25).map(g => `<li style="--c:${esc(g.ganador ? colorEq(g.ganador) : '#93b9c3')}"><time>${fecha(g.fecha)}</time>${pintar(g.resumen)}${g.nota ? `<br><small class="muted">${esc(g.nota)}</small>` : ''}</li>`).join('')}</ol>` : '<p class="muted">Sin batallas registradas en esta zona.</p>'}</div>
       ${adm ? `<form class="caja-admin" id="formGuerra"><h3>Registrar resultado</h3>
         <div class="campos dos">
@@ -2090,6 +2218,10 @@ document.addEventListener('click', async ev => {
       case 'editar-zona': formZona(S.d.territorios.find(x => x.id === id)); break;
       case 'borrar-zona': cerrar($('#dlgZona')); borrar('Borrar zona', 'Se borra la zona del atlas junto con su historial. No se puede deshacer.', 'zonaBorrar', 'Zona borrada'); break;
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
+      case 'wiki': { const z = el.dataset.zona; if ($('#dlgZona').open) cerrar($('#dlgZona')); abrirWiki(z); break; }
+      case 'wiki-filtro': WK.filtro = el.dataset.f; renderWiki(); break;
+      case 'wiki-a-zona': cerrar($('#dlgWiki')); fichaZona(id); break;
+      case 'wiki-editar': formWiki($('#dlgWiki').dataset.zona); break;
       case 'regla-nueva': formRegla(); break;
       case 'regla-editar': formRegla((S.d.reglas || []).find(x => x.id === id)); break;
       case 'regla-mover': await accion('reglaMover', { id, dir: el.dataset.dir }, 'Orden de las reglas actualizado'); break;
@@ -2236,6 +2368,245 @@ function cambiarGrupo(id, valor) {
     }
   }, 650);
 }
+
+// ---------- Wiki de la Región Star: resúmenes propios + datos en vivo de la Wiki PokemonReloaded ----------
+const WK = {
+  api: 'https://pokemonreloaded.fandom.com/es/api.php', web: 'https://pokemonreloaded.fandom.com/es/wiki/',
+  paginas: { 'Gran Isla Estelar': 'Región Star', 'Torre pokémon': 'Torre Pokémon', 'Desierto de Gaara': 'Desierto del Gaara' },
+  grupos: [
+    { id: 'todas', l: 'Todas' }, { id: 'pob', l: 'Ciudades y pueblos', re: /^(Ciudad|Pueblo|Puerto)$/ }, { id: 'nat', l: 'Naturaleza', re: /^(Bosque|Playa|Zona natural|Pantano|Desierto)$/ },
+    { id: 'cue', l: 'Cuevas', re: /^Cueva$/ }, { id: 'isl', l: 'Islas', re: /^(Isla|Archipiélago|Región)$/ }, { id: 'esp', l: 'Lugares especiales', re: /^(Liga|Edificio|Ruinas)$/ }
+  ],
+  mem: {}, filtro: 'todas', q: '', busq: 0
+};
+const wkNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const wkSlug = s => wkNorm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const wkUrl = t => WK.web + encodeURIComponent(String(t).replace(/ /g, '_'));
+const wkBase = () => WK.base || (WK.base = Core.semilla().wiki);
+const wkTexto = zona => (Array.isArray(S.d.wiki) ? S.d.wiki : wkBase()).find(w => w.zona === zona) || wkBase().find(w => w.zona === zona) || { zona, resumen: '', notas: '' };
+const wkZonas = () => S.d.territorios.length ? S.d.territorios : wkBase().map(w => ({ id: 'z-' + wkSlug(w.zona), nombre: w.zona, tipo: '', estado: 'Neutral', equipo: '' }));
+async function wkApi(q) {
+  const r = await fetch(WK.api + '?origin=*&format=json&' + q);
+  if (!r.ok) throw new Error('La wiki no respondió (' + r.status + ').');
+  return r.json();
+}
+function wkCache(k, horas, v) {
+  try {
+    if (v !== undefined) { localStorage.setItem('wk:' + k, JSON.stringify({ t: Date.now(), v })); return v; }
+    const x = JSON.parse(localStorage.getItem('wk:' + k) || 'null');
+    return x && Date.now() - x.t < horas * 3600e3 ? x.v : null;
+  } catch (e) { return null; }
+}
+async function wkPokes() {
+  if (WK.pokes) return WK.pokes;
+  let lista = wkCache('pokes', 24 * 7);
+  if (!lista) {
+    lista = []; let cont = '';
+    for (let k = 0; k < 6; k++) {
+      const r = await wkApi('action=query&list=categorymembers&cmlimit=500&cmnamespace=0&cmtitle=' + encodeURIComponent('Categoría:Lista de Pokémon por nombre') + cont);
+      r.query.categorymembers.forEach(m => lista.push(m.title));
+      if (!r.continue) break; cont = '&cmcontinue=' + encodeURIComponent(r.continue.cmcontinue);
+    }
+    wkCache('pokes', 0, lista);
+  }
+  return (WK.pokes = new Set(lista));
+}
+const wkLimpiar = s => String(s || '')
+  .replace(/<ref[\s\S]*?<\/ref>|<ref[^>]*\/>/g, '')
+  .replace(/\[\[(?:Archivo|File|Imagen|Image|Categoría|Category):[^\]]*\]\]/gi, '')
+  .replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1').replace(/\[\[([^\]]*)\]\]/g, '$1')
+  .replace(/\[https?:\/\/\S+\s([^\]]*)\]/g, '$1').replace(/\[https?:\/\/\S+\]/g, '').replace(/'{2,}/g, '')
+  .replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\{\{[^{}]*\}\}/g, '').replace(/\{\{[^{}]*\}\}/g, '')
+  .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+function wkPlantilla(s) {
+  s = s.trimStart(); if (!s.startsWith('{{')) return null;
+  let d = 0, i = 0;
+  for (; i < s.length; i++) { if (s.startsWith('{{', i)) { d++; i++; } else if (s.startsWith('}}', i)) { d--; i++; if (!d) break; } }
+  const cuerpo = s.slice(2, i - 1), partes = []; let k = 0, cur = '';
+  for (let j = 0; j < cuerpo.length; j++) {
+    const c2 = cuerpo.slice(j, j + 2);
+    if (c2 === '{{' || c2 === '[[') { k++; cur += c2; j++; continue; }
+    if (c2 === '}}' || c2 === ']]') { k--; cur += c2; j++; continue; }
+    if (cuerpo[j] === '|' && !k) { partes.push(cur); cur = ''; } else cur += cuerpo[j];
+  }
+  partes.push(cur);
+  const params = {}; partes.shift();
+  partes.forEach(x => { const e = x.indexOf('='); if (e > 0) params[x.slice(0, e).trim().toLowerCase()] = x.slice(e + 1).trim(); });
+  return { params, fin: i + 1 };
+}
+function wkSecciones(wt) {
+  const out = [], re = /^(={2,4})\s*(.*?)\s*\1\s*$/gm; let m, ult = null;
+  while ((m = re.exec(wt))) { if (ult) ult.texto = wt.slice(ult.ini, m.index); ult = { titulo: wkLimpiar(m[2]), ini: re.lastIndex }; out.push(ult); }
+  if (ult) ult.texto = wt.slice(ult.ini);
+  return out;
+}
+const wkLinks = s => [...s.matchAll(/\[\[(?!Archivo|File|Imagen|Image)([^\]|#]+)[^\]]*\]\]/g)].map(x => x[1].trim());
+const wkCeldas = fila => fila.split(/\n\||\|\|/).map(c => wkLimpiar(c.replace(/^[^|\n]*?(align|style|scope|class|colspan|rowspan)[^|]*\|/, ''))).filter(Boolean);
+function wkTablaPokemon(txt, POK) {
+  const res = []; let metodo = '';
+  txt.replace(/^\{\|.*$/gm, '').replace(/^\|\}.*$/gm, '').split(/\n\|-/).forEach(fila => {
+    const poke = wkLinks(fila).find(l => POK.has(l));
+    if (!poke) {
+      if (/^\s*!/m.test(fila) || /colspan/.test(fila)) {
+        const tx = wkLimpiar(fila.replace(/^[^|\n]*?(align|style|scope|class|colspan)[^|]*\|/gm, '').replace(/^\s*!/gm, ''));
+        const img = (fila.match(/\[\[(?:Archivo|File):([^\]|.]+)/) || [])[1];
+        const cand = tx && !/^(Pokémon|Nivel|Probabilidad|Horario|Icono|Objeto|Sprite)/i.test(tx) && !/class=|Probabilidad/.test(tx) ? tx : (img && !/sprite/i.test(img) ? img : '');
+        if (cand) metodo = cand.replace(/_/g, ' ').slice(0, 40);
+      }
+      return;
+    }
+    const d = { n: poke, m: metodo, niv: '', prob: '', hor: '', nota: '' };
+    wkCeldas(fila).filter(c => !c.includes(poke)).forEach(c => {
+      if (/%/.test(c) && !d.prob) d.prob = c;
+      else if (/(día|noche|mañana|tarde)/i.test(c) && !d.hor) d.hor = c.replace(/\.$/, '');
+      else if (/^(nv\.?\s*)?\d+(\s*[~\-–a]\s*\d+)?$/i.test(c) && !d.niv) d.niv = c.replace(/\s+/g, '');
+      else if (!d.nota && c.length < 90) d.nota = c;
+    });
+    res.push(d);
+  });
+  const vistos = new Set();
+  return res.filter(x => { const k = [x.n, x.m, x.niv, x.prob, x.hor].join('|'); if (vistos.has(k)) return false; vistos.add(k); return true; });
+}
+function wkTablaObjetos(txt, POK) {
+  const res = [];
+  txt.replace(/^\{\|.*$/gm, '').replace(/^\|\}.*$/gm, '').split(/\n\|-/).forEach(fila => {
+    if (/^\s*!/m.test(fila) && !/\n\|/.test(fila)) return;
+    const links = wkLinks(fila).filter(l => !POK.has(l)), celdas = wkCeldas(fila);
+    if (!celdas.length) return;
+    const n = links[0] ? wkLimpiar(links[0]) : celdas[0];
+    if (!n || n.length > 40 || /^(Icono|Objeto|Localizaci)/i.test(n)) return;
+    res.push({ n, d: celdas.filter(c => c !== n && !c.startsWith(n)).join(' · ').slice(0, 140) });
+  });
+  return res;
+}
+async function wkGimnasio(wt) {
+  const m = wt.match(/\[\[(Gimnasio [^\]|#]+)(?:\|[^\]]*)?\]\]/); if (!m) return null;
+  const j = await wkApi('action=parse&prop=wikitext&redirects=1&page=' + encodeURIComponent(m[1]));
+  if (!j.parse) return null;
+  const pl = wkPlantilla(j.parse.wikitext['*']); if (!pl) return null;
+  const p = pl.params, cap = s => wkLimpiar(s).split('/').map(x => x.trim()).filter(Boolean).map(x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase()).join('/');
+  return { nombre: j.parse.title, lider: wkLimpiar(p['nombre del líder'] || p['líder'] || p.lider || ''), tipo: cap([p.tipo1, p.tipo2].filter(Boolean).join('/')), medalla: wkLimpiar(p.medalla || ''), numero: wkLimpiar(p.numero || p['número'] || ''), ubic: wkLimpiar(p['ubicación'] || p.ubicacion || '') };
+}
+async function wkZona(nombre, conGym = true) {
+  const clave = 'z3:' + nombre + (conGym ? '' : ':s');
+  if (WK.mem[clave]) return WK.mem[clave];
+  const guardado = wkCache(clave, 12); if (guardado) return (WK.mem[clave] = guardado);
+  const POK = await wkPokes();
+  const j = await wkApi('action=parse&prop=wikitext&redirects=1&page=' + encodeURIComponent(WK.paginas[nombre] || nombre));
+  if (!j.parse) throw new Error('La wiki todavía no tiene una página para esta zona.');
+  const wt = j.parse.wikitext['*'], pl = wkPlantilla(wt), info = {};
+  const nombres = { lugares: 'Conexiones', conexiones: 'Conexiones', mos: 'MO necesarias', clima: 'Clima', ambiente: 'Ambiente', 'ubicación': 'Ubicación' };
+  if (pl) Object.entries(pl.params).forEach(([k, v]) => {
+    const nk = nombres[k]; if (!nk || info[nk]) return;
+    const val = wkLimpiar(String(v).replace(/<br\s*\/?>/gi, ' · ')).replace(/\b(Norte|Sur|Este|Oeste):?\s*(?=·|$)/g, '').replace(/(\s*·\s*)+/g, ' · ').replace(/^\s*·\s*|\s*·\s*$/g, '');
+    if (val && !/^ninguna?$/i.test(val)) info[nk] = val.slice(0, 200);
+  });
+  const secs = wkSecciones(wt);
+  const d = {
+    titulo: j.parse.title, url: wkUrl(j.parse.title), info,
+    poke: secs.filter(s => /pok[eé]mon/i.test(s.titulo) && !/entrenador|inicial/i.test(s.titulo)).flatMap(s => wkTablaPokemon(s.texto, POK)),
+    objetos: secs.filter(s => /^objetos/i.test(s.titulo)).flatMap(s => wkTablaObjetos(s.texto, POK)).slice(0, 40),
+    interes: secs.filter(s => /inter[eé]s|lugares|edificios/i.test(s.titulo)).flatMap(s => s.texto.split('\n').filter(l => /^\*/.test(l)).map(l => wkLimpiar(l.replace(/^\*+/, '')).slice(0, 160))).filter(Boolean).slice(0, 16),
+    gym: null
+  };
+  if (conGym) {
+    try { const g = await wkGimnasio(wt); if (g && g.ubic && (wkNorm(g.ubic).includes(wkNorm(nombre)) || wkNorm(nombre).includes(wkNorm(g.ubic)) || wkNorm(g.ubic) === wkNorm(d.titulo))) d.gym = g; } catch (e) { }
+  }
+  wkCache(clave, 0, d);
+  return (WK.mem[clave] = d);
+}
+function wkEstado(t) {
+  const lg = (t.estado === 'Controlada' || t.estado === 'En disputa') && t.equipo ? emblema(t.equipo) : null;
+  const txt = t.estado === 'Controlada' ? t.equipo : t.estado === 'En disputa' ? 'En disputa' + (t.equipo ? ' · ' + t.equipo : '') : (t.estado || 'Neutral');
+  return { lg, txt, c: t.estado === 'Controlada' || t.estado === 'En disputa' ? colorZona(t) : '#93b9c3' };
+}
+function renderWiki() {
+  const g = $('#gridWiki'); if (!g) return;
+  const zonas = wkZonas(), grupo = WK.grupos.find(x => x.id === WK.filtro) || WK.grupos[0], q = wkNorm(WK.q);
+  $('#filtrosWiki').innerHTML = WK.grupos.map(x => { const n = x.re ? zonas.filter(z => x.re.test(z.tipo)).length : zonas.length; return `<button type="button" class="chip" data-act="wiki-filtro" data-f="${x.id}" aria-pressed="${x.id === WK.filtro}">${esc(x.l)}<b>${n}</b></button>`; }).join('');
+  const vis = zonas.filter(z => (!grupo.re || grupo.re.test(z.tipo)) && (!q || wkNorm(z.nombre + ' ' + z.tipo + ' ' + z.equipo + ' ' + wkTexto(z.nombre).resumen).includes(q)));
+  g.innerHTML = vis.map(z => {
+    const e = wkEstado(z), w = wkTexto(z.nombre);
+    return `<button type="button" class="wk-card" data-act="wiki" data-zona="${esc(z.nombre)}" style="--c:${esc(e.c)}"><span class="wk-card-cab"><b>${esc(z.nombre)}</b><small>${esc(z.tipo)}</small></span><span class="wk-card-res">${esc(w.resumen || 'Abrí la ficha para ver los datos de la wiki.')}</span><span class="wk-card-est">${e.lg ? `<span class="mini">${imgEmblema(e.lg)}</span>` : '<span class="mini punto"></span>'}${esc(e.txt)}</span></button>`;
+  }).join('');
+  $('#wikiVacio').hidden = vis.length > 0 || !!$('#wikiPoke:not([hidden])');
+}
+function wkVivoHTML(v) {
+  const filas = Object.entries(v.info);
+  const grupos = []; v.poke.forEach(x => { let g = grupos.find(y => y.m === x.m); if (!g) grupos.push(g = { m: x.m, l: [] }); g.l.push(x); });
+  const tabla = l => { const col = k => l.some(x => x[k]); return `<div style="overflow-x:auto"><table class="wk-tabla"><thead><tr><th>Pokémon</th>${col('niv') ? '<th>Nivel</th>' : ''}${col('prob') ? '<th>Prob.</th>' : ''}${col('hor') ? '<th>Horario</th>' : ''}</tr></thead><tbody>${l.map(x => `<tr><td><a href="${esc(wkUrl(x.n))}" target="_blank" rel="noopener">${esc(x.n)}</a>${x.nota ? `<br><small>${esc(x.nota)}</small>` : ''}</td>${col('niv') ? `<td>${esc(x.niv)}</td>` : ''}${col('prob') ? `<td>${esc(x.prob)}</td>` : ''}${col('hor') ? `<td>${esc(x.hor)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; };
+  const tienda = v.objetos.filter(o => /comprar|tienda/i.test(o.d)), enc = v.objetos.filter(o => !/comprar|tienda/i.test(o.d));
+  const lista = l => `<ul class="wk-lista">${l.map(o => `<li>${esc(o.n)}${o.d ? ` <small>· ${esc(o.d)}</small>` : ''}</li>`).join('')}</ul>`;
+  return `${filas.length ? `<div><h3>Ficha</h3><dl class="ficha">${filas.map(([k, x]) => `<div><dt>${esc(k)}</dt><dd>${esc(x)}</dd></div>`).join('')}</dl></div>` : ''}
+    ${v.gym ? `<div><h3>Gimnasio</h3><div class="wk-gym">${v.gym.numero ? `<div><small>N.°</small><b>${esc(v.gym.numero)}</b></div>` : ''}<div><small>Líder</small><b>${esc(v.gym.lider || '—')}</b></div><div><small>Tipo</small><b>${esc(v.gym.tipo || '—')}</b></div><div><small>Medalla</small><b>${esc(v.gym.medalla || '—')}</b></div></div></div>` : ''}
+    <div><h3>Pokémon salvajes</h3>${grupos.length ? grupos.map(g => `${g.m ? `<p class="wk-metodo">${esc(g.m)}</p>` : ''}${tabla(g.l)}`).join('') : '<p class="muted">La wiki no lista Pokémon salvajes para esta zona.</p>'}</div>
+    ${enc.length || tienda.length ? `<div><h3>Objetos</h3>${enc.length ? lista(enc) : ''}${tienda.length ? `<details><summary>En la tienda (${tienda.length})</summary>${lista(tienda)}</details>` : ''}</div>` : ''}
+    ${v.interes.length ? `<div><h3>Lugares de interés</h3><ul class="wk-lista">${v.interes.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}`;
+}
+async function abrirWiki(zona, desdeRuta) {
+  const d = $('#dlgWiki'), t = wkZonas().find(x => x.nombre === zona) || { nombre: zona, tipo: '', estado: 'Neutral' };
+  const w = wkTexto(zona), e = wkEstado(t);
+  d.dataset.zona = zona;
+  if (!desdeRuta) history.replaceState(null, '', '#wiki/' + wkSlug(zona));
+  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">Wiki · ${esc(t.tipo || 'Región Star')}</p><h2>${esc(zona)}</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="dlg-cuerpo"><div class="wk-art">
+      <div class="wk-control" style="--c:${esc(e.c)}">${e.lg ? `<span class="mini">${imgEmblema(e.lg)}</span>` : '<span class="mini punto"></span>'}<span>${t.estado === 'Controlada' ? 'Controlada por <b>' + esc(t.equipo) + '</b>' : '<b>' + esc(e.txt) + '</b>'} en la guerra de teams</span>
+        <span class="acc">${t.id && S.d.territorios.some(x => x.id === t.id) ? `<button class="btn sm" type="button" data-act="wiki-a-zona" data-id="${esc(t.id)}">Ver en el atlas</button>` : ''}<a class="btn sm" id="wkOriginal" href="${esc(wkUrl(WK.paginas[zona] || zona))}" target="_blank" rel="noopener">Wiki original ↗</a>${esAdmin() ? `<button class="btn sm sand" type="button" data-act="wiki-editar">Editar resumen</button>` : ''}</span></div>
+      ${w.resumen ? `<p class="wk-resumen">${esc(w.resumen)}</p>` : ''}
+      ${w.notas ? `<div class="wk-notas"><b>En Reloaded Online</b>${esc(w.notas)}</div>` : ''}
+      <div id="wkVivo" class="wk-art"><p class="wk-cargando"><i></i>Trayendo los datos de la wiki…</p></div>
+      <p class="wk-pie">Datos de Pokémon, gimnasio, objetos y conexiones: <a id="wkFuente" href="${esc(wkUrl(WK.paginas[zona] || zona))}" target="_blank" rel="noopener">Wiki PokemonReloaded</a>, hecha por su comunidad de editores (licencia CC BY-SA). El resumen es de esta web.</p>
+    </div></div></div>`;
+  abrir(d);
+  try {
+    const v = await wkZona(zona);
+    if (!d.open || d.dataset.zona !== zona) return;
+    $('#wkVivo', d).innerHTML = wkVivoHTML(v);
+    $('#wkOriginal', d).href = v.url; $('#wkFuente', d).href = v.url;
+  } catch (err) {
+    if (!d.open || d.dataset.zona !== zona) return;
+    $('#wkVivo', d).innerHTML = `<div class="wk-error">No se pudieron traer los datos de la wiki: ${esc(err.message)} <button class="link" type="button" data-act="wiki" data-zona="${esc(zona)}">Reintentar</button></div>`;
+  }
+}
+function formWiki(zona) {
+  const w = wkTexto(zona);
+  formulario({
+    titulo: 'Wiki · ' + zona, texto: 'El resumen aparece arriba de los datos de la wiki. Las notas sirven para lo propio del online: eventos, cambios, consejos de la comunidad.', boton: 'Guardar',
+    campos: [{ n: 'resumen', l: 'Resumen', t: 'textarea', v: w.resumen, max: 1200, ancho: true }, { n: 'notas', l: 'Notas de Reloaded Online (opcional)', t: 'textarea', v: w.notas, max: 1500, ancho: true, ph: 'Ej.: en el online esta zona es punto de encuentro para los torneos.' }],
+    enviar: async v => { await accion('wikiGuardar', { zona, resumen: v.resumen, notas: v.notas }, 'Wiki actualizada'); abrirWiki(zona, true); }
+  });
+}
+async function wkBuscarPokemon(nombre) {
+  const caja = $('#wikiPoke'), id = ++WK.busq, zonas = wkZonas();
+  caja.hidden = false;
+  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3><p class="wk-cargando"><i></i>Revisando las ${zonas.length} zonas en la wiki… <span id="wkProg">0</span>/${zonas.length}</p>`;
+  const hall = []; let hechas = 0, i = 0;
+  const trabajar = async () => { while (i < zonas.length) { const z = zonas[i++]; try { const v = await wkZona(z.nombre, false); const l = v.poke.filter(x => x.n === nombre); if (l.length) hall.push({ z, l }); } catch (e) { } hechas++; if (id === WK.busq && $('#wkProg')) $('#wkProg').textContent = hechas; } };
+  await Promise.all(Array.from({ length: 6 }, trabajar));
+  if (id !== WK.busq) return;
+  const orden = zonas.map(z => z.nombre);
+  hall.sort((a, b) => orden.indexOf(a.z.nombre) - orden.indexOf(b.z.nombre));
+  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3>${hall.length ? `<p>Aparece en ${hall.length} ${hall.length === 1 ? 'zona' : 'zonas'} del atlas. Tocá una para ver la ficha completa.</p><ul>${hall.map(({ z, l }) => { const e = wkEstado(z); return `<li><button type="button" data-act="wiki" data-zona="${esc(z.nombre)}" style="--c:${esc(e.c)}"><b>${esc(z.nombre)}</b><span class="muted" style="font-size:13px">${esc(e.txt)}</span><small>${l.map(x => [x.m, x.niv && 'Nv. ' + x.niv, x.prob, x.hor].filter(Boolean).join(' · ')).map(esc).join(' — ')}</small></button></li>`; }).join('')}</ul>` : `<p>No figura en las tablas de las zonas del atlas. Puede aparecer en rutas, eventos o intercambios.</p>`}<p style="margin:10px 0 0"><a href="${esc(wkUrl(nombre))}" target="_blank" rel="noopener">Ficha de ${esc(nombre)} en la wiki ↗</a></p>`;
+}
+let wkTimer = 0;
+async function wkAlEscribir() {
+  WK.q = $('#buscarWiki').value.trim(); renderWiki();
+  const q = wkNorm(WK.q), caja = $('#wikiPoke');
+  if (q.length < 3) { caja.hidden = true; WK.busq++; renderWiki(); return; }
+  let POK; try { POK = await wkPokes(); } catch (e) { return; }
+  const todos = [...POK], exacto = todos.find(n => wkNorm(n) === q), pref = todos.filter(n => wkNorm(n).startsWith(q));
+  const elegido = exacto || (pref.length === 1 && q.length >= 4 ? pref[0] : null);
+  if (elegido) { WK.q = ''; renderWiki(); wkBuscarPokemon(elegido); }
+  else { caja.hidden = true; WK.busq++; renderWiki(); }
+}
+(() => {
+  const b = $('#buscarWiki'); if (!b) return;
+  b.addEventListener('input', () => { clearTimeout(wkTimer); wkTimer = setTimeout(wkAlEscribir, 350); });
+  b.addEventListener('focus', () => { wkPokes().catch(() => { }); }, { once: true });
+  $('#dlgWiki').addEventListener('close', () => { if (/^#wiki\//.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); });
+})();
+const rutaWiki = () => { const m = location.hash.match(/^#wiki\/([\w-]+)/); if (!m) return; const z = wkZonas().find(x => wkSlug(x.nombre) === m[1]); if (z) abrirWiki(z.nombre, true); };
+window.addEventListener('hashchange', rutaWiki);
 
 // ---------- Reglas (las editan el admin y el noticiero) ----------
 function renderReglas() {
@@ -2397,6 +2768,7 @@ else { render(); cargar(); }
 if (MODO !== 'demo') try { const cc = JSON.parse(localStorage.getItem('rlo-carnets-v1') || 'null'); if (Array.isArray(cc)) { S.carnets = cc; renderCarnets(); } } catch (e) { }
 if (quiereAdmin && !S.token) setTimeout(entrarAdmin, 300);
 setTimeout(rutaCarnet, 150);
+setTimeout(rutaWiki, 160);
 window.addEventListener('hashchange', () => { if (/^#admin\b/.test(location.hash) && !S.token) entrarAdmin(); });
 if (MODO !== 'demo') setInterval(() => { if (!document.hidden && !$('dialog[open]') && !S.ubicando) cargar(true); }, 90000);
 </script>
