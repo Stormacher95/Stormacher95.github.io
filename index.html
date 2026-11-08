@@ -2576,17 +2576,33 @@ function formWiki(zona) {
     enviar: async v => { await accion('wikiGuardar', { zona, resumen: v.resumen, notas: v.notas }, 'Wiki actualizada'); abrirWiki(zona, true); }
   });
 }
+const WK_METODOS = { hierba: 'En la hierba', surf: 'Surfeando', caminar: 'Caminando', especial: 'Especial', pesca: 'Pescando', pescar: 'Pescando', 'caña vieja': 'Caña Vieja', 'caña buena': 'Caña Buena', supercaña: 'Super Caña', 'super caña': 'Super Caña', cueva: 'En cueva', evento: 'Evento', intercambio: 'Intercambio', huevo: 'Huevo', arena: 'En la arena', agua: 'En el agua', barro: 'En el barro', nieve: 'En la nieve' };
+async function wkLocalizacion(nombre) {
+  const guardado = wkCache('loc:' + nombre, 12); if (guardado) return guardado;
+  const j = await wkApi('action=parse&prop=wikitext&redirects=1&page=' + encodeURIComponent(nombre));
+  if (!j.parse) return null;
+  const s = wkSecciones(j.parse.wikitext['*']).find(x => /locali/i.test(x.titulo));
+  let items = [];
+  if (s) {
+    const i = s.texto.search(/\{\{\s*Localizaci[oó]n/i);
+    if (i >= 0) { const pl = wkPlantilla(s.texto.slice(i)); if (pl) items = Object.entries(pl.params).map(([k, v]) => ({ m: WK_METODOS[k] || (k.charAt(0).toUpperCase() + k.slice(1)), t: wkLimpiar(v).slice(0, 300) })).filter(x => x.t); }
+    if (!items.length) { const tx = wkLimpiar(s.texto).slice(0, 300); if (tx && !/rutas siguientes:?$/i.test(tx)) items = [{ m: '', t: tx + (tx.length >= 300 ? '…' : '') }]; }
+  }
+  return wkCache('loc:' + nombre, 0, { titulo: j.parse.title, items });
+}
 async function wkBuscarPokemon(nombre) {
   const caja = $('#wikiPoke'), id = ++WK.busq, zonas = wkZonas();
   caja.hidden = false;
   caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3><p class="wk-cargando"><i></i>Revisando las ${zonas.length} zonas en la wiki… <span id="wkProg">0</span>/${zonas.length}</p>`;
   const hall = []; let hechas = 0, i = 0;
   const trabajar = async () => { while (i < zonas.length) { const z = zonas[i++]; try { const v = await wkZona(z.nombre, false); const l = v.poke.filter(x => x.n === nombre); if (l.length) hall.push({ z, l }); } catch (e) { } hechas++; if (id === WK.busq && $('#wkProg')) $('#wkProg').textContent = hechas; } };
-  await Promise.all(Array.from({ length: 6 }, trabajar));
+  let loc = null;
+  await Promise.all(Array.from({ length: 6 }, trabajar).concat(wkLocalizacion(nombre).then(x => { loc = x; }).catch(() => { })));
   if (id !== WK.busq) return;
   const orden = zonas.map(z => z.nombre);
   hall.sort((a, b) => orden.indexOf(a.z.nombre) - orden.indexOf(b.z.nombre));
-  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3>${hall.length ? `<p>Aparece en ${hall.length} ${hall.length === 1 ? 'zona' : 'zonas'} del atlas. Tocá una para ver la ficha completa.</p><ul>${hall.map(({ z, l }) => { const e = wkEstado(z); return `<li><button type="button" data-act="wiki" data-zona="${esc(z.nombre)}" style="--c:${esc(e.c)}"><b>${esc(z.nombre)}</b><span class="muted" style="font-size:13px">${esc(e.txt)}</span><small>${l.map(x => [x.m, x.niv && 'Nv. ' + x.niv, x.prob, x.hor].filter(Boolean).join(' · ')).map(esc).join(' — ')}</small></button></li>`; }).join('')}</ul>` : `<p>No figura en las tablas de las zonas del atlas. Puede aparecer en rutas, eventos o intercambios.</p>`}<p style="margin:10px 0 0"><a href="${esc(wkUrl(nombre))}" target="_blank" rel="noopener">Ficha de ${esc(nombre)} en la wiki ↗</a></p>`;
+  const ficha = loc && loc.items.length ? `<p style="margin:0 0 6px"><b>Según su ficha en la wiki:</b></p><ul class="wk-lista" style="columns:1;margin-bottom:12px">${loc.items.map(x => `<li>${x.m ? `<b>${esc(x.m)}:</b> ` : ''}${esc(x.t)}</li>`).join('')}</ul>` : '';
+  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3>${ficha}${hall.length ? `<p>En las zonas del atlas aparece en ${hall.length} ${hall.length === 1 ? 'lugar' : 'lugares'}. Tocá uno para ver la ficha completa.</p><ul>${hall.map(({ z, l }) => { const e = wkEstado(z); return `<li><button type="button" data-act="wiki" data-zona="${esc(z.nombre)}" style="--c:${esc(e.c)}"><b>${esc(z.nombre)}</b><span class="muted" style="font-size:13px">${esc(e.txt)}</span><small>${l.map(x => [x.m, x.niv && 'Nv. ' + x.niv, x.prob, x.hor].filter(Boolean).join(' · ')).map(esc).join(' — ')}</small></button></li>`; }).join('')}</ul>` : `<p>${ficha ? 'No figura en las tablas de encuentros de las zonas del atlas.' : 'La wiki todavía no tiene datos de dónde encontrarlo.'}</p>`}<p style="margin:10px 0 0"><a href="${esc(wkUrl(nombre))}" target="_blank" rel="noopener">Ficha de ${esc(nombre)} en la wiki ↗</a></p>`;
 }
 let wkTimer = 0;
 async function wkAlEscribir() {
