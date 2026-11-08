@@ -350,6 +350,12 @@ body.es-admin main section{scroll-margin-top:122px}
 .reglas p{font-size:15px;color:#cfe3e6}
 .reglas .elite{border-color:#6d6a2e;background:#1c3a3a}
 .reglas small{display:block;margin-top:6px;color:var(--sand);font-size:13px}
+.reglas p{white-space:pre-line}
+.reglas li.vacia{grid-template-columns:1fr}.reglas li.vacia:before{content:none}
+.regla-acc{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.regla-acc .btn[disabled]{opacity:.35;pointer-events:none}
+.reglas-acc{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.reglas-acc small{color:var(--mist);font-size:13px}
 .prueba{margin-top:12px;display:flex;gap:14px;align-items:center;background:var(--sea-850);border-left:4px solid var(--sand);border-radius:8px;padding:14px 16px;font-size:15px}
 .prueba b{color:var(--sand);white-space:nowrap}
 
@@ -749,7 +755,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
       </div>
       <details class="hz-paises"><summary>Ver el horario en otros países</summary><table class="hz-tabla" id="hzTabla"></table></details>
     </div>
-    <ol class="reglas">
+    <ol class="reglas" id="listaReglas">
       <li><div><h3>Reunir y anunciar</h3><p>Para reclamar una zona enemiga tienen que llegar 4 o 5 integrantes y anunciar su llegada en el grupo.</p></div></li>
       <li><div><h3>Zona sin defensores</h3><p>Si revisan la ciudad y no hay nadie defendiéndola, el team atacante puede tomarla.</p></div></li>
       <li><div><h3>Batalla por la ciudad</h3><p>Si hay defensores, se resuelve con una batalla Pokémon. El bando derrotado se retira.</p></div></li>
@@ -759,6 +765,7 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
       <li><div><h3>Recuperar territorio</h3><p>Si un team vuelve a reclutar miembros y su ciudad está ocupada, tiene que luchar para recuperarla.</p></div></li>
       <li class="elite"><div><h3>Intervención del Escuadrón Élite</h3><p>Si el Escuadrón Élite derrota a 4 o 5 miembros de un team en guerra, el castigo previsto es que todo ese team quede preso por 4 días.</p><small>La aplicación de esta sanción todavía está en construcción.</small></div></li>
     </ol>
+    <div class="reglas-acc" id="reglasAcc" hidden><button class="btn sm sand" type="button" data-act="regla-nueva">+ Agregar regla</button><small>Los cambios se publican al toque.</small></div>
     <div class="prueba"><b>Coordinación</b><span>Anuncien los desafíos en el grupo dentro del horario de conquistas y disfruten el roleo.</span></div>
   </div>
 </section>
@@ -911,7 +918,8 @@ var Core = (function () {
     torneos: ['id', 'nombre', 'fecha', 'formato', 'info', 'enlace', 'creado'],
     noticias: ['id', 'fecha', 'titulo', 'cuerpo'],
     combates: ['id', 'fecha', 'ganador', 'rival', 'equipoGanador', 'equipoRival', 'formato', 'nota'],
-    grupos: ['id', 'nombre', 'enlace', 'miembros', 'actualizado', 'orden']
+    grupos: ['id', 'nombre', 'enlace', 'miembros', 'actualizado', 'orden'],
+    reglas: ['id', 'orden', 'titulo', 'texto', 'nota', 'destacada']
   };
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -982,6 +990,16 @@ var Core = (function () {
       if (c) guerras.push({ id: 'g-' + slug(z[0]), fecha: 'Parte inicial', territorioId: id, territorio: z[0], accion: c[2], ganador: c[0], perdedor: c[3], resumen: c[1], nota: '' });
     });
     return {
+      reglas: [
+        { id: 'r1', orden: '1', titulo: 'Reunir y anunciar', texto: 'Para reclamar una zona enemiga tienen que llegar 4 o 5 integrantes y anunciar su llegada en el grupo.', nota: '', destacada: '' },
+        { id: 'r2', orden: '2', titulo: 'Zona sin defensores', texto: 'Si revisan la ciudad y no hay nadie defendiéndola, el team atacante puede tomarla.', nota: '', destacada: '' },
+        { id: 'r3', orden: '3', titulo: 'Batalla por la ciudad', texto: 'Si hay defensores, se resuelve con una batalla Pokémon. El bando derrotado se retira.', nota: '', destacada: '' },
+        { id: 'r4', orden: '4', titulo: 'Estado de vagabundo', texto: 'Quienes pierdan defendiendo no pueden volver a pelear por esa ciudad durante 24 horas. Sí pueden atacar otra ciudad enemiga.', nota: '', destacada: '' },
+        { id: 'r5', orden: '5', titulo: 'Prueba del resultado', texto: 'Compartan una captura de la victoria para confirmar el resultado y evitar malentendidos.', nota: '', destacada: '' },
+        { id: 'r6', orden: '6', titulo: 'Puntos muertos', texto: 'Una ciudad sin miembros reclutados de un team queda como Punto Muerto hasta que alguien la reclame. El primer team que llegue puede hacerlo.', nota: '', destacada: '' },
+        { id: 'r7', orden: '7', titulo: 'Recuperar territorio', texto: 'Si un team vuelve a reclutar miembros y su ciudad está ocupada, tiene que luchar para recuperarla.', nota: '', destacada: '' },
+        { id: 'r8', orden: '8', titulo: 'Intervención del Escuadrón Élite', texto: 'Si el Escuadrón Élite derrota a 4 o 5 miembros de un team en guerra, el castigo previsto es que todo ese team quede preso por 4 días.', nota: 'La aplicación de esta sanción todavía está en construcción.', destacada: '1' }
+      ],
       grupos: [
         { id: 'g-online', nombre: 'Grupo de Online', enlace: 'https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH', miembros: '0', actualizado: '', orden: '1' },
         { id: 'g-general', nombre: 'Grupo general', enlace: 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6', miembros: '0', actualizado: '', orden: '2' }
@@ -1079,6 +1097,31 @@ var Core = (function () {
         return { cambios: ['noticias'].concat(zonaCambios) };
       }
       case 'noticiaBorrar': quitar(db.noticias, p.id); return { cambios: ['noticias'] };
+      case 'reglaGuardar': {
+        db.reglas = db.reglas || [];
+        if (!txt(p.titulo)) falla('La regla necesita un título.');
+        if (!String(p.texto || '').trim()) falla('Escribí qué dice la regla.');
+        x = p.id ? porId(db.reglas, p.id) : null;
+        if (p.id && !x) falla('Esa regla ya no existe.');
+        if (!x) {
+          x = { id: uid(), orden: String(db.reglas.reduce(function (m, r) { return Math.max(m, Number(r.orden) || 0); }, 0) + 1) };
+          db.reglas.push(x);
+        }
+        x.titulo = txt(p.titulo, 60); x.texto = largo(p.texto, 600); x.nota = txt(p.nota, 200);
+        x.destacada = p.destacada === true || p.destacada === '1' || p.destacada === 'si' ? '1' : '';
+        return { cambios: ['reglas'] };
+      }
+      case 'reglaBorrar': db.reglas = db.reglas || []; quitar(db.reglas, p.id); return { cambios: ['reglas'] };
+      case 'reglaMover': {
+        db.reglas = db.reglas || [];
+        var lista = db.reglas.slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); });
+        var i = lista.findIndex(function (r) { return r.id === p.id; });
+        if (i < 0) falla('Esa regla ya no existe.');
+        var j = i + (Number(p.dir) < 0 ? -1 : 1);
+        if (j >= 0 && j < lista.length) { var tmp = lista[i]; lista[i] = lista[j]; lista[j] = tmp; }
+        lista.forEach(function (r, k) { r.orden = String(k + 1); });
+        return { cambios: ['reglas'] };
+      }
       case 'grupoMiembros': {
         db.grupos = db.grupos || [];
         x = porId(db.grupos, p.id) || falla('Ese grupo ya no existe.');
@@ -1148,7 +1191,8 @@ var Core = (function () {
       equipos: equipos,
       territorios: db.territorios, guerras: admin ? db.guerras : db.guerras.slice(0, 250),
       torneos: db.torneos, noticias: db.noticias.slice(0, admin ? 500 : 60), combates: db.combates.slice(0, admin ? 500 : 60),
-      grupos: (db.grupos || []).slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); })
+      grupos: (db.grupos || []).slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); }),
+      reglas: (db.reglas || []).slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); })
     };
   }
 
@@ -1314,6 +1358,7 @@ function render() {
   renderClasif();
   renderCarnets();
   renderGrupos();
+  renderReglas();
   $$('.solo-admin').forEach(e => e.hidden = !esAdmin());
 }
 
@@ -1926,7 +1971,7 @@ function panelAdmin() {
       <div><h3>Mundo</h3><div class="panel-btns">${b('nuevo-team', 'Nuevo team', 'Nombre, color y lore')}${b('nueva-zona', 'Nueva zona', 'Se suma al atlas')}${b('mapa-subir', 'Cambiar mapa', 'Imagen nueva en tu Drive')}</div></div>
       <div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>
       <div><h3>Comunidad</h3><div class="panel-btns">${b('mensajes', 'Mensajes' + (S.d.config && S.d.config.mensajes ? ' (' + S.d.config.mensajes + ')' : ''), S.d.config && S.d.config.mensajes ? 'Contacto y pedidos de retiro' : 'No hay mensajes nuevos')}</div></div>
-      <div><h3>Cuenta</h3><div class="panel-btns">${b('planilla', 'Abrir planilla', 'Los datos en tu Drive')}${b('clave', 'Cambiar clave', 'Para entrar como admin')}${b('clave-editor', 'Clave del noticiero', S.d.config && S.d.config.editor ? 'Activa · cambiarla' : 'Noticias, zonas y crónica')}${S.d.config && S.d.config.editor ? b('quitar-editor', 'Quitar noticiero', 'Su clave deja de andar') : ''}${b('salir', 'Salir', 'Cerrar la sesión de admin')}</div></div>
+      <div><h3>Cuenta</h3><div class="panel-btns">${b('planilla', 'Abrir planilla', 'Los datos en tu Drive')}${b('clave', 'Cambiar clave', 'Para entrar como admin')}${b('clave-editor', 'Clave del noticiero', S.d.config && S.d.config.editor ? 'Activa · cambiarla' : 'Noticias, zonas, reglas y crónica')}${S.d.config && S.d.config.editor ? b('quitar-editor', 'Quitar noticiero', 'Su clave deja de andar') : ''}${b('salir', 'Salir', 'Cerrar la sesión de admin')}</div></div>
       <p class="muted">Para editar un team, una zona o un carnet, abrí su ficha: las opciones de admin aparecen ahí.</p>
     </div></div>`;
   abrir(d);
@@ -1957,7 +2002,7 @@ function entrarAdmin() {
       S.token = r.token; S.rol = r.rol || 'admin';
       almacen.set('rlo-token', S.token); almacen.set('rlo-rol', S.rol);
       await cargar();
-      toast(esEditor() ? 'Sesión del noticiero iniciada: noticias, zonas y crónica.' : 'Sesión de admin iniciada.');
+      toast(esEditor() ? 'Sesión del noticiero iniciada: noticias, zonas, reglas y crónica.' : 'Sesión de admin iniciada.');
     }
   });
 }
@@ -2045,6 +2090,10 @@ document.addEventListener('click', async ev => {
       case 'editar-zona': formZona(S.d.territorios.find(x => x.id === id)); break;
       case 'borrar-zona': cerrar($('#dlgZona')); borrar('Borrar zona', 'Se borra la zona del atlas junto con su historial. No se puede deshacer.', 'zonaBorrar', 'Zona borrada'); break;
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
+      case 'regla-nueva': formRegla(); break;
+      case 'regla-editar': formRegla((S.d.reglas || []).find(x => x.id === id)); break;
+      case 'regla-mover': await accion('reglaMover', { id, dir: el.dataset.dir }, 'Orden de las reglas actualizado'); break;
+      case 'regla-borrar': { const r = (S.d.reglas || []).find(x => x.id === id); confirmar('Borrar regla', 'Se quita “' + (r ? r.titulo : 'la regla') + '” de la sección Reglas. No se puede deshacer.', 'Borrar', async () => { await accion('reglaBorrar', { id }, 'Regla borrada'); }); break; }
       case 'cupo': { const inp = $('[data-cupo-input]'); const v = Math.min(999, Math.max(1, (Number(inp.value) || cupo()) + Number(el.dataset.paso))); inp.value = v; cambiarCupo(v); break; }
       case 'gm': { const caja = el.closest('[data-gm]'), inp = $('input', caja); const v = cantGrupo(cantGrupo(inp.value) + Number(el.dataset.paso)); inp.value = v; cambiarGrupo(caja.dataset.gm, v); break; }
       case 'mm': { const caja = el.closest('[data-mm]'), inp = $('input', caja); const v = Core.cantidad(inp.value) + Number(el.dataset.paso); inp.value = Core.cantidad(v); cambiarMiembros(caja.dataset.mm, v); break; }
@@ -2078,7 +2127,7 @@ document.addEventListener('click', async ev => {
         enviar: async v => { if (v.nueva !== v.repetir) throw new Error('Las claves nuevas no coinciden.'); await llamar('clave', { actual: v.actual, nueva: v.nueva }); toast('Clave cambiada. Usala la próxima vez que entres.'); }
       }); break;
       case 'clave-editor': cerrar($('#dlgPanel')); formulario({
-        titulo: 'Clave del noticiero', texto: 'Quien entre con esta clave maneja las noticias, quién tiene cada zona, la crónica de guerra y los puntos del mapa. No puede tocar teams, torneos, carnets ni claves. Si ya había una, se reemplaza y la sesión anterior se cierra.', boton: 'Guardar clave',
+        titulo: 'Clave del noticiero', texto: 'Quien entre con esta clave maneja las noticias, quién tiene cada zona, la crónica de guerra, los puntos del mapa y las reglas. No puede tocar teams, torneos, carnets ni claves. Si ya había una, se reemplaza y la sesión anterior se cierra.', boton: 'Guardar clave',
         campos: [{ n: 'nueva', l: 'Clave del noticiero (mínimo 8 caracteres)', t: 'password', req: true }, { n: 'repetir', l: 'Repetí la clave', t: 'password', req: true }],
         enviar: async v => { if (v.nueva !== v.repetir) throw new Error('Las claves no coinciden.'); await llamar('claveEditor', { nueva: v.nueva }); await cargar(true); toast('Clave del noticiero guardada. Pasásela por privado a quien lleve las noticias.'); }
       }); break;
@@ -2186,6 +2235,28 @@ function cambiarGrupo(id, valor) {
       if (/sesión de admin venció/i.test(err.message)) salirAdmin(true);
     }
   }, 650);
+}
+
+// ---------- Reglas (las editan el admin y el noticiero) ----------
+function renderReglas() {
+  const ol = $('#listaReglas'); if (!ol || !Array.isArray(S.d.reglas)) return; // con el código viejo quedan las reglas fijas
+  const ed = puedeGuerra(), rs = S.d.reglas;
+  ol.innerHTML = rs.length ? rs.map((r, i) => `<li${r.destacada === '1' ? ' class="elite"' : ''}><div><h3>${esc(r.titulo)}</h3><p>${esc(r.texto)}</p>${r.nota ? `<small>${esc(r.nota)}</small>` : ''}${ed ? `<div class="regla-acc"><button class="btn sm" type="button" data-act="regla-editar" data-id="${esc(r.id)}">Editar</button><button class="btn sm" type="button" data-act="regla-mover" data-dir="-1" data-id="${esc(r.id)}"${i === 0 ? ' disabled' : ''} aria-label="Subir ${esc(r.titulo)}">↑</button><button class="btn sm" type="button" data-act="regla-mover" data-dir="1" data-id="${esc(r.id)}"${i === rs.length - 1 ? ' disabled' : ''} aria-label="Bajar ${esc(r.titulo)}">↓</button><button class="btn sm danger" type="button" data-act="regla-borrar" data-id="${esc(r.id)}">Borrar</button></div>` : ''}</div></li>`).join('')
+    : `<li class="vacia"><div><p>${ed ? 'Todavía no hay reglas. Agregá la primera con el botón de abajo.' : 'Las reglas se están actualizando.'}</p></div></li>`;
+  $('#reglasAcc').hidden = !ed;
+}
+function formRegla(r) {
+  r = r || {};
+  formulario({
+    titulo: r.id ? 'Editar regla' : 'Nueva regla', texto: 'Se publica al toque en la sección Reglas.', boton: r.id ? 'Guardar cambios' : 'Agregar regla',
+    campos: [
+      { n: 'titulo', l: 'Título', v: r.titulo, req: true, max: 60 },
+      { n: 'texto', l: 'Qué dice la regla', t: 'textarea', v: r.texto, req: true, max: 600 },
+      { n: 'nota', l: 'Aclaración (opcional)', v: r.nota, max: 200, ph: 'Ej.: Esta regla todavía está en prueba.' },
+      { n: 'destacada', l: 'Estilo', t: 'select', v: r.destacada === '1' ? '1' : '', opc: [{ v: '', l: 'Normal' }, { v: '1', l: 'Destacada (como la del Escuadrón Élite)' }] }
+    ],
+    enviar: async v => { await accion('reglaGuardar', { id: r.id || '', titulo: v.titulo, texto: v.texto, nota: v.nota, destacada: v.destacada }, r.id ? 'Regla actualizada' : 'Regla agregada'); }
+  });
 }
 
 // ---------- Contacto y mensajes ----------
