@@ -473,6 +473,9 @@ body.es-admin main section{scroll-margin-top:122px}
 .pk-tabs{margin-bottom:10px}
 .pk-zonas{margin-top:12px}
 .pk-hall{font-size:14px;margin:0 0 6px}
+.pk-pagina #pkPagina{max-width:900px}
+.pk-pagina .pk-cuerpo{display:grid;gap:20px}
+.pk-pagina .wk-tipo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pk-locl{display:grid;gap:8px;margin:0 0 6px}
 .pk-locl>div{background:var(--sea-800);border:1px solid var(--sea-700);border-radius:8px;padding:8px 10px}
 .pk-locl dt{font-size:12px;color:var(--sand);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}

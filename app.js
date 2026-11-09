@@ -1237,6 +1237,8 @@ function marcarPin(id) {
 
 // ---------- Eventos ----------
 document.addEventListener('click', async ev => {
+  const pkl = MULTIPAGINA && ev.target.closest('a[data-poke]');
+  if (pkl && ev.button === 0 && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.altKey) { ev.preventDefault(); abrirPokemon(pkl.dataset.poke); return; }
   const cerrarBtn = ev.target.closest('[data-cerrar]');
   if (cerrarBtn) { const d = cerrarBtn.closest('dialog'); if (d) { if (d.id === 'dlgMapa') cancelarUbicar(); cerrar(d); } return; }
   const destino = ev.target.closest('[data-ir]');
@@ -1729,7 +1731,8 @@ window.addEventListener('hashchange', rutaWiki);
 
 // ---------- Enciclopedia: Pokédex, legendarios, gimnasios, objetos y guías (en vivo de la Wiki PokemonReloaded) ----------
 const pkSlug = s => wkSlug(String(s || '').replace(/♀/g, ' f').replace(/♂/g, ' m'));
-const pkA = (n, txt) => `<a class="pk-a" href="#pokemon/${pkSlug(n)}">${esc(txt || n)}</a>`;
+const pkHref = n => MULTIPAGINA ? '/pokemon/' + pkSlug(n) + '.html' : '#pokemon/' + pkSlug(n);
+const pkA = (n, txt) => `<a class="pk-a" href="${pkHref(n)}" data-poke="${esc(n)}">${esc(txt || n)}</a>`;
 const wkClave = s => wkNorm(s).replace(/♀/g, 'f').replace(/♂/g, 'm').replace(/[^a-z0-9]/g, '');
 const wkTipo = s => { const n = wkNorm(wkLimpiar(s)); if (!n) return ''; if (n === 'insecto') return 'Bicho'; return Object.keys(COLOR_TIPO).find(k => wkNorm(k) === n) || ''; };
 const zonaConocida = n => wkZonas().find(z => wkNorm(z.nombre) === wkNorm(n));
@@ -1813,7 +1816,7 @@ function renderDex() {
   const vis = WK.dex.filter(p => (DEX.grupo === 'todos' || p[DEX.grupo]) && (!DEX.tipo || p.t.includes(DEX.tipo)) && (!DEX.gen || genDe(p.num) === +DEX.gen) && (!q || (num ? p.num === num : wkNorm(p.n).includes(q))));
   $('#filtrosDex').innerHTML = DEX_GRUPOS.map(x => `<button type="button" class="chip" data-act="dex-grupo" data-f="${x.id}" aria-pressed="${x.id === DEX.grupo}">${esc(x.l)}<b>${x.id === 'todos' ? WK.dex.length : WK.dex.filter(p => p[x.id]).length}</b></button>`).join('');
   $('#cuentaDex').textContent = vis.length === WK.dex.length ? WK.dex.length + ' Pokémon en Reloaded. Tocá uno para ver su ficha.' : 'Mostrando ' + vis.length + ' de ' + WK.dex.length + ' Pokémon.';
-  g.innerHTML = vis.length ? vis.map(p => `<a class="dex-c" href="#pokemon/${pkSlug(p.n)}" style="--c:${COLOR_TIPO[p.t[0]] || '#3d9ab8'}"><small>#${String(p.num).padStart(3, '0')}${p.forma ? ' · forma' : ''}</small><b>${esc(p.n)}</b><span class="dex-t">${p.t.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Reloaded</span>' : ''}</span></a>`).join('') : '<p class="vacio">Ningún Pokémon coincide con la búsqueda.</p>';
+  g.innerHTML = vis.length ? vis.map(p => `<a class="dex-c" href="${pkHref(p.n)}" data-poke="${esc(p.n)}" style="--c:${COLOR_TIPO[p.t[0]] || '#3d9ab8'}"><small>#${String(p.num).padStart(3, '0')}${p.forma ? ' · forma' : ''}</small><b>${esc(p.n)}</b><span class="dex-t">${p.t.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Reloaded</span>' : ''}</span></a>`).join('') : '<p class="vacio">Ningún Pokémon coincide con la búsqueda.</p>';
 }
 
 // ----- Ficha de un Pokémon -----
@@ -1875,7 +1878,7 @@ async function wkPokemon(nombre) {
   };
   return (WK.mem[k] = wkCache(k, 0, d));
 }
-function fichaPokemonHTML(p) {
+function fichaPokemonHTML(p, enPagina) {
   const tot = p.stats ? p.stats.reduce((a, x) => a + x[1], 0) : 0, num = p.num ? '#' + String(p.num).replace(/^0+(?=\d)/, '') : '';
   const sec = (t, h) => h ? `<section class="pk-sec"><h3>${t}</h3>${h}</section>` : '';
   const yo = wkClave(p.n);
@@ -1886,12 +1889,28 @@ function fichaPokemonHTML(p) {
     + `<div class="pk-zonas" data-donde="${esc(p.n)}"></div>`;
   const movs = p.movs.length ? `<div class="chips pk-tabs">${p.movs.map((g, i) => `<button type="button" class="chip" data-act="pk-tab" data-i="${i}" aria-pressed="${i === 0}">${esc(g.n)}<b>${g.l.length}</b></button>`).join('')}</div>`
     + p.movs.map((g, i) => { const col = /nivel/i.test(g.n) ? 'Nv.' : /m[to]|dt/i.test(g.n) ? 'N.°' : '', cx = col && g.l.some(x => x.x); return `<div class="pk-movs" data-i="${i}"${i ? ' hidden' : ''}><div style="overflow-x:auto"><table class="wk-tabla"><thead><tr>${cx ? `<th>${col}</th>` : ''}<th>Movimiento</th><th>Tipo</th><th>Categoría</th></tr></thead><tbody>${g.l.map(x => `<tr>${cx ? `<td>${esc(x.x)}</td>` : ''}<td>${esc(x.m)}</td><td>${tipoChip(x.t)}</td><td>${esc(x.c)}</td></tr>`).join('')}</tbody></table></div></div>`; }).join('') : '';
-  return `<div class="dlg" style="--c:${COLOR_TIPO[p.tipos[0]] || '#1a5d74'}"><div class="dlg-cab"><p class="muted">${esc([num, p.especie && 'Pokémon ' + p.especie].filter(Boolean).join(' · ') || 'Pokédex de Reloaded')}</p><h2>${esc(p.n)}</h2><p class="pk-tipos">${p.tipos.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Exclusivo de Reloaded</span>' : ''}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
-    <div class="dlg-cuerpo pk-cuerpo">
-      <dl class="ficha">${datos.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+  const cuerpo = `<dl class="ficha">${datos.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
       ${sec('Estadísticas base', stats)}${sec('Evolución', evo)}${sec('Dónde encontrarlo', loc)}${sec('Movimientos', movs)}
-      <p class="wk-pie">Datos de la <a href="${esc(p.url)}" target="_blank" rel="noopener">ficha de ${esc(p.n)} en la Wiki PokemonReloaded ↗</a>, hecha por su comunidad de editores (licencia CC BY-SA).</p>
-    </div></div>`;
+      <p class="wk-pie">Datos de la <a href="${esc(p.url)}" target="_blank" rel="noopener">ficha de ${esc(p.n)} en la Wiki PokemonReloaded ↗</a>, hecha por su comunidad de editores (licencia CC BY-SA).${MULTIPAGINA && !enPagina ? ` · <a href="${pkHref(p.n)}">Página de ${esc(p.n)} en esta web</a>` : ''}</p>`;
+  if (enPagina) return cuerpo;
+  return `<div class="dlg" style="--c:${COLOR_TIPO[p.tipos[0]] || '#1a5d74'}"><div class="dlg-cab"><p class="muted">${esc([num, p.especie && 'Pokémon ' + p.especie].filter(Boolean).join(' · ') || 'Pokédex de Reloaded')}</p><h2>${esc(p.n)}</h2><p class="pk-tipos">${p.tipos.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Exclusivo de Reloaded</span>' : ''}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="dlg-cuerpo pk-cuerpo">${cuerpo}</div></div>`;
+}
+/** Página propia de un Pokémon (pokemon/<nombre>.html): el texto básico ya viene en el HTML y la ficha completa se completa en vivo. */
+async function pintarPokemonPagina(caja) {
+  const n = caja.dataset.n, fijo = $('.pk-locl', caja), fijoHTML = fijo ? fijo.outerHTML : '';
+  try {
+    let p = await wkPokemon(n);
+    // Si la ficha en vivo viene con menos datos que la página, se queda lo que ya teníamos
+    if (!p.hab.length && caja.dataset.hab) p = Object.assign({}, p, { hab: caja.dataset.hab.split('|'), oculta: p.oculta || caja.dataset.oc || '' });
+    caja.innerHTML = fichaPokemonHTML(p, true);
+    const dz = $('[data-donde]', caja); if (dz) pkDonde(p.n, dz);
+    const dl = $('[data-locl]', caja);
+    if (dl && fijoHTML) { dl.innerHTML = fijoHTML; const v = $('[data-loc-ficha]', caja); if (v) v.hidden = true; const m = dl.parentNode.querySelector(':scope > p.muted'); if (m) m.hidden = true; }
+    if (dl) pkLocLista(p, dl);
+  } catch (e) {
+    const c = $('[data-pk-cargando]', caja); if (c) c.outerHTML = `<div class="wk-error">No se pudo traer la ficha completa de la wiki: ${esc(e.message)}. Lo de arriba es lo que ya sabemos de ${esc(n)}.</div>`;
+  }
 }
 async function abrirPokemon(nombre, desdeRuta) {
   const d = $('#dlgPoke'); d.dataset.n = nombre;
@@ -1989,6 +2008,7 @@ async function pkLocLista(p, caja) {
     const filas = [['Por tierra', e.tierra], ['En el agua', e.agua], ['Evoluciona de', e.evo], ['Especial', e.esp]].filter(x => x[1]);
     caja.innerHTML = `<dl class="pk-locl">${filas.map(([k, v]) => `<div><dt>${k}</dt><dd>${wkEnlazar(v)}</dd></div>`).join('')}</dl><p class="pk-fuente">Según la <a href="${esc(url)}" target="_blank" rel="noopener">lista de localización de la wiki ↗</a>. Abajo, el detalle de cada ruta que tiene página.</p>`;
     const vieja = caja.parentNode && $('[data-loc-ficha]', caja.parentNode); if (vieja) vieja.hidden = true;
+    const sin = caja.parentNode && caja.parentNode.querySelector(':scope > p.muted'); if (sin) sin.hidden = true;
   } catch (e) { }
 }
 
@@ -2163,6 +2183,7 @@ async function pintarGuias() {
 }
 
 // ----- Carga perezosa: cada sección pide sus datos cuando se acerca a la pantalla -----
+{ const pp = $('#pkPagina'); if (pp) pintarPokemonPagina(pp); }
 const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias };
 (() => {
   const els = $$('[data-wk-carga]');
@@ -2335,6 +2356,8 @@ if (MULTIPAGINA) {
   const h = location.hash, mw = h.match(/^#wiki\/([\w-]+)/), mh = h.match(/^#([a-z]+)$/);
   if (mw && !hay('#gridWiki') && !hay('#wikiArticulo')) location.replace('/wiki/' + mw[1] + '.html');
   else if (/^#carnet\//.test(h) && !hay('#gridCarnets')) location.replace('/carnets.html' + h);
+  const mpk = location.pathname.match(/^\/pokemon\/([\w-]+)\.html$/);
+  if (mpk && !hay('#pkPagina')) location.replace('/wiki/pokedex.html#pokemon/' + mpk[1]);
   else if (mh && !document.getElementById(mh[1]) && PAGINA_DE[mh[1]] && mh[1] !== 'admin') location.replace(PAGINA_DE[mh[1]]);
 }
 S.token = almacen.get('rlo-token'); S.rol = S.token ? (almacen.get('rlo-rol') || 'admin') : '';
