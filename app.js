@@ -375,7 +375,7 @@ const SITIO_URL = 'https://stormacher95.github.io/';
 const WPP_ONLINE = 'https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH';
 // En GitHub Pages la web está separada en páginas; la versión de Apps Script es una sola página.
 const MULTIPAGINA = true;
-const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
+const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
 const WPP_GENERAL = 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6';
@@ -1290,7 +1290,7 @@ document.addEventListener('click', async ev => {
       case 'leg-filtro': LEG.g = el.dataset.f; renderLeg(); break;
       case 'obj-area': OBJ.area = el.dataset.f; renderObj(); break;
       case 'pk-tab': { const d = el.closest('.dlg'); $$('.pk-tabs .chip', d).forEach(b => b.setAttribute('aria-pressed', String(b === el))); $$('.pk-movs', d).forEach(m => { m.hidden = m.dataset.i !== el.dataset.i; }); break; }
-      case 'pk-zonas': pkZonas(el.dataset.n, el.closest('.pk-zonas')); break;
+      case 'pk-donde': pkDonde(el.dataset.n, el.closest('[data-donde]')); break;
       case 'pk-reintentar': abrirPokemon(el.dataset.n, true); break;
       case 'wiki-a-zona': cerrar($('#dlgWiki')); fichaZona(id); break;
       case 'wiki-editar': formWiki(el.dataset.zona || $('#dlgWiki').dataset.zona); break;
@@ -1468,7 +1468,7 @@ function wkCache(k, horas, v) {
   if (v !== undefined) {
     const s = JSON.stringify({ t: Date.now(), v });
     try { localStorage.setItem('wk:' + k, s); } catch (e) {
-      try { Object.keys(localStorage).filter(x => /^wk:(pk1|z3|loc):/.test(x)).forEach(x => localStorage.removeItem(x)); localStorage.setItem('wk:' + k, s); } catch (e2) { }
+      try { Object.keys(localStorage).filter(x => /^wk:(pk1|z\d|loc|donde1):/.test(x)).forEach(x => localStorage.removeItem(x)); localStorage.setItem('wk:' + k, s); } catch (e2) { }
     }
     return v;
   }
@@ -1559,6 +1559,18 @@ function wkTablaObjetos(txt, POK) {
   });
   return res;
 }
+/** Pokémon salvajes de una página: tablas con encabezado "Pokémon" (sin entrenadores ni objetos) o dentro de una sección de Pokémon. */
+function wkSalvajes(wt, POK) {
+  const hs = [...wt.matchAll(/^(={2,4})\s*(.*?)\s*\1\s*$/gm)].map(m => ({ i: m.index, t: wkLimpiar(m[2]) })), out = [], re = /\{\|[\s\S]*?\n\|\}/g; let m;
+  while ((m = re.exec(wt))) {
+    const tb = m[0], cab = wkLimpiar((tb.match(/^\s*!.*$/gm) || []).join(' ')), sec = hs.filter(h => h.i < m.index).pop(), st = sec ? sec.t : '';
+    if (/entrenador|l[ií]der|objeto/i.test(cab) || /entrenador|l[ií]der|alto mando|campe[oó]n|objetos|inicial/i.test(st)) continue;
+    if (!(/pok[eé]mon/i.test(cab) && /probabilidad|nivel|%|horario/i.test(cab)) && !/pok[eé]mon|salvaje/i.test(st)) continue;
+    wkTablaPokemon(tb, POK).forEach(x => { if (!x.m && st && !/pok[eé]mon|salvaje/i.test(st) && st.length <= 40) x.m = st; out.push(x); });
+  }
+  const vistos = new Set();
+  return out.filter(x => { const k = [x.n, x.m, x.niv, x.prob, x.hor].join('|'); if (vistos.has(k)) return false; vistos.add(k); return true; });
+}
 async function wkGimnasio(wt) {
   const m = wt.match(/\[\[(Gimnasio [^\]|#]+)(?:\|[^\]]*)?\]\]/); if (!m) return null;
   const j = await wkApi('action=parse&prop=wikitext&redirects=1&page=' + encodeURIComponent(m[1]));
@@ -1568,7 +1580,7 @@ async function wkGimnasio(wt) {
   return { nombre: j.parse.title, lider: wkLimpiar(p['nombre del líder'] || p['líder'] || p.lider || ''), tipo: cap([p.tipo1, p.tipo2].filter(Boolean).join('/')), medalla: wkLimpiar(p.medalla || ''), numero: wkLimpiar(p.numero || p['número'] || ''), ubic: wkLimpiar(p['ubicación'] || p.ubicacion || '') };
 }
 async function wkZona(nombre, conGym = true) {
-  const clave = 'z3:' + nombre + (conGym ? '' : ':s');
+  const clave = 'z4:' + nombre + (conGym ? '' : ':s');
   if (WK.mem[clave]) return WK.mem[clave];
   const guardado = wkCache(clave, 12); if (guardado) return (WK.mem[clave] = guardado);
   const POK = await wkPokes();
@@ -1584,7 +1596,7 @@ async function wkZona(nombre, conGym = true) {
   const secs = wkSecciones(wt);
   const d = {
     titulo: j.parse.title, url: wkUrl(j.parse.title), info,
-    poke: secs.filter(s => /pok[eé]mon/i.test(s.titulo) && !/entrenador|inicial/i.test(s.titulo)).flatMap(s => wkTablaPokemon(s.texto, POK)),
+    poke: wkSalvajes(wt, POK),
     objetos: secs.filter(s => /^objetos/i.test(s.titulo)).flatMap(s => wkTablaObjetos(s.texto, POK)).slice(0, 40),
     interes: secs.filter(s => /inter[eé]s|lugares|edificios/i.test(s.titulo)).flatMap(s => s.texto.split('\n').filter(l => /^\*/.test(l)).map(l => wkLimpiar(l.replace(/^\*+/, '')).slice(0, 160))).filter(Boolean).slice(0, 16),
     gym: null
@@ -1686,18 +1698,14 @@ async function wkLocalizacion(nombre) {
   return wkCache('loc:' + nombre, 0, { titulo: j.parse.title, items });
 }
 async function wkBuscarPokemon(nombre) {
-  const caja = $('#wikiPoke'), id = ++WK.busq, zonas = wkZonas();
+  const caja = $('#wikiPoke'), id = ++WK.busq;
   caja.hidden = false;
-  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3><p class="wk-cargando"><i></i>Revisando las ${zonas.length} zonas en la wiki… <span id="wkProg">0</span>/${zonas.length}</p>`;
-  const hall = []; let hechas = 0, i = 0;
-  const trabajar = async () => { while (i < zonas.length) { const z = zonas[i++]; try { const v = await wkZona(z.nombre, false); const l = v.poke.filter(x => x.n === nombre); if (l.length) hall.push({ z, l }); } catch (e) { } hechas++; if (id === WK.busq && $('#wkProg')) $('#wkProg').textContent = hechas; } };
-  let loc = null;
-  await Promise.all(Array.from({ length: 6 }, trabajar).concat(wkLocalizacion(nombre).then(x => { loc = x; }).catch(() => { })));
+  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3><p class="wk-cargando"><i></i>Buscando en las rutas y lugares de la wiki…</p>`;
+  let r = [], loc = null;
+  await Promise.all([wkDonde(nombre).then(x => { r = x; }).catch(() => { }), wkLocalizacion(nombre).then(x => { loc = x; }).catch(() => { })]);
   if (id !== WK.busq) return;
-  const orden = zonas.map(z => z.nombre);
-  hall.sort((a, b) => orden.indexOf(a.z.nombre) - orden.indexOf(b.z.nombre));
-  const ficha = loc && loc.items.length ? `<p style="margin:0 0 6px"><b>Según su ficha en la wiki:</b></p><ul class="wk-lista" style="columns:1;margin-bottom:12px">${loc.items.map(x => `<li>${x.m ? `<b>${esc(x.m)}:</b> ` : ''}${esc(x.t)}</li>`).join('')}</ul>` : '';
-  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3>${ficha}${hall.length ? `<p>En las zonas del atlas aparece en ${hall.length} ${hall.length === 1 ? 'lugar' : 'lugares'}. Tocá uno para ver la ficha completa.</p><ul>${hall.map(({ z, l }) => { const e = wkEstado(z); return `<li><button type="button" data-act="wiki" data-zona="${esc(z.nombre)}" style="--c:${esc(e.c)}"><b>${esc(z.nombre)}</b><span class="muted" style="font-size:13px">${esc(e.txt)}</span><small>${l.map(x => [x.m, x.niv && 'Nv. ' + x.niv, x.prob, x.hor].filter(Boolean).join(' · ')).map(esc).join(' — ')}</small></button></li>`; }).join('')}</ul>` : `<p>${ficha ? 'No figura en las tablas de encuentros de las zonas del atlas.' : 'La wiki todavía no tiene datos de dónde encontrarlo.'}</p>`}<p style="margin:10px 0 0">${pkA(nombre, 'Ver la ficha completa de ' + nombre)}</p>`;
+  const ficha = loc && loc.items.length ? `<p style="margin:0 0 6px"><b>Según su ficha en la wiki:</b></p><ul class="wk-lista" style="columns:1;margin-bottom:12px">${loc.items.map(x => `<li>${x.m ? `<b>${esc(x.m)}:</b> ` : ''}${wkEnlazar(x.t)}</li>`).join('')}</ul>` : '';
+  caja.innerHTML = `<h3>¿Dónde aparece ${esc(nombre)}?</h3>${ficha}${r.length ? `<p>Según las rutas y lugares de la wiki, aparece en ${r.length} ${r.length === 1 ? 'lugar' : 'lugares'}:</p>${dondeHTML(r)}` : `<p>${ficha ? 'No figura en las tablas de encuentros de las rutas y lugares de la wiki.' : 'La wiki todavía no tiene datos de dónde encontrarlo.'}</p>`}<p style="margin:10px 0 0">${pkA(nombre, 'Ver la ficha completa de ' + nombre)}</p>`;
 }
 let wkTimer = 0;
 async function wkAlEscribir() {
@@ -1729,9 +1737,8 @@ const zonaA = n => { const z = zonaConocida(n); return z ? `<a class="zn-a" href
 /** Texto de la wiki con los nombres de zonas del atlas convertidos en links. */
 function wkEnlazar(t) {
   const zs = wkZonas().map(z => z.nombre);
-  if (WK.reN !== zs.length) { WK.reN = zs.length; WK.reZ = zs.length ? new RegExp('(?<![\\wÀ-ÿ])(' + zs.slice().sort((a, b) => b.length - a.length).map(z => esc(z).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\wÀ-ÿ])', 'gi') : null; }
-  const h = esc(t);
-  return WK.reZ ? h.replace(WK.reZ, m => zonaA(m.replace(/&#39;/g, "'").replace(/&amp;/g, '&'))) : h;
+  if (WK.reN !== zs.length) { WK.reN = zs.length; WK.reZ = new RegExp('(?<![\\wÀ-ÿ])(' + zs.slice().sort((a, b) => b.length - a.length).map(z => esc(z).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).concat('Ruta \\d+').join('|') + ')(?![\\wÀ-ÿ])', 'gi'); }
+  return esc(t).replace(WK.reZ, m => lugarA(m.replace(/&#39;/g, "'").replace(/&amp;/g, '&')));
 }
 // Tablas de la wiki: filas y celdas (sin los atributos de estilo)
 const wkFilas = t => t.split(/\n\|-/);
@@ -1875,8 +1882,8 @@ function fichaPokemonHTML(p) {
   const evo = p.evo.map(f => `<div class="pk-evo">${f.map(x => x.p ? (wkClave(x.p) === yo ? `<b>${esc(x.p)}</b>` : pkA(x.p)) : `<span class="pk-flecha">${esc(x.c)}</span>`).join('')}</div>`).join('');
   const stats = p.stats ? `<div class="pk-stats">${p.stats.map(([k, v]) => `<div><span>${k}</span><b>${v}</b><i style="--v:${Math.min(100, Math.round(v / 1.8))}%;--b:${v >= 100 ? '#7ac74c' : v >= 70 ? '#f4d38b' : '#ee8130'}"></i></div>`).join('')}<div class="pk-tot"><span>Total</span><b>${tot}</b></div></div>` : '';
   const datos = [['Habilidades', p.hab.join(' · ') || '—'], p.oculta && ['Habilidad oculta', p.oculta], p.huevo.length && ['Grupo huevo', p.huevo.join(' · ')], p.peso && ['Peso', p.peso.replace(/\s*kg\.?$/i, '') + ' kg'], p.altura && ['Altura', p.altura.replace(/\s*m\.?$/i, '') + ' m']].filter(Boolean);
-  const loc = (p.loc.length ? `<ul class="wk-lista" style="columns:1">${p.loc.map(x => `<li>${x.m ? `<b>${esc(x.m)}:</b> ` : ''}${wkEnlazar(x.t)}</li>`).join('')}</ul>` : '<p class="muted">La wiki todavía no dice dónde encontrarlo.</p>')
-    + `<div class="pk-zonas"><button class="btn sm" type="button" data-act="pk-zonas" data-n="${esc(p.n)}">Buscar en qué zonas del atlas aparece</button></div>`;
+  const loc = `<div data-locl></div>` + (p.loc.length ? `<ul class="wk-lista" style="columns:1" data-loc-ficha>${p.loc.map(x => `<li>${x.m ? `<b>${esc(x.m)}:</b> ` : ''}${wkEnlazar(x.t)}</li>`).join('')}</ul>` : '<p class="muted">La wiki todavía no dice dónde encontrarlo.</p>')
+    + `<div class="pk-zonas" data-donde="${esc(p.n)}"></div>`;
   const movs = p.movs.length ? `<div class="chips pk-tabs">${p.movs.map((g, i) => `<button type="button" class="chip" data-act="pk-tab" data-i="${i}" aria-pressed="${i === 0}">${esc(g.n)}<b>${g.l.length}</b></button>`).join('')}</div>`
     + p.movs.map((g, i) => { const col = /nivel/i.test(g.n) ? 'Nv.' : /m[to]|dt/i.test(g.n) ? 'N.°' : '', cx = col && g.l.some(x => x.x); return `<div class="pk-movs" data-i="${i}"${i ? ' hidden' : ''}><div style="overflow-x:auto"><table class="wk-tabla"><thead><tr>${cx ? `<th>${col}</th>` : ''}<th>Movimiento</th><th>Tipo</th><th>Categoría</th></tr></thead><tbody>${g.l.map(x => `<tr>${cx ? `<td>${esc(x.x)}</td>` : ''}<td>${esc(x.m)}</td><td>${tipoChip(x.t)}</td><td>${esc(x.c)}</td></tr>`).join('')}</tbody></table></div></div>`; }).join('') : '';
   return `<div class="dlg" style="--c:${COLOR_TIPO[p.tipos[0]] || '#1a5d74'}"><div class="dlg-cab"><p class="muted">${esc([num, p.especie && 'Pokémon ' + p.especie].filter(Boolean).join(' · ') || 'Pokédex de Reloaded')}</p><h2>${esc(p.n)}</h2><p class="pk-tipos">${p.tipos.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Exclusivo de Reloaded</span>' : ''}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
@@ -1893,18 +1900,10 @@ async function abrirPokemon(nombre, desdeRuta) {
   abrir(d);
   try {
     const p = await wkPokemon(nombre);
-    if (d.dataset.n === nombre && d.open) d.innerHTML = fichaPokemonHTML(p);
+    if (d.dataset.n === nombre && d.open) { d.innerHTML = fichaPokemonHTML(p); const dz = $('[data-donde]', d); if (dz) pkDonde(p.n, dz); const dl = $('[data-locl]', d); if (dl) pkLocLista(p, dl); }
   } catch (e) {
     if (d.dataset.n === nombre && d.open) $('.dlg-cuerpo', d).innerHTML = `<div class="wk-error">No se pudo traer la ficha: ${esc(e.message)} <button class="link" type="button" data-act="pk-reintentar" data-n="${esc(nombre)}">Reintentar</button></div><p class="wk-pie" style="margin-top:12px"><a href="${esc(wkUrl(nombre))}" target="_blank" rel="noopener">Buscar ${esc(nombre)} en la Wiki PokemonReloaded ↗</a></p>`;
   }
-}
-async function pkZonas(nombre, caja) {
-  const zonas = wkZonas(), hall = []; let hechas = 0, i = 0;
-  caja.innerHTML = `<p class="wk-cargando"><i></i>Revisando las ${zonas.length} zonas… <span data-prog>0</span>/${zonas.length}</p>`;
-  const trabajar = async () => { while (i < zonas.length) { const z = zonas[i++]; try { const v = await wkZona(z.nombre, false); const l = v.poke.filter(x => wkClave(x.n) === wkClave(nombre)); if (l.length) hall.push({ z, l }); } catch (e) { } hechas++; const pr = $('[data-prog]', caja); if (pr) pr.textContent = hechas; } };
-  await Promise.all(Array.from({ length: 6 }, trabajar));
-  const orden = zonas.map(z => z.nombre); hall.sort((a, b) => orden.indexOf(a.z.nombre) - orden.indexOf(b.z.nombre));
-  caja.innerHTML = hall.length ? `<p class="pk-hall">Aparece en ${hall.length} ${hall.length === 1 ? 'zona' : 'zonas'} del atlas:</p><ul class="wk-lista" style="columns:1">${hall.map(({ z, l }) => `<li>${zonaA(z.nombre)} <small>· ${esc(l.map(x => [x.m, x.niv && 'Nv. ' + x.niv, x.prob, x.hor].filter(Boolean).join(' · ')).join(' — '))}</small></li>`).join('')}</ul>` : '<p class="muted">No figura en las tablas de encuentros de las zonas del atlas.</p>';
 }
 async function rutaPokemon() {
   const m = location.hash.match(/^#pokemon\/([\w-]+)/); if (!m) return;
@@ -1917,6 +1916,112 @@ async function rutaPokemon() {
 }
 window.addEventListener('hashchange', rutaPokemon);
 $('#dlgPoke').addEventListener('close', () => { if (/^#pokemon\//.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); });
+
+// ----- ¿Dónde aparece? Todas las rutas y lugares de la wiki que lo tienen en sus tablas -----
+const WK_NO_LUGAR = /^(lista|localizaci[oó]n de|gu[ií]a|pok[eé]mon reloaded:|gimnasio|guarida|cafeter|frente de batalla|laboratorio|centro de|categor)/i;
+const WK_LUGAR_RE = /^(ruta|isla|islas|cueva|bosque|monte|lago|playa|calle|zona|torre|pantano|desierto|ruinas|para[ií]so|pueblo|ciudad|puerto|archipi[eé]lago|jungla|la jungla)\b/i;
+async function wkLugares() {
+  if (WK.lug) return WK.lug;
+  const g = wkCache('lug1', 24 * 7); if (g) return (WK.lug = g);
+  const cats = ['Rutas', 'Lugares del juego', 'Otros lugares', 'Cuevas', 'Islas', 'Ciudades', 'Pueblos', 'Región Star', 'Islas Cometa', 'Gran Isla Estelar', 'La Jungla', 'Isla Llanos', 'Isla Espíritu', 'Pokemon Salvajes', 'Localizaciones'];
+  const l = [...new Set((await Promise.all(cats.map(c => wkCategoria(c).catch(() => [])))).flat())];
+  if (!l.length) throw new Error('La wiki no devolvió la lista de lugares.');
+  return (WK.lug = wkCache('lug1', 0, l));
+}
+async function wkDonde(nombre) {
+  const k = 'donde1:' + nombre;
+  if (WK.mem[k]) return WK.mem[k];
+  const g = wkCache(k, 24); if (g) return (WK.mem[k] = g);
+  const [POK, lug] = await Promise.all([wkPokes(), wkLugares().catch(() => [])]);
+  const L = new Set(lug), bl = []; let cont = '';
+  for (let i = 0; i < 4; i++) {
+    const j = await wkApi('action=query&list=backlinks&blnamespace=0&bllimit=500&bltitle=' + encodeURIComponent(nombre) + cont);
+    ((j.query && j.query.backlinks) || []).forEach(b => bl.push(b.title));
+    if (!j.continue) break; cont = '&blcontinue=' + encodeURIComponent(j.continue.blcontinue);
+  }
+  const cand = [...new Set(bl)].filter(t => !POK.has(t) && !WK_NO_LUGAR.test(t) && (L.has(t) || WK_LUGAR_RE.test(t)));
+  const out = [];
+  for (let i = 0; i < cand.length && i < 250; i += 50) {
+    const j = await wkApi('action=query&prop=revisions&rvprop=content&rvslots=main&titles=' + encodeURIComponent(cand.slice(i, i + 50).join('|')));
+    Object.values((j.query && j.query.pages) || {}).forEach(p => {
+      const r = p.revisions && p.revisions[0], w = r ? ((r.slots && r.slots.main && r.slots.main['*']) || r['*'] || '') : '';
+      const l = wkSalvajes(w, POK).filter(x => wkClave(x.n) === wkClave(nombre));
+      if (l.length) out.push({ lugar: p.title, l: l.map(x => ({ m: x.m, niv: x.niv, prob: x.prob, hor: x.hor })) });
+    });
+  }
+  out.sort((a, b) => a.lugar.localeCompare(b.lugar, 'es', { numeric: true }));
+  return (WK.mem[k] = wkCache(k, 0, out));
+}
+/** Link a un lugar: zona del atlas → su página; ruta → la sección Rutas; otro lugar → la wiki. */
+const lugarA = n => zonaConocida(n) ? zonaA(n) : /^ruta\b/i.test(n) ? `<a class="zn-a" href="${MULTIPAGINA ? '/wiki/rutas.html' : ''}#r-${wkSlug(n)}">${esc(n)}</a>` : `<a class="zn-a" href="${esc(wkUrl(n))}" target="_blank" rel="noopener">${esc(n)} ↗</a>`;
+const dondeHTML = r => `<ul class="pk-donde">${r.map(x => `<li>${lugarA(x.lugar)}<small>${esc(x.l.map(y => [y.m, y.niv && 'Nv. ' + y.niv, y.prob, y.hor].filter(Boolean).join(' · ')).join(' — ') || 'Salvaje')}</small></li>`).join('')}</ul>`;
+async function pkDonde(nombre, caja) {
+  caja.innerHTML = '<p class="wk-cargando"><i></i>Buscando en las rutas y lugares de la wiki…</p>';
+  try {
+    const r = await wkDonde(nombre);
+    caja.innerHTML = r.length ? `<p class="pk-hall">Según las rutas y lugares de la wiki, aparece en ${r.length} ${r.length === 1 ? 'lugar' : 'lugares'}:</p>${dondeHTML(r)}` : '<p class="muted">No figura en las tablas de encuentros de las rutas y lugares de la wiki.</p>';
+  } catch (e) { caja.innerHTML = `<p class="muted">No se pudieron revisar las rutas: ${esc(e.message)} <button class="link" type="button" data-act="pk-donde" data-n="${esc(nombre)}">Reintentar</button></p>`; }
+}
+
+
+// ----- Listas de localización por generación de la wiki (cubren también lugares sin página propia) -----
+const WK_LOC_GEN = ['primera', 'segunda', 'tercera', 'cuarta', 'quinta', 'sexta', 'séptima', 'octava', 'novena'];
+const pkForma = n => String(n).replace(/\s*\((Alola|Galar|Hisui|Paldea)\)\s*$/i, ' de $1');
+const wkUtil = s => { const x = String(s || '').replace(/\s*Si quieres saber[^.]*\.?/gi, '').trim(); return /^(ning[uú]n lugar|nada|ningun[oa]|-|—|de\s*:\s*ning[uú]n pok[eé]mon)\.?$/i.test(x) ? '' : x; };
+async function wkLocLista(num) {
+  const g = genDe(num), pag = g ? 'Localización de los Pokémon de la ' + WK_LOC_GEN[g - 1] + ' generación' : 'Localización de los Pokémon exclusivos de la región Star', k = 'locl1:' + pag;
+  if (WK.mem[k]) return WK.mem[k];
+  const c = wkCache(k, 24 * 3); if (c) return (WK.mem[k] = c);
+  const pg = await wkPagina(pag), idx = {};
+  if (pg) wkTablas(pg.wt.replace(/^[ \t]+(?=[{|!])/gm, '')).forEach(tb => wkFilas(tb).forEach(f => {
+    const cs = wkCols(f); if (cs.length < 3) return;
+    const n = wkLinks(cs[0]).pop(); if (!n) return;
+    const tx = cs.slice(1, 5).map(x => wkUtil(wkLimpiar(x)));
+    if (tx.some(Boolean)) idx[wkClave(pkForma(n))] = { tierra: tx[0] || '', agua: tx[1] || '', evo: (tx[2] || '').replace(/^de\s*:\s*/i, ''), esp: tx[3] || '' };
+  }));
+  return (WK.mem[k] = wkCache(k, 0, { url: pg ? wkUrl(pg.titulo) : '', idx }));
+}
+async function pkLocLista(p, caja) {
+  const num = parseInt(p.num, 10); if (!num) return;
+  try {
+    const { url, idx } = await wkLocLista(num), e = idx[wkClave(p.n)];
+    if (!e || !caja.isConnected) return;
+    const filas = [['Por tierra', e.tierra], ['En el agua', e.agua], ['Evoluciona de', e.evo], ['Especial', e.esp]].filter(x => x[1]);
+    caja.innerHTML = `<dl class="pk-locl">${filas.map(([k, v]) => `<div><dt>${k}</dt><dd>${wkEnlazar(v)}</dd></div>`).join('')}</dl><p class="pk-fuente">Según la <a href="${esc(url)}" target="_blank" rel="noopener">lista de localización de la wiki ↗</a>. Abajo, el detalle de cada ruta que tiene página.</p>`;
+    const vieja = caja.parentNode && $('[data-loc-ficha]', caja.parentNode); if (vieja) vieja.hidden = true;
+  } catch (e) { }
+}
+
+// ----- Rutas: qué sale en cada una -----
+const RUT = { q: '' };
+async function pintarRutas() {
+  const el = $('#listaRutas'); if (!el) return;
+  try { await wkLugares(); } catch (e) { el.innerHTML = wkFallo(e, 'rutas'); return; }
+  WK.rutas = WK.lug.filter(x => /^ruta\b/i.test(x) && !/^rutas$/i.test(x)).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  renderRutas(); abrirRutaHash();
+}
+function renderRutas() {
+  const el = $('#listaRutas'); if (!el || !WK.rutas) return;
+  const q = wkNorm(RUT.q), vis = WK.rutas.filter(r => !q || wkNorm(r).includes(q));
+  el.innerHTML = vis.length ? vis.map(r => `<details class="ruta" id="r-${wkSlug(r)}" data-ruta="${esc(r)}"><summary><b>${esc(r)}</b><small data-rr>Tocá para ver qué sale</small></summary><div class="ruta-c"></div></details>`).join('') : '<p class="vacio">Ninguna ruta coincide con la búsqueda.</p>';
+}
+async function llenarRuta(d) {
+  if (d.dataset.cargada) return; d.dataset.cargada = '1';
+  const c = $('.ruta-c', d); c.innerHTML = '<p class="wk-cargando"><i></i>Trayendo la ruta de la wiki…</p>';
+  try {
+    const v = await wkZona(d.dataset.ruta, false), n = new Set(v.poke.map(x => x.n)).size;
+    c.innerHTML = `<div class="wk-art">${wkVivoHTML(v)}<p class="wk-pie">Datos de <a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.titulo)} en la Wiki PokemonReloaded ↗</a> (licencia CC BY-SA).</p></div>`;
+    $('[data-rr]', d).textContent = n ? n + ' Pokémon' : 'La wiki no lista Pokémon salvajes';
+  } catch (e) { delete d.dataset.cargada; c.innerHTML = `<div class="wk-error">No se pudo traer la ruta: ${esc(e.message)}</div>`; }
+}
+function abrirRutaHash() {
+  const m = location.hash.match(/^#(r-[\w-]+)$/); if (!m) return;
+  const d = document.getElementById(m[1]); if (!d) return;
+  $$('dialog[open]').forEach(cerrar);
+  d.open = true; d.scrollIntoView({ block: 'start' });
+}
+document.addEventListener('toggle', e => { const d = e.target; if (d && d.matches && d.matches('details.ruta') && d.open) llenarRuta(d); }, true);
+window.addEventListener('hashchange', abrirRutaHash);
 
 // ----- Legendarios, singulares y ultraentes -----
 const LEG = { q: '', g: 'todos' };
@@ -2058,7 +2163,7 @@ async function pintarGuias() {
 }
 
 // ----- Carga perezosa: cada sección pide sus datos cuando se acerca a la pantalla -----
-const WK_CARGAS = { dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias };
+const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias };
 (() => {
   const els = $$('[data-wk-carga]');
   const una = el => { if (el.dataset.cargado) return; el.dataset.cargado = '1'; WK_CARGAS[el.dataset.wkCarga](); };
@@ -2073,6 +2178,7 @@ const WK_CARGAS = { dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarO
   en('#genDex', 'change', e => { DEX.gen = e.target.value; renderDex(); });
   en('#buscarLeg', 'input', deb('leg', () => { LEG.q = $('#buscarLeg').value.trim(); renderLeg(); }));
   en('#buscarObj', 'input', deb('obj', () => { OBJ.q = $('#buscarObj').value.trim(); renderObj(); }));
+  en('#buscarRuta', 'input', deb('rut', () => { RUT.q = $('#buscarRuta').value.trim(); renderRutas(); }));
 })();
 
 // ---------- Reglas (las editan el admin y el noticiero) ----------
