@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/estilos.css?v=372c553eb7">
+<link rel="stylesheet" href="/estilos.css?v=0837c64005">
 </head>
 <body>
 <div class="adminbar" id="adminbar" hidden>
@@ -61,7 +61,7 @@
     <p class="miga"><a href="/wiki.html">Wiki</a> › <a href="/wiki/pokedex.html">Pokédex</a> › #441</p>
     <h1>Chatot</h1>
     <p class="wk-tipo">#441 · Pokémon Corchea <span class="tipo" style="--tc:#a8a77a;--tt:#1d2327">Normal</span><span class="tipo" style="--tc:#a98ff3;--tt:#1d2327">Volador</span></p>
-    <nav class="wk-nav" aria-label="Secciones de la wiki"><a href="/wiki.html" data-ir="wiki">Zonas</a><a href="/wiki/rutas.html" data-ir="rutas">Rutas</a><a href="/wiki/pokedex.html" data-ir="pokedex">Pokédex</a><a href="/wiki/legendarios.html" data-ir="legendarios">Legendarios</a><a href="/wiki/gimnasios.html" data-ir="gimnasios">Gimnasios</a><a href="/wiki/objetos.html" data-ir="objetos">Objetos</a><a href="/wiki/guias.html" data-ir="guias">Guías</a></nav>
+    <nav class="wk-nav" aria-label="Secciones de la wiki"><a href="/wiki.html" data-ir="wiki">Zonas</a><a href="/wiki/rutas.html" data-ir="rutas">Rutas</a><a href="/wiki/pokedex.html" data-ir="pokedex">Pokédex</a><a href="/wiki/legendarios.html" data-ir="legendarios">Legendarios</a><a href="/wiki/gimnasios.html" data-ir="gimnasios">Gimnasios</a><a href="/wiki/personajes.html" data-ir="personajes">Ligas y rivales</a><a href="/wiki/movimientos.html" data-ir="movimientos">Movimientos</a><a href="/wiki/habilidades.html" data-ir="habilidades">Habilidades</a><a href="/wiki/tipos.html" data-ir="tipos">Tipos</a><a href="/wiki/objetos.html" data-ir="objetos">Objetos</a><a href="/wiki/guias.html" data-ir="guias">Guías</a></nav>
     <div id="pkPagina" class="pk-cuerpo" data-n="Chatot" data-hab="Vista lince|Tumbos" data-oc="Sacapecho"><dl class="ficha"><div><dt>Tipo</dt><dd>Normal / Volador</dd></div><div><dt>Habilidades</dt><dd>Vista lince · Tumbos</dd></div><div><dt>Habilidad oculta</dt><dd>Sacapecho</dd></div></dl><section class="pk-sec"><h3>Dónde encontrarlo</h3><dl class="pk-locl"><div><dt>Por tierra</dt><dd><a class="zn-a" href="/wiki/zona-safari.html">Zona Safari</a>.</dd></div></dl></section><p class="wk-cargando" data-pk-cargando><i></i>Trayendo estadísticas, evolución, movimientos y el detalle de cada ruta desde la wiki…</p><p class="wk-pie">Datos de la <a href="https://pokemonreloaded.fandom.com/es/wiki/Chatot" target="_blank" rel="noopener">Wiki PokemonReloaded</a>, hecha por su comunidad de editores (licencia CC BY-SA).</p></div>
     <nav class="wk-vecinas" aria-label="Otros Pokémon"><a href="/pokemon/happiny.html">← Happiny</a><a href="/wiki/pokedex.html">Pokédex</a><a href="/pokemon/spiritomb.html">Spiritomb →</a></nav>
   </div>
@@ -112,15 +112,16 @@
 <dialog id="dlgLista"></dialog>
 <dialog id="dlgMapa">
   <div class="dlg">
-    <div class="dlg-cab"><h2>Mapa de la Región Star</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="dlg-cab"><h2 data-region-titulo>Mapa de la Región Star</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <div class="ubicando-aviso" id="avisoUbicar2" hidden style="top:0"><span>Tocá el mapa donde está <b id="ubicarNombre2"></b><small class="ubicar-falta"></small></span><span class="serie"><button class="btn sm" type="button" data-act="saltar-ubicar" data-serie hidden style="border-color:#2b1e05;color:#2b1e05">Saltar</button><button class="btn sm" type="button" data-act="cancelar-ubicar" style="border-color:#2b1e05;color:#2b1e05">Terminar</button></span></div>
-      <div class="zoom"><div class="escena grande" data-escena><img class="mapa-img" alt="Mapa territorial de la Región Star ampliado"><div class="pins"></div><div class="vacio-mapa" hidden><p>El mapa territorial todavía no está cargado.</p></div></div></div>
+      <div class="zoom-caja"><div class="zoom"><div class="escena grande" data-escena><img class="mapa-img" alt="Mapa territorial de la Región Star ampliado"><div class="pins"></div><div class="vacio-mapa" hidden><p>El mapa territorial todavía no está cargado.</p></div></div></div>
+        <button type="button" class="reg-flecha izq" data-act="region" data-dir="-1" aria-label="Ver el mapa de la otra región"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8"/></svg></button><button type="button" class="reg-flecha der" data-act="region" data-dir="1" aria-label="Ver el mapa de la otra región"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8"/></svg></button></div>
     </div>
   </div>
 </dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="/app.js?v=372c553eb7"></script>
+<script src="/app.js?v=0837c64005"></script>
 </body>
 </html>
