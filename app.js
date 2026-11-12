@@ -8,6 +8,10 @@ var Core = (function () {
   // Líderes informados por la administración (se cargan solo si el team no tiene líder).
   var LIDERES = { 'Team Aqua': 'Kaivel', 'Team Rekiem': 'omarito', 'Team Plasma': 'Racso', 'Team Rocket': 'Wilfresh', 'Team Delta': 'José Luís', 'Team Magma': 'Leonardo', 'Escuadrón Élite': 'Stormacher' };
   var CUPO = 30;
+  // Regiones del mapa: cada zona pertenece a una y sus coordenadas son sobre el mapa de esa región.
+  var REGIONES = [{ id: 'star', nombre: 'Región Star' }, { id: 'jungla', nombre: 'La Jungla' }];
+  function region(v) { v = txt(v).toLowerCase(); for (var i = 0; i < REGIONES.length; i++) if (REGIONES[i].id === v) return v; return ''; }
+  function regionDe(t) { return region(t && t.region) || 'star'; }
   var TIPOS = ['Normal', 'Fuego', 'Agua', 'Planta', 'Eléctrico', 'Hielo', 'Lucha', 'Veneno', 'Tierra', 'Volador', 'Psíquico', 'Bicho', 'Roca', 'Fantasma', 'Dragón', 'Siniestro', 'Acero', 'Hada'];
   var NATURALEZAS = {
     'Fuerte': '', 'Huraña': '+Atq −Def', 'Audaz': '+Atq −Vel', 'Firme': '+Atq −AtEsp', 'Pícara': '+Atq −DefEsp',
@@ -18,7 +22,7 @@ var Core = (function () {
   }; // a partir de esta cantidad de miembros el team figura como Lleno
   var TABLAS = {
     equipos: ['id', 'nombre', 'emoji', 'lider', 'tipo', 'color', 'lore', 'orden', 'miembros'],
-    territorios: ['id', 'nombre', 'tipo', 'estado', 'equipo', 'retador', 'ultimo', 'referencia', 'x', 'y', 'actualizado'],
+    territorios: ['id', 'nombre', 'tipo', 'estado', 'equipo', 'retador', 'ultimo', 'referencia', 'x', 'y', 'actualizado', 'region'],
     guerras: ['id', 'fecha', 'territorioId', 'territorio', 'accion', 'ganador', 'perdedor', 'resumen', 'nota'],
     torneos: ['id', 'nombre', 'fecha', 'formato', 'info', 'enlace', 'creado'],
     noticias: ['id', 'fecha', 'titulo', 'cuerpo'],
@@ -145,7 +149,7 @@ var Core = (function () {
     zonas.forEach(function (z) {
       var c = control[z[0]], id = 'z-' + slug(z[0]);
       territorios.push({ id: id, nombre: z[0], tipo: z[1], estado: c ? 'Controlada' : 'Neutral', equipo: c ? c[0] : '', retador: '',
-        ultimo: c ? c[1] : 'Zona neutral', referencia: z[2] || '', x: '', y: '', actualizado: '' });
+        ultimo: c ? c[1] : 'Zona neutral', referencia: z[2] || '', x: '', y: '', actualizado: '', region: 'star' });
       if (c) guerras.push({ id: 'g-' + slug(z[0]), fecha: 'Parte inicial', territorioId: id, territorio: z[0], accion: c[2], ganador: c[0], perdedor: c[3], resumen: c[1], nota: '' });
     });
     return {
@@ -309,9 +313,12 @@ var Core = (function () {
         var zn = txt(p.nombre, 60); if (!zn) falla('Escribí el nombre de la zona.');
         for (i = 0; i < db.territorios.length; i++) if (db.territorios[i].id !== p.id && igual(db.territorios[i].nombre, zn)) falla('Esa zona ya está en el atlas.');
         x = p.id ? porId(db.territorios, p.id) : null;
-        if (!x) { x = { id: 'z-' + slug(zn) + '-' + uid().slice(-3), estado: 'Neutral', equipo: '', retador: '', ultimo: 'Zona neutral', x: '', y: '', actualizado: ahora }; db.territorios.push(x); }
-        var antes = x.nombre;
+        if (!x) { x = { id: 'z-' + slug(zn) + '-' + uid().slice(-3), estado: 'Neutral', equipo: '', retador: '', ultimo: 'Zona neutral', x: '', y: '', actualizado: ahora, region: 'star' }; db.territorios.push(x); }
+        var antes = x.nombre, rg = region(p.region);
         x.nombre = zn; x.tipo = txt(p.tipo, 30) || 'Zona'; x.referencia = txt(p.referencia, 120);
+        // Si cambia de región, el punto que tenía era sobre el otro mapa: queda para volver a ubicarla.
+        if (rg && rg !== regionDe(x)) { x.x = ''; x.y = ''; }
+        if (rg) x.region = rg; else if (!x.region) x.region = 'star';
         if (antes && antes !== zn) db.guerras.forEach(function (g) { if (g.territorioId === x.id) g.territorio = zn; });
         return { cambios: ['territorios', 'guerras'], resultado: { id: x.id } };
       }
@@ -327,7 +334,10 @@ var Core = (function () {
           var px = Number(p.x), py = Number(p.y);
           if (!(px >= 0 && px <= 100 && py >= 0 && py <= 100)) falla('Posición fuera del mapa.');
           t.x = px.toFixed(2); t.y = py.toFixed(2);
+          // El punto queda en el mapa donde se tocó (Región Star o La Jungla).
+          if (region(p.region)) t.region = region(p.region);
         }
+        if (!t.region) t.region = 'star';
         return { cambios: ['territorios'] };
       }
       case 'guerraRegistrar': {
@@ -365,7 +375,7 @@ var Core = (function () {
     };
   }
 
-  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt };
+  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, region: region, regionDe: regionDe };
 })();
 // ===== FIN DEL NÚCLEO =====
 // Si alojás este HTML fuera de Google (GitHub Pages, etc.), pegá acá la URL /exec de tu Apps Script.
@@ -385,17 +395,18 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const vacio = () => ({ equipos: [], territorios: [], guerras: [], torneos: [], noticias: [], combates: [], grupos: [], config: {} });
-const S = { d: vacio(), token: '', rol: '', cargando: true, filtro: 'Todos', q: '', ubicando: null, verGuerras: 12, tipeado: false, mapaKey: '' };
+const S = { d: vacio(), token: '', rol: '', cargando: true, filtro: 'Todos', q: '', ubicando: null, verGuerras: 12, tipeado: false, region: 'star' };
 const almacen = { get(k) { try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { v ? sessionStorage.setItem(k, v) : sessionStorage.removeItem(k); } catch (e) { } } };
 
 // ---------- Datos de demostración (solo cuando no hay Drive) ----------
 const Demo = {
-  k: 'reloaded-online-demo-v1', mem: null, mapa: '',
+  k: 'reloaded-online-demo-v1', mem: null, mapa: '', mapaJungla: '',
   db() { if (this.mem) return this.mem; try { const r = localStorage.getItem(this.k); if (r) return (this.mem = JSON.parse(r)); } catch (e) { } return (this.mem = Core.semilla()); },
   guardar() { try { localStorage.setItem(this.k, JSON.stringify(this.mem)); } catch (e) { } },
   vista(admin) {
     const v = JSON.parse(JSON.stringify(Core.vista(this.db(), admin)));
-    v.config = { modo: 'demo', mapa: { url: this.mapa || 'mapa-territorial-reloaded-online.png' }, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
+    const star = { url: this.mapa || 'mapa-territorial-reloaded-online.png' };
+    v.config = { modo: 'demo', mapa: star, mapas: { star, jungla: this.mapaJungla ? { url: this.mapaJungla } : null }, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
     return v;
   },
   api(a, p, tok) {
@@ -432,7 +443,7 @@ const Demo = {
     if (a === 'cupo') { const n = Math.floor(Number(p.valor)); if (!(n >= 1 && n <= 999)) throw new Error('El cupo tiene que ser un número entre 1 y 999.'); this.cupoDemo = n; return this.vista(true); }
     if (a === 'carnetClave') { const c = dbusca(p.id); c.clave = Math.random().toString(36).slice(2, 8); DemoC.guardar(dc); return { clave: c.clave }; }
     if (a === 'clave') throw new Error('En la demostración la clave siempre es "demo". Con Drive conectado se cambia de verdad.');
-    if (a === 'mapaSubir') { this.mapa = 'data:' + p.mime + ';base64,' + p.base64; return this.vista(true); }
+    if (a === 'mapaSubir') { this[Core.region(p.region) === 'jungla' ? 'mapaJungla' : 'mapa'] = 'data:' + p.mime + ';base64,' + p.base64; return this.vista(true); }
     Core.aplicar(this.db(), a, p, ctx); this.guardar(); return this.vista(true);
   }
 };
@@ -590,36 +601,62 @@ function renderNoticia() {
   requestAnimationFrame(paso);
 }
 
-function fuentesMapa() { const m = S.d.config && S.d.config.mapa; return m ? [m.url, m.alt].filter(Boolean) : []; }
+// Mapas por región: Región Star y La Jungla. Cada zona se marca sobre el mapa de su región.
+const MAPAS_BASE = { jungla: 'https://stormacher95.github.io/mapas/la-jungla.png' };
+const REG_TITULO = { star: 'la Región Star', jungla: 'La Jungla' };
+function nombreRegion(rg) { const r = Core.REGIONES.find(x => x.id === rg); return r ? r.nombre : 'Región Star'; }
+function mapaDe(rg) { const c = S.d.config || {}; return (c.mapas && c.mapas[rg]) || (rg === 'star' ? c.mapa : null) || null; }
+/** Imágenes a probar en orden: la de Drive (enlace directo y miniatura), la copia embebida y el mapa base de la web. */
+function fuentesMapa(rg) {
+  const m = mapaDe(rg), f = m ? [m.url, m.alt].filter(Boolean) : [];
+  if (m && m.id && MODO !== 'demo') f.push({ id: m.id });
+  if (MAPAS_BASE[rg]) f.push(MAPAS_BASE[rg]);
+  return f;
+}
+function regionVecina(dir) { const ids = Core.REGIONES.map(r => r.id), i = Math.max(0, ids.indexOf(S.region)); return ids[(i + dir + ids.length) % ids.length]; }
+function cambiarRegion(rg) { if (!Core.region(rg) || rg === S.region) return; S.region = rg; renderMapa(); }
+function zonasRegion(rg) { return S.d.territorios.filter(t => Core.regionDe(t) === rg); }
 function renderMapa() {
-  const fuentes = fuentesMapa(), m = (S.d.config && S.d.config.mapa) || {}, key = fuentes.join('|');
+  const rg = S.region, fuentes = fuentesMapa(rg), key = rg + '|' + fuentes.map(f => typeof f === 'string' ? f : 'id:' + f.id).join('|');
   $$('[data-escena]').forEach(esc_ => {
-    const img = $('.mapa-img', esc_), vacioEl = $('.vacio-mapa', esc_);
-    if (S.mapaKey !== key || !img.getAttribute('src')) {
-      if (!fuentes.length) { img.hidden = true; vacioEl.hidden = false; img.removeAttribute('src'); }
-      else {
-        let i = 0; img.hidden = false; vacioEl.hidden = true;
-        img.onerror = () => {
-          i++;
-          if (i < fuentes.length) img.src = fuentes[i];
-          else if (MODO !== 'demo' && m.id) llamar('imagen', { id: m.id }).then(src => { img.onerror = () => { img.hidden = true; vacioEl.hidden = false; }; img.src = src; }).catch(() => { img.hidden = true; vacioEl.hidden = false; });
-          else { img.hidden = true; vacioEl.hidden = false; }
-        };
-        img.src = fuentes[0];
-      }
+    const img = $('.mapa-img', esc_), vacioEl = $('.vacio-mapa', esc_), grande = esc_.classList.contains('grande');
+    esc_.dataset.region = rg;
+    if (img.dataset.k !== key || !img.getAttribute('src')) {
+      const otraRegion = img.dataset.k && img.dataset.k.split('|')[0] !== rg;
+      img.dataset.k = key; img.alt = 'Mapa territorial de ' + REG_TITULO[rg] + (grande ? ' ampliado' : ' con los emblemas de cada team');
+      let i = 0;
+      const sin = () => { img.hidden = true; vacioEl.hidden = false; img.removeAttribute('src'); img.classList.remove('llegando'); $('.pins', esc_).innerHTML = ''; };
+      const prox = () => {
+        if (img.dataset.k !== key) return;
+        const f = fuentes[i++];
+        if (f === undefined) return sin();
+        if (typeof f === 'string') { img.src = f; return; }
+        llamar('imagen', { id: f.id }).then(src => { if (img.dataset.k === key) img.src = src; }).catch(prox);
+      };
+      img.onerror = prox;
+      img.onload = () => img.classList.remove('llegando');
+      if (!fuentes.length) sin();
+      else { if (otraRegion) img.classList.add('llegando'); img.hidden = false; vacioEl.hidden = true; prox(); }
     }
-    const pins = S.d.territorios.filter(t => t.x !== '' && t.x != null && !isNaN(parseFloat(t.x)));
+    const pins = zonasRegion(rg).filter(t => t.x !== '' && t.x != null && !isNaN(parseFloat(t.x)));
     $('.pins', esc_).innerHTML = img.hidden ? '' : pins.map(t => {
       const cl = t.estado === 'Controlada' ? '' : t.estado === 'En disputa' ? 'disputa' : t.estado === 'Punto Muerto' ? 'muerto' : 'neutral';
       const logo = (t.estado === 'Controlada' || t.estado === 'En disputa') && t.equipo ? emblema(t.equipo) : null;
       return `<button type="button" class="pin ${cl}${logo ? ' logo' : ''}" data-act="zona" data-id="${esc(t.id)}" style="left:${parseFloat(t.x)}%;top:${parseFloat(t.y)}%;--c:${esc(colorZona(t))}" aria-label="${esc(t.nombre)}: ${esc(t.estado === 'Controlada' ? t.equipo : t.estado + (t.equipo ? ' (' + t.equipo + ')' : ''))}">${logo ? imgEmblema(logo) : ''}<span class="pin-et">${esc(t.nombre)}</span></button>`;
     }).join('');
   });
-  S.mapaKey = key;
-  const ubicadas = S.d.territorios.filter(t => t.x !== '' && t.x != null).length;
-  const faltan = S.d.territorios.length - ubicadas;
-  if (hay('#pinsInfo')) $('#pinsInfo').innerHTML = esc(ubicadas ? `${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa: cada emblema muestra qué team la controla y cambia solo al registrar una guerra.` : (puedeGuerra() ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.'))
-    + (puedeGuerra() && faltan > 0 ? ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>` : '');
+  $$('[data-region-nombre]').forEach(e => { e.textContent = nombreRegion(rg); });
+  $$('[data-region-titulo]').forEach(e => { e.textContent = 'Mapa de ' + REG_TITULO[rg]; });
+  $$('.reg-puntos').forEach(e => { e.innerHTML = Core.REGIONES.map(r => `<i${r.id === rg ? ' class="on"' : ''}></i>`).join(''); });
+  $$('.reg-flecha').forEach(b => { const d = regionVecina(+b.dataset.dir); b.setAttribute('aria-label', 'Ver el mapa de ' + REG_TITULO[d]); b.title = nombreRegion(d); });
+  const zr = zonasRegion(rg), ubicadas = zr.filter(t => t.x !== '' && t.x != null).length, faltan = pendientesUbicar().length;
+  let info = ubicadas ? esc(`${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa: cada emblema muestra qué team la controla y cambia solo al registrar una guerra.`)
+    : !zr.length && rg !== 'star' ? esc(`Todavía no hay zonas cargadas en ${REG_TITULO[rg]}.`) + (esAdmin() ? ' <button class="link" type="button" data-act="nueva-zona">Agregar una zona</button>' : '')
+    : esc(puedeGuerra() ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.');
+  if (puedeGuerra() && faltan > 0) info += ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>`;
+  // Un Codigo.gs viejo no guarda la región: avisar antes de que marquen zonas de La Jungla sobre la Star.
+  if (puedeGuerra() && rg !== 'star' && MODO !== 'demo' && !(S.d.config && S.d.config.mapas)) info += ' <b>Para guardar zonas en este mapa hay que actualizar el Codigo.gs.</b>';
+  if (hay('#pinsInfo')) $('#pinsInfo').innerHTML = info;
 }
 
 function renderTeams() {
@@ -645,11 +682,11 @@ function renderAtlas() {
   $('#filtros').innerHTML = ['Todos', 'Controlada', 'En disputa', 'Punto Muerto', 'Neutral'].map(k => `<button type="button" class="chip" data-act="filtro" data-f="${k}" aria-pressed="${S.filtro === k}">${nombres[k]}<b>${cuenta[k] || 0}</b></button>`).join('');
   const q = S.q.trim().toLocaleLowerCase('es');
   const orden = { Controlada: 0, 'En disputa': 1, 'Punto Muerto': 2, Neutral: 3 };
-  const vis = z.filter(t => (S.filtro === 'Todos' || t.estado === S.filtro) && (!q || (t.nombre + ' ' + t.tipo + ' ' + t.equipo + ' ' + t.retador).toLocaleLowerCase('es').includes(q)))
+  const vis = z.filter(t => (S.filtro === 'Todos' || t.estado === S.filtro) && (!q || (t.nombre + ' ' + t.tipo + ' ' + t.equipo + ' ' + t.retador + ' ' + nombreRegion(Core.regionDe(t))).toLocaleLowerCase('es').includes(q)))
     .sort((a, b) => (orden[a.estado] - orden[b.estado]) || a.nombre.localeCompare(b.nombre, 'es'));
   $('#gridZonas').innerHTML = vis.map(t => `
     <button type="button" class="zona" data-act="zona" data-id="${esc(t.id)}" style="--c:${esc(colorZona(t))}">
-      <span class="zona-nom">${esc(t.nombre)}</span><span class="zona-tipo">${esc(t.tipo)}</span>
+      <span class="zona-nom">${esc(t.nombre)}</span><span class="zona-tipo">${esc(t.tipo)}${Core.regionDe(t) !== 'star' ? ' · ' + esc(nombreRegion(Core.regionDe(t))) : ''}</span>
       <span class="zona-est"><i></i>${esc(t.estado === 'Controlada' ? t.equipo : t.estado)}${t.x !== '' && t.x != null ? '<small>en el mapa</small>' : ''}</span>
     </button>`).join('');
   $('#zonasVacio').hidden = vis.length > 0 || S.cargando;
@@ -761,7 +798,7 @@ function fichaZona(id) {
   const opcRiv = [{ v: '', l: 'Sin rival / zona libre' }].concat(S.d.equipos.map(e => ({ v: e.nombre, l: e.nombre })));
   const enMapa = t.x !== '' && t.x != null;
   const d = $('#dlgZona');
-  d.innerHTML = `<div class="dlg" style="--c:${esc(c)}"><div class="dlg-cab"><p class="muted">${esc(t.tipo)}</p><h2>${esc(t.nombre)}</h2><p style="margin-top:10px"><span class="pill" style="--c:${esc(c)}">${esc(t.estado === 'Controlada' ? 'Controlada por ' + t.equipo : t.estado)}</span></p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+  d.innerHTML = `<div class="dlg" style="--c:${esc(c)}"><div class="dlg-cab"><p class="muted">${esc(t.tipo)} · ${esc(nombreRegion(Core.regionDe(t)))}</p><h2>${esc(t.nombre)}</h2><p style="margin-top:10px"><span class="pill" style="--c:${esc(c)}">${esc(t.estado === 'Controlada' ? 'Controlada por ' + t.equipo : t.estado)}</span></p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <dl class="ficha"><div><dt>Último parte</dt><dd>${pintar(t.ultimo || 'Zona neutral')}</dd></div>${t.retador ? `<div><dt>Retador</dt><dd>${pintar(t.retador)}</dd></div>` : ''}<div><dt>Referencia en el mapa</dt><dd>${esc(t.referencia || 'Por confirmar')}</dd></div></dl>
       <div class="dlg-acc" style="justify-content:flex-start">${enMapa ? `<button class="btn sm" type="button" data-act="ver-en-mapa" data-id="${esc(t.id)}">Ver en el mapa</button>` : ''}<button class="btn sm sand" type="button" data-act="wiki" data-zona="${esc(t.nombre)}">Guía de la zona</button></div>
@@ -807,8 +844,9 @@ function formZona(t) {
   t = t || {};
   formulario({
     titulo: t.id ? 'Editar ' + t.nombre : 'Nueva zona', texto: t.id ? '' : 'La zona entra como neutral. Después podés ubicarla en el mapa y registrar resultados.', boton: t.id ? 'Guardar cambios' : 'Agregar al atlas',
-    campos: [{ n: 'nombre', l: 'Nombre de la ciudad, isla o zona', v: t.nombre, req: true, max: 60 }, { n: 'tipo', l: 'Tipo de lugar', v: t.tipo, ph: 'Ciudad, ruta, isla, cueva…', max: 30 }, { n: 'referencia', l: 'Referencia en el mapa', v: t.referencia, ph: 'Ej.: norte, costa sur', max: 120 }],
-    enviar: async v => { const r = await llamar('zonaGuardar', Object.assign({ id: t.id || '' }, v)); if (r && r.equipos) S.d = r; render(); toast(t.id ? 'Zona actualizada' : 'Zona agregada al atlas'); fichaZona(t.id || (S.d.territorios.find(x => x.nombre === Core.txt(v.nombre, 60)) || {}).id); }
+    campos: [{ n: 'nombre', l: 'Nombre de la ciudad, isla o zona', v: t.nombre, req: true, max: 60 }, { n: 'tipo', l: 'Tipo de lugar', v: t.tipo, ph: 'Ciudad, ruta, isla, cueva…', max: 30 }, { n: 'referencia', l: 'Referencia en el mapa', v: t.referencia, ph: 'Ej.: norte, costa sur', max: 120 },
+      { n: 'region', l: 'Región', t: 'select', v: t.id ? Core.regionDe(t) : S.region, opc: Core.REGIONES.map(r => ({ v: r.id, l: r.nombre })), ayuda: t.id && t.x !== '' && t.x != null ? 'Si la cambiás, la zona sale de este mapa y la ubicás de nuevo en el de la otra región.' : '' }],
+    enviar: async v => { const r = await llamar('zonaGuardar', Object.assign({ id: t.id || '' }, v)); if (r && r.equipos) S.d = r; S.region = Core.region(v.region) || S.region; render(); toast(t.id ? 'Zona actualizada' : 'Zona agregada al atlas'); fichaZona(t.id || (S.d.territorios.find(x => x.nombre === Core.txt(v.nombre, 60)) || {}).id); }
   });
 }
 
@@ -1203,6 +1241,7 @@ function salirAdmin(vencida) {
 
 function ubicar(id, serie) {
   const t = S.d.territorios.find(x => x.id === id); if (!t) return;
+  cambiarRegion(Core.regionDe(t)); // se puede pasar a la otra región con las flechas antes de tocar el mapa
   S.ubicando = id; S.ubicarSerie = !!serie; document.body.classList.add('ubicando');
   $$('#ubicarNombre, #ubicarNombre2').forEach(b => { b.textContent = t.nombre; });
   const quedan = pendientesUbicar().length;
@@ -1212,9 +1251,9 @@ function ubicar(id, serie) {
   $$('#avisoUbicar, #avisoUbicar2').forEach(a => { a.hidden = false; });
   cerrar($('#dlgZona')); abrir($('#dlgMapa'));
 }
-/** Zonas sin lugar en el mapa: primero las que tienen dueño o están en disputa (son las que llevan emblema). */
+/** Zonas de la región que se está viendo sin lugar en el mapa: primero las que tienen dueño o están en disputa (llevan emblema). */
 function pendientesUbicar() {
-  const sin = S.d.territorios.filter(t => (t.x === '' || t.x == null) && !(S.saltadas || []).includes(t.id));
+  const sin = zonasRegion(S.region).filter(t => (t.x === '' || t.x == null) && !(S.saltadas || []).includes(t.id));
   const peso = t => t.estado === 'Controlada' || t.estado === 'En disputa' ? 0 : 1;
   return sin.sort((a, b) => peso(a) - peso(b));
 }
@@ -1229,6 +1268,7 @@ function cancelarUbicar() {
   $$('#avisoUbicar, #avisoUbicar2').forEach(a => { a.hidden = true; });
 }
 function marcarPin(id) {
+  const t = S.d.territorios.find(x => x.id === id); if (t) cambiarRegion(Core.regionDe(t));
   cerrar($('#dlgZona')); cerrar($('#dlgTeam'));
   const donde = hay('#mapa') ? '#mapa' : '#dlgMapa';
   if (donde === '#mapa') ir('mapa'); else abrir($('#dlgMapa'));
@@ -1255,7 +1295,7 @@ document.addEventListener('click', async ev => {
     const id = S.ubicando, t = S.d.territorios.find(z => z.id === id), serie = S.ubicarSerie;
     if (serie) { S.ubicando = null; } else cancelarUbicar();
     try {
-      await accion('zonaUbicar', { id, x, y }, (t ? t.nombre : 'La zona') + ' quedó marcada en el mapa');
+      await accion('zonaUbicar', { id, x, y, region: S.region }, (t ? t.nombre : 'La zona') + ' quedó marcada en el mapa' + (t && Core.regionDe(t) !== S.region ? ' de ' + REG_TITULO[S.region] : ''));
       if (serie) ubicarSiguiente(); else { cerrar($('#dlgMapa')); marcarPin(id); }
     } catch (e) { toast(e.message, 'error'); if (serie) ubicar(id, true); }
     return;
@@ -1276,6 +1316,7 @@ document.addEventListener('click', async ev => {
       case 'filtro': S.filtro = el.dataset.f; renderAtlas(); break;
       case 'mas-guerras': S.verGuerras += 20; renderCronica(); break;
       case 'ampliar': abrir($('#dlgMapa')); break;
+      case 'region': cambiarRegion(regionVecina(+el.dataset.dir || 1)); break;
       case 'ver-en-mapa': marcarPin(id); break;
       case 'cancelar-ubicar': { const eraSerie = S.ubicarSerie; cancelarUbicar(); if (eraSerie) { cerrar($('#dlgMapa')); renderMapa(); } break; }
       case 'saltar-ubicar': S.saltadas = (S.saltadas || []).concat(S.ubicando ? [S.ubicando] : []); ubicarSiguiente(); break;
@@ -1318,9 +1359,9 @@ document.addEventListener('click', async ev => {
       case 'nuevo-team': cerrar($('#dlgPanel')); formTeam(); break;
       case 'nueva-zona': cerrar($('#dlgPanel')); formZona(); break;
       case 'mapa-subir': cerrar($('#dlgPanel')); formulario({
-        titulo: 'Cambiar el mapa territorial', texto: 'La imagen se guarda en tu carpeta de Drive y reemplaza al mapa actual. Las zonas ya marcadas mantienen su posición.', boton: 'Subir mapa',
-        campos: [{ n: 'archivo', l: 'Imagen del mapa (PNG, JPG o WEBP, hasta 10 MB)', t: 'file', req: true }],
-        enviar: async v => { const f = v.archivo; if (!f) throw new Error('Elegí una imagen.'); if (f.size > 10 * 1024 * 1024) throw new Error('La imagen pesa más de 10 MB.'); S.mapaKey = ''; await accion('mapaSubir', { nombre: f.name, mime: f.type, base64: await leerArchivo(f) }, 'Mapa actualizado'); }
+        titulo: 'Cambiar el mapa territorial', texto: 'La imagen se guarda en tu carpeta de Drive y reemplaza al mapa de esa región. Las zonas ya marcadas mantienen su posición.', boton: 'Subir mapa',
+        campos: [{ n: 'region', l: 'Región', t: 'select', v: S.region, opc: Core.REGIONES.map(r => ({ v: r.id, l: r.nombre })) }, { n: 'archivo', l: 'Imagen del mapa (PNG, JPG o WEBP, hasta 10 MB)', t: 'file', req: true }],
+        enviar: async v => { const f = v.archivo; if (!f) throw new Error('Elegí una imagen.'); if (f.size > 10 * 1024 * 1024) throw new Error('La imagen pesa más de 10 MB.'); const rg = Core.region(v.region) || 'star'; $$('.mapa-img').forEach(i => { i.dataset.k = ''; }); S.region = rg; await accion('mapaSubir', { region: rg, nombre: f.name, mime: f.type, base64: await leerArchivo(f) }, 'Mapa de ' + REG_TITULO[rg] + ' actualizado'); }
       }); break;
       case 'planilla': {
         const u = S.d.config && S.d.config.hojaUrl;

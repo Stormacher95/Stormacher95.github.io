@@ -69,10 +69,25 @@ p{margin:0}
 .dom-pie{margin-top:12px;padding-top:10px;border-top:1px solid var(--sea-700);font-size:13px;color:var(--mist);display:flex;gap:14px;flex-wrap:wrap}
 
 .carta{margin:0;position:relative}
-.carta-marco{background:var(--sea-950);border:2px solid var(--sea-600);border-radius:16px;padding:8px;box-shadow:0 10px 0 #031722}
+.carta-marco{position:relative;background:var(--sea-950);border:2px solid var(--sea-600);border-radius:16px;padding:8px;box-shadow:0 10px 0 #031722}
 .escena{position:relative;border-radius:10px;overflow:hidden;background:#127fa3;line-height:0}
 .escena img{width:100%;height:auto;user-select:none;-webkit-user-drag:none}
 .pins{position:absolute;inset:0}
+.escena img{transition:opacity .2s}
+.escena img.llegando{opacity:0}
+/* flechas para pasar de región, como en el mapa del juego */
+.reg-flecha{position:absolute;top:50%;z-index:3;width:44px;height:58px;margin-top:-29px;display:grid;place-items:center;padding:0;border:2px solid rgba(234,245,241,.28);border-radius:12px;background:rgba(3,23,33,.58);color:#eaf5f1;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.reg-flecha svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:square;stroke-linejoin:miter}
+.reg-flecha:hover{background:rgba(3,23,33,.85);border-color:var(--sand);color:var(--sand)}
+.reg-flecha:focus-visible{outline:3px solid var(--sand);outline-offset:2px}
+.reg-flecha.izq{left:16px}.reg-flecha.der{right:16px}
+.reg-flecha:active svg{transform:scale(.88)}
+.reg-nombre{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:9px;padding:6px 11px 7px;border-radius:9px;background:rgba(3,23,33,.72);color:#fff;font:600 16px/1 var(--px);pointer-events:none;text-shadow:1px 1px 0 #031722}
+.reg-puntos{display:flex;gap:4px}
+.reg-puntos i{width:7px;height:7px;border-radius:2px;background:rgba(234,245,241,.32)}
+.reg-puntos i.on{background:var(--sand)}
+.zoom-caja{position:relative}
+.zoom-caja .reg-flecha.izq{left:10px}.zoom-caja .reg-flecha.der{right:10px}
 .vacio-mapa{aspect-ratio:16/9;display:grid;place-items:center;text-align:center;padding:24px;line-height:1.5;background:repeating-linear-gradient(135deg,#0f6f90 0 14px,#137aa0 14px 28px);color:#eaf5f1}
 .vacio-mapa p{max-width:26em;font-size:15px}
 .pin{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:var(--c);border:3px solid #062634;box-shadow:0 0 0 2px var(--c);cursor:pointer;padding:0}
@@ -660,6 +675,9 @@ dialog::backdrop{background:rgba(2,16,22,.78)}
   .hero-lede{font-size:16px}
   .sec{padding:56px 0}
   .dialogo{margin:-20px 8px 0;padding:16px 16px 20px}
+  .reg-flecha{width:36px;height:46px;margin-top:-23px;border-radius:10px}.reg-flecha svg{width:20px;height:20px}
+  .reg-flecha.izq{left:12px}.reg-flecha.der{right:12px}
+  .reg-nombre{left:6px;top:6px;font-size:14px;padding:5px 9px 6px}
   .dialogo p{font-size:16px}
   .teams{grid-template-columns:1fr}
   .zonas{grid-template-columns:1fr 1fr}
