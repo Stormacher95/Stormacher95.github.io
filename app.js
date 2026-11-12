@@ -388,6 +388,12 @@ const SITIO_URL = 'https://stormacher95.github.io/';
 const WPP_ONLINE = 'https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH';
 // En GitHub Pages la web está separada en páginas; la versión de Apps Script es una sola página.
 const MULTIPAGINA = true;
+// Contador de visitas anónimo (GoatCounter, sin cookies). Solo en la web publicada: no cuenta las pruebas ni la versión de Apps Script.
+if (location.hostname === 'stormacher95.github.io') {
+  const gc = document.createElement('script');
+  gc.async = true; gc.dataset.goatcounter = 'https://reloaded-online.goatcounter.com/count'; gc.src = 'https://gc.zgo.at/count.js';
+  document.head.appendChild(gc);
+}
 const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
