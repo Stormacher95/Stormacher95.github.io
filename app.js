@@ -12,6 +12,9 @@ var Core = (function () {
   var REGIONES = [{ id: 'star', nombre: 'Región Star' }, { id: 'jungla', nombre: 'La Jungla' }];
   function region(v) { v = txt(v).toLowerCase(); for (var i = 0; i < REGIONES.length; i++) if (REGIONES[i].id === v) return v; return ''; }
   function regionDe(t) { return region(t && t.region) || 'star'; }
+  // Pueblos que están en La Jungla: arrancan en esa región (en planillas viejas, solo si todavía no tenían punto en el mapa).
+  var EN_JUNGLA = ['Pueblo Arcturus', 'Pueblo Wezen', 'Pueblo Régulo', 'Pueblo Procyon'];
+  function regionInicial(t) { return EN_JUNGLA.indexOf(txt(t.nombre)) >= 0 && (t.x === '' || t.x == null) ? 'jungla' : 'star'; }
   var TIPOS = ['Normal', 'Fuego', 'Agua', 'Planta', 'Eléctrico', 'Hielo', 'Lucha', 'Veneno', 'Tierra', 'Volador', 'Psíquico', 'Bicho', 'Roca', 'Fantasma', 'Dragón', 'Siniestro', 'Acero', 'Hada'];
   var NATURALEZAS = {
     'Fuerte': '', 'Huraña': '+Atq −Def', 'Audaz': '+Atq −Vel', 'Firme': '+Atq −AtEsp', 'Pícara': '+Atq −DefEsp',
@@ -149,7 +152,7 @@ var Core = (function () {
     zonas.forEach(function (z) {
       var c = control[z[0]], id = 'z-' + slug(z[0]);
       territorios.push({ id: id, nombre: z[0], tipo: z[1], estado: c ? 'Controlada' : 'Neutral', equipo: c ? c[0] : '', retador: '',
-        ultimo: c ? c[1] : 'Zona neutral', referencia: z[2] || '', x: '', y: '', actualizado: '', region: 'star' });
+        ultimo: c ? c[1] : 'Zona neutral', referencia: z[2] || '', x: '', y: '', actualizado: '', region: EN_JUNGLA.indexOf(z[0]) >= 0 ? 'jungla' : 'star' });
       if (c) guerras.push({ id: 'g-' + slug(z[0]), fecha: 'Parte inicial', territorioId: id, territorio: z[0], accion: c[2], ganador: c[0], perdedor: c[3], resumen: c[1], nota: '' });
     });
     return {
@@ -375,7 +378,7 @@ var Core = (function () {
     };
   }
 
-  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, region: region, regionDe: regionDe };
+  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, region: region, regionDe: regionDe, regionInicial: regionInicial };
 })();
 // ===== FIN DEL NÚCLEO =====
 // Si alojás este HTML fuera de Google (GitHub Pages, etc.), pegá acá la URL /exec de tu Apps Script.
@@ -651,9 +654,10 @@ function renderMapa() {
   $$('.reg-flecha').forEach(b => { const d = regionVecina(+b.dataset.dir); b.setAttribute('aria-label', 'Ver el mapa de ' + REG_TITULO[d]); b.title = nombreRegion(d); });
   const zr = zonasRegion(rg), ubicadas = zr.filter(t => t.x !== '' && t.x != null).length, faltan = pendientesUbicar().length;
   let info = ubicadas ? esc(`${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa: cada emblema muestra qué team la controla y cambia solo al registrar una guerra.`)
-    : !zr.length && rg !== 'star' ? esc(`Todavía no hay zonas cargadas en ${REG_TITULO[rg]}.`) + (esAdmin() ? ' <button class="link" type="button" data-act="nueva-zona">Agregar una zona</button>' : '')
+    : !zr.length && rg !== 'star' ? esc(`Todavía no hay zonas cargadas en ${REG_TITULO[rg]}.`)
     : esc(puedeGuerra() ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.');
   if (puedeGuerra() && faltan > 0) info += ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>`;
+  if (esAdmin() && rg !== 'star') info += ` <button class="link" type="button" data-act="nueva-zona">Agregar zona de ${REG_TITULO[rg]}</button>`;
   // Un Codigo.gs viejo no guarda la región: avisar antes de que marquen zonas de La Jungla sobre la Star.
   if (puedeGuerra() && rg !== 'star' && MODO !== 'demo' && !(S.d.config && S.d.config.mapas)) info += ' <b>Para guardar zonas en este mapa hay que actualizar el Codigo.gs.</b>';
   if (hay('#pinsInfo')) $('#pinsInfo').innerHTML = info;
