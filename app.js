@@ -388,7 +388,7 @@ const SITIO_URL = 'https://stormacher95.github.io/';
 const WPP_ONLINE = 'https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH';
 // En GitHub Pages la web está separada en páginas; la versión de Apps Script es una sola página.
 const MULTIPAGINA = true;
-const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
+const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
 const WPP_GENERAL = 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6';
@@ -1336,6 +1336,10 @@ document.addEventListener('click', async ev => {
       case 'dex-grupo': DEX.grupo = el.dataset.f; renderDex(); break;
       case 'leg-filtro': LEG.g = el.dataset.f; renderLeg(); break;
       case 'obj-area': OBJ.area = el.dataset.f; renderObj(); break;
+      case 'mov-tab': MOV.tab = el.dataset.f; renderMov(); break;
+      case 'hab-filtro': HAB.solo = el.dataset.f; renderHab(); break;
+      case 'pj-filtro': PJ.g = el.dataset.f; PJ.reg = ''; renderPj(); break;
+      case 'pj-region': PJ.reg = el.dataset.f; renderPj(); break;
       case 'pk-tab': { const d = el.closest('.dlg'); $$('.pk-tabs .chip', d).forEach(b => b.setAttribute('aria-pressed', String(b === el))); $$('.pk-movs', d).forEach(m => { m.hidden = m.dataset.i !== el.dataset.i; }); break; }
       case 'pk-donde': pkDonde(el.dataset.n, el.closest('[data-donde]')); break;
       case 'pk-reintentar': abrirPokemon(el.dataset.n, true); break;
@@ -1929,13 +1933,13 @@ function fichaPokemonHTML(p, enPagina) {
   const yo = wkClave(p.n);
   const evo = p.evo.map(f => `<div class="pk-evo">${f.map(x => x.p ? (wkClave(x.p) === yo ? `<b>${esc(x.p)}</b>` : pkA(x.p)) : `<span class="pk-flecha">${esc(x.c)}</span>`).join('')}</div>`).join('');
   const stats = p.stats ? `<div class="pk-stats">${p.stats.map(([k, v]) => `<div><span>${k}</span><b>${v}</b><i style="--v:${Math.min(100, Math.round(v / 1.8))}%;--b:${v >= 100 ? '#7ac74c' : v >= 70 ? '#f4d38b' : '#ee8130'}"></i></div>`).join('')}<div class="pk-tot"><span>Total</span><b>${tot}</b></div></div>` : '';
-  const datos = [['Habilidades', p.hab.join(' · ') || '—'], p.oculta && ['Habilidad oculta', p.oculta], p.huevo.length && ['Grupo huevo', p.huevo.join(' · ')], p.peso && ['Peso', p.peso.replace(/\s*kg\.?$/i, '') + ' kg'], p.altura && ['Altura', p.altura.replace(/\s*m\.?$/i, '') + ' m']].filter(Boolean);
+  const datos = [['Habilidades', p.hab.length ? p.hab.map(habA).join(' · ') : '—', 1], p.oculta && ['Habilidad oculta', habA(p.oculta), 1], p.huevo.length && ['Grupo huevo', p.huevo.join(' · ')], p.peso && ['Peso', p.peso.replace(/\s*kg\.?$/i, '') + ' kg'], p.altura && ['Altura', p.altura.replace(/\s*m\.?$/i, '') + ' m']].filter(Boolean);
   const loc = `<div data-locl></div>` + (p.loc.length ? `<ul class="wk-lista" style="columns:1" data-loc-ficha>${p.loc.map(x => `<li>${x.m ? `<b>${esc(x.m)}:</b> ` : ''}${wkEnlazar(x.t)}</li>`).join('')}</ul>` : '<p class="muted">La wiki todavía no dice dónde encontrarlo.</p>')
     + `<div class="pk-zonas" data-donde="${esc(p.n)}"></div>`;
   const movs = p.movs.length ? `<div class="chips pk-tabs">${p.movs.map((g, i) => `<button type="button" class="chip" data-act="pk-tab" data-i="${i}" aria-pressed="${i === 0}">${esc(g.n)}<b>${g.l.length}</b></button>`).join('')}</div>`
     + p.movs.map((g, i) => { const col = /nivel/i.test(g.n) ? 'Nv.' : /m[to]|dt/i.test(g.n) ? 'N.°' : '', cx = col && g.l.some(x => x.x); return `<div class="pk-movs" data-i="${i}"${i ? ' hidden' : ''}><div style="overflow-x:auto"><table class="wk-tabla"><thead><tr>${cx ? `<th>${col}</th>` : ''}<th>Movimiento</th><th>Tipo</th><th>Categoría</th></tr></thead><tbody>${g.l.map(x => `<tr>${cx ? `<td>${esc(x.x)}</td>` : ''}<td>${esc(x.m)}</td><td>${tipoChip(x.t)}</td><td>${esc(x.c)}</td></tr>`).join('')}</tbody></table></div></div>`; }).join('') : '';
-  const cuerpo = `<dl class="ficha">${datos.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
-      ${sec('Estadísticas base', stats)}${sec('Evolución', evo)}${sec('Dónde encontrarlo', loc)}${sec('Movimientos', movs)}
+  const cuerpo = `<dl class="ficha">${datos.map(([k, v, html]) => `<div><dt>${k}</dt><dd>${html ? v : esc(v)}</dd></div>`).join('')}</dl>
+      ${sec('Estadísticas base', stats)}${p.tipos.length ? sec('Debilidades y resistencias', debilidadesHTML(p.tipos)) : ''}${sec('Evolución', evo)}${sec('Dónde encontrarlo', loc)}${sec('Movimientos', movs)}
       <p class="wk-pie">Datos de la <a href="${esc(p.url)}" target="_blank" rel="noopener">ficha de ${esc(p.n)} en la Wiki PokemonReloaded ↗</a>, hecha por su comunidad de editores (licencia CC BY-SA).${MULTIPAGINA && !enPagina ? ` · <a href="${pkHref(p.n)}">Página de ${esc(p.n)} en esta web</a>` : ''}</p>`;
   if (enPagina) return cuerpo;
   return `<div class="dlg" style="--c:${COLOR_TIPO[p.tipos[0]] || '#1a5d74'}"><div class="dlg-cab"><p class="muted">${esc([num, p.especie && 'Pokémon ' + p.especie].filter(Boolean).join(' · ') || 'Pokédex de Reloaded')}</p><h2>${esc(p.n)}</h2><p class="pk-tipos">${p.tipos.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Exclusivo de Reloaded</span>' : ''}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
@@ -2205,20 +2209,21 @@ const WK_GUIAS_GRUPOS = [
   { id: 'mec', l: 'Mecánicas del juego', p: 'Cómo funcionan las mecánicas propias de Reloaded.' },
   { id: 'poke', l: 'Pokémon: dónde y cómo', p: 'Legendarios, iniciales, ultraentes y los Pokémon más buscados.', re: /localizaci|pok[eé]mon|starter|ultraente|magikarp|inicial|minador|ratio|legendari|intercambio/i },
   { id: 'obj', l: 'Objetos', p: 'Objetos, discos técnicos, pergaminos y accesorios.', re: /objeto|disco|pergamino|anillo|pendiente|baya|cristal|piedra/i },
+  { id: 'mis', l: 'Misiones e historia', p: 'Misiones de la historia: las islas, los casos y los anillos.' },
   { id: 'lug', l: 'Lugares, islas y eventos', p: 'Islas, el Frente de Batalla, eventos y lugares especiales.', re: /isla|frente|loter|cafeter|guarida|cueva|coleccionista|esp[ií]ritu|sabio|ladr[oó]n|jungla|torre/i },
   { id: 'otras', l: 'Más guías', p: 'Otras guías hechas por la comunidad de la wiki.' }
 ];
-const WK_GUIAS_AQUI = [[/legendarios y singulares|ultraentes/i, 'legendarios'], [/^gu[ií]a de objetos en/i, 'objetos']];
+const WK_GUIAS_AQUI = [[/legendarios y singulares|ultraentes/i, 'legendarios'], [/^gu[ií]a de objetos en/i, 'objetos'], [/ubicaci[oó]n de las mt|^mt$|^mo$|disco t[eé]cnico/i, 'movimientos'], [/habilidades externas/i, 'habilidades'], [/frente de batalla|^as del frente/i, 'personajes'], [/tabla de tipos/i, 'tipos']];
 async function wkGuias() {
   if (WK.guias) return WK.guias;
-  const g = wkCache('guias1', 24); if (g) return (WK.guias = g);
-  const cats = ['Guías', 'Guía Pokémon Reloaded', 'Guía Pokémon Reloaded TLB', 'Guías y manuales', 'Mecánica'];
+  const g = wkCache('guias2', 24); if (g) return (WK.guias = g);
+  const cats = ['Guías', 'Guía Pokémon Reloaded', 'Guía Pokémon Reloaded TLB', 'Guías y manuales', 'Mecánica', 'Misiones'];
   const listas = await Promise.all(cats.map(c => wkCategoria(c).catch(() => [])));
-  const mec = new Set(listas[4]), todas = [...new Set(listas.flat())];
-  const out = todas.map(t => ({ t, g: (WK_GUIAS_GRUPOS[0].re.test(t) ? 'liga' : mec.has(t) ? 'mec' : (WK_GUIAS_GRUPOS.find(x => x.re && x.id !== 'liga' && x.re.test(t)) || { id: 'otras' }).id) }));
+  const mec = new Set(listas[4]), mis = new Set(listas[5]), todas = [...new Set(listas.flat())];
+  const out = todas.map(t => ({ t, g: (WK_GUIAS_GRUPOS[0].re.test(t) ? 'liga' : mis.has(t) ? 'mis' : mec.has(t) ? 'mec' : (WK_GUIAS_GRUPOS.find(x => x.re && x.id !== 'liga' && x.re.test(t)) || { id: 'otras' }).id) }));
   if (!out.length) throw new Error('La wiki no devolvió las guías.');
   out.sort((a, b) => a.t.localeCompare(b.t, 'es'));
-  return (WK.guias = wkCache('guias1', 0, out));
+  return (WK.guias = wkCache('guias2', 0, out));
 }
 async function pintarGuias() {
   const el = $('#listaGuias'); if (!el) return;
@@ -2227,9 +2232,315 @@ async function pintarGuias() {
   el.innerHTML = WK_GUIAS_GRUPOS.map(gr => { const l = WK.guias.filter(x => x.g === gr.id); return l.length ? `<section class="guia-gr"><h3>${esc(gr.l)} <small>${l.length}</small></h3><p>${esc(gr.p)}</p><ul>${l.map(x => `<li><a href="${esc(wkUrl(x.t))}" target="_blank" rel="noopener">${esc(x.t.replace(/^Pokémon Reloaded: /, ''))} ↗</a>${aqui(x.t)}</li>`).join('')}</ul></section>` : ''; }).join('');
 }
 
+// ----- Varias páginas de la wiki en un solo pedido (hasta 50 por vez) -----
+async function wkVarias(titulos) {
+  const out = {};
+  for (let i = 0; i < titulos.length; i += 50) {
+    const j = await wkApi('action=query&formatversion=2&prop=revisions&rvprop=content&rvslots=main&titles=' + encodeURIComponent(titulos.slice(i, i + 50).join('|')));
+    Object.values((j.query && j.query.pages) || {}).forEach(p => { const r = p.revisions && p.revisions[0]; if (r) out[p.title] = (r.slots && r.slots.main && (r.slots.main.content || r.slots.main['*'])) || r.content || ''; });
+  }
+  return out;
+}
+/** Valor de una plantilla corta de la wiki, como {{t|fuego}} → "fuego". */
+/** Tabla sin la línea de cierre "|}" (si no, queda pegada a la última celda). */
+const wkSinCierre = tb => String(tb || '').replace(/\n\|\}\s*$/, '');
+const wkValorT = s => { const m = String(s || '').match(/\{\{\s*t\s*\|\s*([^}|]+)/i); return m ? m[1].trim() : wkLimpiar(s); };
+const wkLinkA = (n, base, slug) => `<a class="zn-a" href="${MULTIPAGINA ? base : ''}#${slug}">${esc(n)}</a>`;
+
+// ----- Movimientos, MT, DT y MO -----
+const MOV = { tab: 'todos', q: '', tipo: '' };
+const MOV_CAT = { fisico: 'Físico', especial: 'Especial', otro: 'Estado', estado: 'Estado' };
+const MOV_TABS = [{ id: 'todos', l: 'Todos' }, { id: 'mt', l: 'MT' }, { id: 'dt', l: 'DT' }, { id: 'mo', l: 'MO' }];
+const movCat = s => MOV_CAT[wkNorm(wkValorT(s))] || '';
+const catChip = c => c ? `<span class="cat cat-${wkSlug(c)}">${esc(c)}</span>` : '';
+async function wkListaMov() {
+  if (WK.mov) return WK.mov;
+  const g = wkCache('mov1', 24); if (g) return (WK.mov = g);
+  const pg = await wkVarias(['Lista movimientos', 'MT', 'Disco técnico', 'MO']);
+  // La lista completa viene en pestañas, una por tipo: "Acero= {| … |} |-| Agua= …"
+  const todos = [], vistos = new Set();
+  (pg['Lista movimientos'] || '').split(/<tabber>|<\/tabber>|\n\|-\|/).forEach(ch => {
+    const m = ch.match(/^\s*([^=\n{|]+?)\s*=/), t = m && wkTipo(m[1]), tb = wkSinCierre(wkTablas(ch)[0]);
+    if (!t || !tb) return;
+    wkFilas(tb).forEach(f => {
+      const c = wkCols(f); if (c.length < 2) return;
+      const n = wkLimpiar(c[0]); if (!n || /^nombre$/i.test(n) || vistos.has(wkNorm(n))) return;
+      vistos.add(wkNorm(n));
+      let pot = wkLimpiar(c[2] || ''), met = wkLimpiar(c[3] || '');
+      if (!/\d|variable/i.test(pot) && /^\d+$/.test(met)) { pot = met; met = ''; } // algunas filas tienen la potencia en la última columna
+      pot = /^\d+/.test(pot) ? pot.match(/^\d+/)[0] : /variable/i.test(pot) ? 'Variable' : '';
+      todos.push({ n, t, c: movCat(c[1]), p: pot, m: met });
+    });
+  });
+  const idx = new Map(todos.map(x => [wkNorm(x.n), x]));
+  const tabla = wt => {
+    const tb = wkTablas(wt || '').find(x => wkFilas(x).some(f => /^(MT|DT|MO)\d+$/i.test(wkLimpiar(wkCols(f)[0] || '').replace(/\s+/g, '')))) || '';
+    return wkFilas(wkSinCierre(tb)).map(f => {
+      const c = wkCols(f); if (c.length < 3) return null;
+      const num = wkLimpiar(c[0]).replace(/\s+/g, ''), n = wkLimpiar(c[1]); if (!/^(MT|DT|MO)\d+$/i.test(num) || !n) return null;
+      const x = idx.get(wkNorm(n)) || {};
+      return { num: num.toUpperCase(), n, t: wkTipo(wkValorT(c[2])) || x.t || '', c: x.c || '', p: x.p || '', d: wkLimpiar(c[3] || '') };
+    }).filter(Boolean).sort((a, b) => parseInt(a.num.slice(2), 10) - parseInt(b.num.slice(2), 10));
+  };
+  const out = { todos: todos.sort((a, b) => a.n.localeCompare(b.n, 'es')), mt: tabla(pg.MT), dt: tabla(pg['Disco técnico']), mo: tabla(pg.MO) };
+  if (!out.todos.length && !out.mt.length) throw new Error('La wiki no devolvió los movimientos.');
+  return (WK.mov = wkCache('mov1', 0, out));
+}
+async function pintarMov() {
+  const el = $('#listaMov'); if (!el) return;
+  try { await wkListaMov(); } catch (e) { el.innerHTML = wkFallo(e, 'mov'); return; }
+  renderMov();
+}
+function renderMov() {
+  const el = $('#listaMov'); if (!el || !WK.mov) return;
+  $('#tabsMov').innerHTML = MOV_TABS.map(t => `<button type="button" class="chip" data-act="mov-tab" data-f="${t.id}" aria-pressed="${MOV.tab === t.id}">${t.l}<b>${WK.mov[t.id].length}</b></button>`).join('');
+  const q = wkNorm(MOV.q), l = WK.mov[MOV.tab].filter(x => (!MOV.tipo || x.t === MOV.tipo) && (!q || wkNorm([x.n, x.num, x.m, x.d, x.t, x.c].join(' ')).includes(q)));
+  $('#cuentaMov').textContent = l.length + (l.length === 1 ? ' movimiento' : ' movimientos') + (MOV.tab === 'todos' ? '' : ' · ' + { mt: 'máquinas técnicas', dt: 'discos técnicos', mo: 'máquinas ocultas' }[MOV.tab]);
+  if (!l.length) { el.innerHTML = '<p class="vacio">Ningún movimiento coincide con la búsqueda.</p>'; return; }
+  if (MOV.tab === 'todos') {
+    el.innerHTML = `<div class="tabla-scroll"><table class="wk-tabla mov-tabla"><thead><tr><th>Movimiento</th><th>Tipo</th><th>Categoría</th><th>Potencia</th><th>Cómo se aprende</th></tr></thead><tbody>${l.map(x => `<tr><td><b>${esc(x.n)}</b></td><td>${tipoChip(x.t)}</td><td>${catChip(x.c)}</td><td>${esc(x.p || '—')}</td><td>${x.m ? esc(x.m) : '<small>—</small>'}</td></tr>`).join('')}</tbody></table></div>`;
+    return;
+  }
+  el.innerHTML = `<ul class="mt-lista">${l.map(x => `<li style="--c:${COLOR_TIPO[x.t] || '#3d9ab8'}"><div class="mt-cab"><span class="mt-n">${esc(x.num)}</span><b>${esc(x.n)}</b>${tipoChip(x.t)}${catChip(x.c)}${x.p ? `<small>Potencia ${esc(x.p)}</small>` : ''}</div>${x.d ? `<p>${wkEnlazar(x.d)}</p>` : '<p class="muted">La wiki todavía no dice dónde se consigue.</p>'}</li>`).join('')}</ul>`;
+}
+
+// ----- Habilidades -----
+const HAB = { q: '', solo: '' };
+const PKW_URL = 'https://stormacher95.github.io/datos/pokedex-wiki.json';
+// Nombres abreviados que aparecen en algunas fichas
+const HAB_ABREV = { 'elec. estat': 'Electricidad estática', 'electr. estat': 'Electricidad estática', 'elect. estat': 'Electricidad estática', 'efect. espora': 'Efecto espora', 'efec. espora': 'Efecto espora', 'armad. bat': 'Armadura batalla', 'espir. vital': 'Espíritu vital' };
+const habAbrev = s => HAB_ABREV[wkNorm(s).replace(/\s+/g, ' ').replace(/\.+$/, '')];
+const habClave = s => { const a = habAbrev(s); return wkNorm(a || s).replace(/\s*\(habilidad\)\s*$/, '').replace(/\s+/g, ' ').replace(/\.+$/, ''); };
+const habSlug = n => 'h-' + wkSlug(habClave(n));
+const habA = n => wkLinkA(n, '/wiki/habilidades.html', habSlug(n));
+/** Lo que hace la habilidad (primer párrafo útil del efecto), lo que cambia en Reloaded y lo que hace fuera de combate. */
+function habEfecto(wt) {
+  const parr = t => (t || '').replace(/^=+[^\n]*=+\s*$/gm, '\n').split(/\n\s*\n/).map(p => p.trim()).filter(p => p && !/^(\{\||\{\{)/.test(p))
+    .map(p => wkLimpiar(p.replace(/^[:*#]+\s*/gm, '')).replace(/(?<=[.!)])\s+[^.!]*:\s*$/, '')).filter(p => p.length > 12);
+  const corto = p => p && p.length > 360 ? p.slice(0, 340).replace(/\s+\S*$/, '') + '…' : (p || '');
+  const ef = wkSeccion(wt, /^efectos?$/i), fuera = wkSeccion(wt, /fuera de combate/i);
+  const e = parr(ef ? (fuera ? ef.replace(fuera, '') : ef) : wt.replace(/\{\{[\s\S]*?\}\}\s*/, '')).find(x => !/introducid[ao] en|es una habilidad|en ingl[eé]s|^en (pok[eé]mon )?reloaded/i.test(x)) || '';
+  const r = parr(wt).find(x => /reloaded/i.test(x) && x !== e && !/introducid|es una habilidad/i.test(x)) || '';
+  return { e: corto(e), r: corto(r), f: corto(parr(fuera)[0]) };
+}
+function habExternas(wt) {
+  const lista = s => (s || '').split('\n').filter(l => /^\*\s*'''/.test(l)).map(l => { const m = l.match(/^\*\s*'''([^']+)'''\s*:?\s*(.*)$/); return m ? { n: wkLimpiar(m[1]).replace(/:$/, ''), d: wkLimpiar(m[2]) } : null; }).filter(Boolean);
+  const med = [];
+  const tb = wkSinCierre(wkTablas(wkSeccion(wt, /medallas/i))[0]);
+  if (tb) wkFilas(tb).forEach(f => { const c = wkCols(f); if (c.length < 2) return; const m = wkLimpiar(c[0]); const movs = c[1].split('\n').filter(l => /^\s*\*/.test(l)).map(l => wkLimpiar(l.replace(/^\s*\*+/, ''))).filter(Boolean); if (m && movs.length) med.push({ m, movs }); });
+  return { act: lista(wkSeccion(wt, /^activas$/i)), pas: lista(wkSeccion(wt, /^pasivas$/i)), med };
+}
+async function wkHabilidades() {
+  if (WK.hab) return WK.hab;
+  const g = wkCache('hab2', 24 * 3); if (g) return (WK.hab = g);
+  const [titulos, distintas, pkw] = await Promise.all([wkCategoria('Habilidades'), wkCategoria('Habilidades Diferentes').catch(() => []), fetch(PKW_URL).then(r => r.ok ? r.json() : null).catch(() => null)]);
+  const pags = await wkVarias(titulos.filter(t => !/^(habilidad(es)?\b|la revoluci)/i.test(t)).concat(['Habilidades Externas']));
+  const dif = new Set(distintas.map(habClave)), m = new Map();
+  const de = (n, url) => { const k = habClave(n); if (!k || k === '???') return null; let x = m.get(k); if (!x) m.set(k, x = { n: n.replace(/\s*\(habilidad\)\s*$/i, ''), e: '', r: '', f: '', url: url || '', dif: dif.has(k), pk: [], oc: [] }); return x; };
+  Object.entries(pags).forEach(([t, wt]) => { if (/^habilidades externas$/i.test(t)) return; const x = de(t, wkUrl(t)); if (!x || x.e) return; x.n = t.replace(/\s*\(habilidad\)\s*$/i, ''); x.url = wkUrl(t); Object.assign(x, habEfecto(wt)); });
+  // Qué Pokémon tiene cada una: de la Pokédex compilada de la wiki. Las fichas con formas raras ("Llovizna FN Mar del albor FP") se reparten entre las habilidades conocidas.
+  if (pkw && pkw.pokemon) {
+    const limpia = s => /^[A-ZÁÉÍÓÚÑ¿][a-záéíóúñü]+( [a-záéíóúñüA-ZÁÉÍÓÚ]+){0,3}$/.test(s) && !/[a-z][A-Z]/.test(s);
+    const todas = pkw.pokemon.flatMap(p => [...(p.hab || []), p.oc].filter(Boolean));
+    todas.filter(limpia).forEach(h => de(h));
+    todas.filter(habAbrev).forEach(h => de(habAbrev(h)));
+    const conocidas = [...m.keys()].sort((a, b) => b.length - a.length);
+    const repartir = s => {
+      if (limpia(s) || m.has(habClave(s))) return [habClave(s)];
+      // "PresiónFM", "Llovizna FN Mar del albor FP", "sombra trampa-allanamiento": se buscan las habilidades conocidas como palabras sueltas
+      let r = ' ' + wkNorm(s.replace(/([a-záéíóúñü])([A-Z])/g, '$1 $2')).replace(/[^a-z0-9ñ ]+/g, ' ') + ' ';
+      const out = [];
+      conocidas.forEach(k => { const i = r.indexOf(' ' + k + ' '); if (i >= 0) { out.push(k); r = r.slice(0, i) + ' '.repeat(k.length + 1) + r.slice(i + k.length + 1); } });
+      return out;
+    };
+    pkw.pokemon.forEach(p => {
+      (p.hab || []).forEach(h => repartir(h).forEach(k => { const x = m.get(k); if (x && !x.pk.includes(p.n)) x.pk.push(p.n); }));
+      if (p.oc) repartir(p.oc).forEach(k => { const x = m.get(k); if (x && !x.oc.includes(p.n) && !x.pk.includes(p.n)) x.oc.push(p.n); });
+    });
+  }
+  const lista = [...m.values()].filter(x => x.e || x.pk.length || x.oc.length).sort((a, b) => a.n.localeCompare(b.n, 'es'));
+  lista.forEach(x => { if (x.n === x.n.toLowerCase()) x.n = x.n.charAt(0).toUpperCase() + x.n.slice(1); });
+  if (!lista.length) throw new Error('La wiki no devolvió las habilidades.');
+  return (WK.hab = wkCache('hab2', 0, { lista, ext: habExternas(pags['Habilidades Externas'] || '') }));
+}
+async function pintarHab() {
+  const el = $('#listaHab'); if (!el) return;
+  try { await wkHabilidades(); } catch (e) { el.innerHTML = wkFallo(e, 'hab'); return; }
+  const x = WK.hab.ext, ex = $('#extHab');
+  if (ex && (x.act.length || x.pas.length)) {
+    const li = l => l.map(h => `<li><b>${esc(h.n)}</b><span>${wkEnlazar(h.d)}</span></li>`).join('');
+    ex.innerHTML = `<h3>Habilidades externas <small>propias de Reloaded</small></h3><p>Son acciones que tu equipo puede hacer fuera de combate. Las activas se eligen desde el menú y siguen disponibles aunque el Pokémon olvide el movimiento; las pasivas funcionan solas.</p>
+      <div class="ext-g">${x.act.length ? `<div><h4>Activas</h4><ul>${li(x.act)}</ul></div>` : ''}${x.pas.length ? `<div><h4>Pasivas</h4><ul>${li(x.pas)}</ul></div>` : ''}</div>
+      ${x.med.length ? `<h4>Qué medalla las desbloquea</h4><div class="ext-med">${x.med.map(r => `<div><b>${esc(r.m)}</b><span>${esc(r.movs.join(' · '))}</span></div>`).join('')}</div>` : ''}`;
+    ex.hidden = false;
+  }
+  renderHab(); anclaHash();
+}
+function renderHab() {
+  const el = $('#listaHab'); if (!el || !WK.hab) return;
+  const L = WK.hab.lista, q = wkNorm(HAB.q);
+  $('#filtrosHab').innerHTML = [['', 'Todas', L.length], ['dif', 'Cambian en Reloaded', L.filter(h => h.dif).length]].map(([k, l, n]) => `<button type="button" class="chip" data-act="hab-filtro" data-f="${k}" aria-pressed="${HAB.solo === k}">${l}<b>${n}</b></button>`).join('');
+  const vis = L.filter(h => (!HAB.solo || h.dif) && (!q || wkNorm([h.n, h.e, h.r, h.f, h.pk.join(' '), h.oc.join(' ')].join(' ')).includes(q)));
+  const pks = (l, ocl) => { const todos = l.map(n => pkA(n)).concat(ocl.map(n => pkA(n, n + ' (oculta)'))); return todos.length > 14 ? todos.slice(0, 12).join('') + `<details class="mas"><summary>y ${todos.length - 12} más</summary>${todos.slice(12).join('')}</details>` : todos.join(''); };
+  el.innerHTML = vis.length ? vis.map(h => `<article class="hab" id="${habSlug(h.n)}">
+      <header><h3>${esc(h.n)}</h3>${h.dif ? '<span class="pk-exc">Cambia en Reloaded</span>' : ''}</header>
+      ${h.e ? `<p>${esc(h.e)}</p>` : ''}
+      ${h.r ? `<p class="hab-nota"><b>Reloaded</b>${esc(h.r)}</p>` : ''}${h.f ? `<p class="hab-nota fuera"><b>Fuera de combate</b>${esc(h.f)}</p>` : ''}
+      ${h.pk.length || h.oc.length ? `<div class="hab-pk">${pks(h.pk, h.oc)}</div>` : ''}
+      ${h.url ? `<a class="gym-wiki" href="${esc(h.url)}" target="_blank" rel="noopener">Ver en la wiki ↗</a>` : ''}
+    </article>`).join('') : '<p class="vacio">Ninguna habilidad coincide con la búsqueda.</p>';
+}
+
+// ----- Personajes: ligas, Frente de Batalla y villanos -----
+const PJ = { g: 'todos', reg: '', q: '' };
+const PJ_GRUPOS = [{ id: 'todos', l: 'Todos' }, { id: 'liga', l: 'Ligas y rivales' }, { id: 'frente', l: 'Frente de Batalla' }, { id: 'villanos', l: 'Villanos' }, { id: 'otros', l: 'Otros personajes' }];
+const PJ_REGIONES = ['Star', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Teselia', 'Kalos', 'Alola'];
+const pjRegion = s => { const n = wkNorm(s); if (/jungla|star/.test(n)) return 'Star'; return PJ_REGIONES.find(r => n.includes(wkNorm(r))) || ''; };
+const pjOrden = r => /l[ií]der de gimnasio/i.test(r) ? 0 : /alto mando/i.test(r) ? 1 : /campe/i.test(r) ? 2 : /sub-as/i.test(r) ? 3 : /^as /i.test(r) ? 4 : 5;
+function pjEquipos(wt) {
+  const out = [], re = /\{\{\s*Equipo Pok[eé]mon/gi; let m;
+  while ((m = re.exec(wt))) {
+    const pl = wkPlantilla(wt.slice(m.index)); if (!pl) continue;
+    const p = pl.params, poks = [];
+    for (let k = 1; k <= 6; k++) {
+      const n = wkLimpiar(p['poké' + k] || p['poke' + k] || ''); if (!n) continue;
+      poks.push({ n, niv: wkLimpiar(p['nvpoké' + k] || p['nvpoke' + k] || ''), obj: wkLimpiar(p['objpoké' + k] || p['objpoke' + k] || ''), hab: wkLimpiar(p['habpoké' + k] || p['habpoke' + k] || ''), movs: [1, 2, 3, 4].map(j => wkLimpiar(p['m' + j + 'p' + k] || '')).filter(Boolean) });
+    }
+    if (!poks.length) continue;
+    const hs = [...wt.slice(0, m.index).matchAll(/^(={2,4})\s*(.*?)\s*\1\s*$/gm)], h = hs.length ? wkLimpiar(hs[hs.length - 1][2]) : '';
+    out.push({ t: /^equipos?( pok[eé]mon)?$/i.test(h) ? '' : h, poks });
+  }
+  if (!out.length) { // Fichas viejas: el equipo está en una tabla común
+    const s = wkSeccion(wt, /equipo/i), tb = s && wkTablas(s)[0];
+    const l = tb ? wkEquipo(tb) : []; if (l.length) out.push({ t: '', poks: l.map(x => ({ n: x.n, niv: x.niv, obj: '', hab: '', movs: x.movs })) });
+  }
+  return out;
+}
+function pjResumen(wt) {
+  const ps = wt.replace(/\{\{[\s\S]*?\}\}/g, '').split(/\n\s*\n|^=.*=$/m).map(p => wkLimpiar(p)).filter(p => p.length > 30 && !/^[^\wÀ-ÿ¡¿"']/.test(p));
+  const p = ps[0] || ''; const f = p.match(/^.{30,240}?[.!](?=\s|$)/);
+  return f ? f[0] : p.slice(0, 220);
+}
+async function wkPersonajes() {
+  if (WK.pj) return WK.pj;
+  const g = wkCache('pj2', 24); if (g) return (WK.pj = g);
+  const [titulos, ases, sub1, sub2, villanos] = await Promise.all(['Personajes', 'As del Frente', 'Sub-As del Frente', 'Sub Ases del Frente', 'Equipos Enemigos'].map(c => wkCategoria(c).catch(() => [])));
+  const subs = new Set([...sub1, ...sub2]), asesS = new Set(ases);
+  // Algunas fichas no dicen la clase ni la región: salen de las categorías de la wiki
+  const PJ_CATS = ['Star', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Teselia'].map(r => ['Líderes de gimnasio de ' + r, 'Líder de Gimnasio', r]).concat(['Star', 'Kanto', 'Johto', 'Hoenn'].map(r => ['Alto Mando de ' + r, 'Alto Mando', r]), [['Campeón de la Liga Pokémon', 'Campeón', '']]);
+  const porCat = {};
+  (await Promise.all(PJ_CATS.map(([c]) => wkCategoria(c).catch(() => [])))).forEach((l, i) => l.forEach(t => { if (!porCat[t]) porCat[t] = { rol: PJ_CATS[i][1], region: PJ_CATS[i][2] }; }));
+  const pags = await wkVarias(titulos);
+  const lista = [], otros = [];
+  Object.entries(pags).forEach(([t, wt]) => {
+    const i = wt.search(/\{\{\s*Personaje\s*[\n|]/i), p = i >= 0 ? (wkPlantilla(wt.slice(i)) || {}).params || {} : {};
+    const equipos = pjEquipos(wt);
+    if (/^(gimnasio|alto mando$|campe[oó]n$|l[ií]der de gimnasio$|liga )/i.test(t)) return; // páginas generales, no personajes
+    if (i < 0 && !equipos.length) { if (!/^(personaje|entrenador)/i.test(t)) otros.push(t); return; }
+    const cat = porCat[t] || {}, clase = wkLimpiar(p.clase || '').replace(/(Líder de Gimnasio)\s*Villano/i, '$1 · Villano').replace(/^Ninguno \(Antes de ser líder\)/i, '');
+    const rol = asesS.has(t) ? 'As del Frente' : subs.has(t) ? 'Sub-As del Frente' : clase || cat.rol || '';
+    const cats = [...wt.matchAll(/\[\[\s*Categor[ií]a\s*:\s*([^\]|]+)/gi)].map(x => x[1].trim()).join(' ');
+    const gr = asesS.has(t) || subs.has(t) ? 'frente' : /l[ií]der de gimnasio|alto mando|campe[oó]n|rival/i.test(rol) ? 'liga'
+      : /villan|lugarteniente|organizaci|l[ií]der de equipo|almirante|comandante/i.test(rol) || /team |equipo (rocket|aqua|magma|galaxia|plasma|flare|skull)|rekiem|equipos enemigos/i.test(cats) ? 'villanos' : 'otros';
+    lista.push({ n: t.replace(/\s*\(personaje\)$/i, ''), rol, g: gr, region: pjRegion(p['región'] || p.region || '') || cat.region || '', tipos: [wkTipo(p.tipo1), wkTipo(p.tipo2)].filter(Boolean), eq: equipos, res: pjResumen(wt), url: wkUrl(t) });
+  });
+  lista.sort((a, b) => ((PJ_REGIONES.indexOf(a.region) + 1 || 99) - (PJ_REGIONES.indexOf(b.region) + 1 || 99)) || (pjOrden(a.rol) - pjOrden(b.rol)) || a.n.localeCompare(b.n, 'es'));
+  if (!lista.length) throw new Error('La wiki no devolvió los personajes.');
+  return (WK.pj = wkCache('pj2', 0, { lista, otros: otros.sort((a, b) => a.localeCompare(b, 'es')), villanos: villanos.filter(v => !/^categor/i.test(v)) }));
+}
+async function pintarPj() {
+  const el = $('#listaPj'); if (!el) return;
+  try { await wkPersonajes(); } catch (e) { el.innerHTML = wkFallo(e, 'pj'); return; }
+  renderPj();
+}
+function renderPj() {
+  const el = $('#listaPj'); if (!el || !WK.pj) return;
+  const L = WK.pj.lista, q = wkNorm(PJ.q);
+  $('#filtrosPj').innerHTML = PJ_GRUPOS.map(g => { const n = g.id === 'todos' ? L.length : L.filter(x => x.g === g.id).length; return n ? `<button type="button" class="chip" data-act="pj-filtro" data-f="${g.id}" aria-pressed="${PJ.g === g.id}">${g.l}<b>${n}</b></button>` : ''; }).join('');
+  const regs = PJ_REGIONES.filter(r => L.some(x => x.region === r && (PJ.g === 'todos' || x.g === PJ.g)));
+  $('#regionesPj').innerHTML = regs.length > 1 ? ['', ...regs].map(r => `<button type="button" class="chip chip-sm" data-act="pj-region" data-f="${r}" aria-pressed="${PJ.reg === r}">${r || 'Todas las regiones'}</button>`).join('') : '';
+  const vis = L.filter(x => (PJ.g === 'todos' || x.g === PJ.g) && (!PJ.reg || x.region === PJ.reg)
+    && (!q || wkNorm([x.n, x.rol, x.region, x.tipos.join(' '), x.eq.map(e => e.poks.map(p => p.n).join(' ')).join(' ')].join(' ')).includes(q)));
+  const eqHTML = (e, i, total) => `<details class="pj-eq"><summary><b>${esc(e.t || (i ? 'Equipo ' + (i + 1) : 'Equipo'))}</b><span>${esc(e.poks.map(p => p.n).join(' · '))}</span></summary>
+      <ul class="gym-eq">${e.poks.map(p => `<li>${pkA(p.n)}${p.niv ? ` <small>Nv. ${esc(p.niv)}</small>` : ''}${p.obj || p.hab ? `<small class="pj-oh">${[p.obj && esc(p.obj), p.hab && habA(p.hab)].filter(Boolean).join(' · ')}</small>` : ''}${p.movs.length ? `<span>${esc(p.movs.join(' · '))}</span>` : ''}</li>`).join('')}</ul></details>`;
+  const villanos = PJ.g === 'villanos' && WK.pj.villanos.length ? `<div class="pj-org"><b>Organizaciones</b>${WK.pj.villanos.map(v => `<a href="${esc(wkUrl(v))}" target="_blank" rel="noopener">${esc(v)} ↗</a>`).join('')}</div>` : '';
+  el.innerHTML = villanos + (vis.length ? `<div class="pj-g">${vis.map(x => `<article class="pj" style="--c:${COLOR_TIPO[x.tipos[0]] || '#3d9ab8'}">
+      <header><h3>${esc(x.n)}</h3><p>${esc([x.rol, x.region && (x.region === 'Star' ? 'Región Star' : x.region)].filter(Boolean).join(' · ') || 'Personaje')}</p>${x.tipos.length ? `<p class="pk-tipos">${x.tipos.map(tipoChip).join('')}</p>` : ''}</header>
+      ${x.res ? `<p class="pj-res">${esc(x.res)}</p>` : ''}
+      ${x.eq.map((e, i) => eqHTML(e, i, x.eq.length)).join('')}
+      <a class="gym-wiki" href="${esc(x.url)}" target="_blank" rel="noopener">Ver en la wiki ↗</a>
+    </article>`).join('')}</div>` : '<p class="vacio">Ningún personaje coincide con la búsqueda.</p>')
+    + (PJ.g === 'otros' && !q && WK.pj.otros.length ? `<div class="pj-org"><b>Más personajes en la wiki</b>${WK.pj.otros.map(v => `<a href="${esc(wkUrl(v))}" target="_blank" rel="noopener">${esc(v)} ↗</a>`).join('')}</div>` : '');
+}
+
+// ----- Tabla de tipos (no depende de la wiki) -----
+const TIPOS = Object.keys(COLOR_TIPO);
+const EFECT = (() => {
+  const t = {
+    Normal: { Roca: .5, Fantasma: 0, Acero: .5 },
+    Fuego: { Fuego: .5, Agua: .5, Planta: 2, Hielo: 2, Bicho: 2, Roca: .5, 'Dragón': .5, Acero: 2 },
+    Agua: { Fuego: 2, Agua: .5, Planta: .5, Tierra: 2, Roca: 2, 'Dragón': .5 },
+    Planta: { Fuego: .5, Agua: 2, Planta: .5, Veneno: .5, Tierra: 2, Volador: .5, Bicho: .5, Roca: 2, 'Dragón': .5, Acero: .5 },
+    'Eléctrico': { Agua: 2, Planta: .5, 'Eléctrico': .5, Tierra: 0, Volador: 2, 'Dragón': .5 },
+    Hielo: { Fuego: .5, Agua: .5, Planta: 2, Hielo: .5, Tierra: 2, Volador: 2, 'Dragón': 2, Acero: .5 },
+    Lucha: { Normal: 2, Hielo: 2, Veneno: .5, Volador: .5, 'Psíquico': .5, Bicho: .5, Roca: 2, Fantasma: 0, Siniestro: 2, Acero: 2, Hada: .5 },
+    Veneno: { Planta: 2, Veneno: .5, Tierra: .5, Roca: .5, Fantasma: .5, Acero: 0, Hada: 2 },
+    Tierra: { Fuego: 2, Planta: .5, 'Eléctrico': 2, Veneno: 2, Volador: 0, Bicho: .5, Roca: 2, Acero: 2 },
+    Volador: { Planta: 2, 'Eléctrico': .5, Lucha: 2, Bicho: 2, Roca: .5, Acero: .5 },
+    'Psíquico': { Lucha: 2, Veneno: 2, 'Psíquico': .5, Siniestro: 0, Acero: .5 },
+    Bicho: { Fuego: .5, Planta: 2, Lucha: .5, Veneno: .5, Volador: .5, 'Psíquico': 2, Fantasma: .5, Siniestro: 2, Acero: .5, Hada: .5 },
+    Roca: { Fuego: 2, Hielo: 2, Lucha: .5, Tierra: .5, Volador: 2, Bicho: 2, Acero: .5 },
+    Fantasma: { Normal: 0, 'Psíquico': 2, Fantasma: 2, Siniestro: .5 },
+    'Dragón': { 'Dragón': 2, Acero: .5, Hada: 0 },
+    Siniestro: { Lucha: .5, 'Psíquico': 2, Fantasma: 2, Siniestro: .5, Hada: .5 },
+    Acero: { Fuego: .5, Agua: .5, 'Eléctrico': .5, Hielo: 2, Roca: 2, Acero: .5, Hada: 2 },
+    Hada: { Fuego: .5, Lucha: 2, Veneno: .5, 'Dragón': 2, Siniestro: 2, Acero: .5 }
+  };
+  return (a, d) => (t[a] && d in t[a]) ? t[a][d] : 1;
+})();
+/** Multiplicador de cada tipo de ataque contra un Pokémon de uno o dos tipos. */
+const defensa = tipos => TIPOS.map(a => [a, tipos.filter(Boolean).reduce((m, d) => m * EFECT(a, d), 1)]);
+const MULT_TXT = { 4: '×4', 2: '×2', 0.5: '×½', 0.25: '×¼', 0: '×0' };
+function debilidadesHTML(tipos) {
+  const d = defensa(tipos), g = (f, t) => { const l = d.filter(([, m]) => f(m)); return l.length ? `<div class="deb-f"><span class="deb-t">${t}</span><span>${l.map(([a, m]) => tipoChip(a) + (m === 4 || m === 0.25 ? `<b class="deb-x">${MULT_TXT[m]}</b>` : '')).join('')}</span></div>` : ''; };
+  return `<div class="deb">${g(m => m >= 2, 'Débil a')}${g(m => m > 0 && m < 1, 'Resiste')}${g(m => m === 0, 'Inmune a')}</div>`;
+}
+const TIP = { d: ['Planta', ''], a: '' };
+function pintarTipos() {
+  const el = $('#calcTipos'); if (!el) return;
+  const opc = sel => '<option value="">—</option>' + TIPOS.map(t => `<option${t === sel ? ' selected' : ''}>${t}</option>`).join('');
+  el.innerHTML = `<div class="calc-g">
+      <div class="calc"><h3>¿A qué es débil?</h3><p class="muted">Elegí uno o dos tipos, como los de un Pokémon.</p>
+        <div class="calc-sel"><select class="sel" id="tipoD1" aria-label="Primer tipo">${opc(TIP.d[0]).replace('<option value="">—</option>', '')}</select><select class="sel" id="tipoD2" aria-label="Segundo tipo">${opc(TIP.d[1])}</select></div>
+        <div id="resD" aria-live="polite"></div></div>
+      <div class="calc"><h3>¿Contra qué pega fuerte?</h3><p class="muted">Elegí el tipo de un movimiento.</p>
+        <div class="calc-sel"><select class="sel" id="tipoA" aria-label="Tipo del movimiento">${opc(TIP.a || 'Fuego').replace('<option value="">—</option>', '')}</select></div>
+        <div id="resA" aria-live="polite"></div></div></div>`;
+  const tabla = $('#tablaTipos');
+  if (tabla) tabla.innerHTML = `<table class="tt"><caption>Ataque (filas) contra defensa (columnas)</caption><thead><tr><th scope="col"><span class="sr">Ataque</span></th>${TIPOS.map(t => `<th scope="col"><span class="tt-v" style="--tc:${COLOR_TIPO[t]}" title="${t}">${t.slice(0, 3)}</span></th>`).join('')}</tr></thead><tbody>${TIPOS.map(a => `<tr><th scope="row">${tipoChip(a)}</th>${TIPOS.map(d => { const m = EFECT(a, d); return `<td class="m${String(m).replace('.', '')}" title="${a} contra ${d}: ${MULT_TXT[m] || '×1'}">${m === 1 ? '' : MULT_TXT[m]}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
+  calcTipos();
+  ['#tipoD1', '#tipoD2', '#tipoA'].forEach(s => $(s).addEventListener('change', calcTipos));
+}
+function calcTipos() {
+  const d1 = $('#tipoD1').value, d2 = $('#tipoD2').value, a = $('#tipoA').value;
+  TIP.d = [d1, d2 === d1 ? '' : d2]; TIP.a = a;
+  $('#resD').innerHTML = debilidadesHTML(TIP.d);
+  const g = (f, t) => { const l = TIPOS.filter(d => f(EFECT(a, d))); return l.length ? `<div class="deb-f"><span class="deb-t">${t}</span><span>${l.map(tipoChip).join('')}</span></div>` : ''; };
+  $('#resA').innerHTML = `<div class="deb">${g(m => m === 2, 'Súper eficaz contra')}${g(m => m === 0.5, 'Poco eficaz contra')}${g(m => m === 0, 'No afecta a')}</div>`;
+}
+/** En las páginas con id en el hash (#h-…), abre y resalta la tarjeta. */
+function anclaHash() {
+  const m = location.hash.match(/^#(h-[\w-]+)$/); if (!m) return;
+  const d = document.getElementById(m[1]);
+  if (!d) { if (!MULTIPAGINA && hay('#habilidades') && !WK.hab) ir('habilidades'); return; }
+  $$('dialog[open]').forEach(cerrar);
+  d.scrollIntoView({ block: 'center' }); d.classList.remove('marcada'); void d.offsetWidth; d.classList.add('marcada');
+}
+window.addEventListener('hashchange', anclaHash);
+
 // ----- Carga perezosa: cada sección pide sus datos cuando se acerca a la pantalla -----
 { const pp = $('#pkPagina'); if (pp) pintarPokemonPagina(pp); }
-const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias };
+const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos };
 (() => {
   const els = $$('[data-wk-carga]');
   const una = el => { if (el.dataset.cargado) return; el.dataset.cargado = '1'; WK_CARGAS[el.dataset.wkCarga](); };
@@ -2245,6 +2556,11 @@ const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pin
   en('#buscarLeg', 'input', deb('leg', () => { LEG.q = $('#buscarLeg').value.trim(); renderLeg(); }));
   en('#buscarObj', 'input', deb('obj', () => { OBJ.q = $('#buscarObj').value.trim(); renderObj(); }));
   en('#buscarRuta', 'input', deb('rut', () => { RUT.q = $('#buscarRuta').value.trim(); renderRutas(); }));
+  const tm = $('#tipoMov'); if (tm) tm.innerHTML = '<option value="">Todos los tipos</option>' + Object.keys(COLOR_TIPO).map(t => `<option>${t}</option>`).join('');
+  en('#tipoMov', 'change', e => { MOV.tipo = e.target.value; renderMov(); });
+  en('#buscarMov', 'input', deb('mov', () => { MOV.q = $('#buscarMov').value.trim(); renderMov(); }));
+  en('#buscarHab', 'input', deb('hab', () => { HAB.q = $('#buscarHab').value.trim(); renderHab(); }));
+  en('#buscarPj', 'input', deb('pj', () => { PJ.q = $('#buscarPj').value.trim(); renderPj(); }));
 })();
 
 // ---------- Reglas (las editan el admin y el noticiero) ----------
