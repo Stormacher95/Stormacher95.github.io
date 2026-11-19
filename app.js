@@ -2023,6 +2023,8 @@ const wkLimpiar = s => String(s || '')
   .replace(/\[https?:\/\/\S+\s([^\]]*)\]/g, '$1').replace(/\[https?:\/\/\S+\]/g, '').replace(/'{2,}/g, '')
   .replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\{\{[^{}]*\}\}/g, '').replace(/\{\{[^{}]*\}\}/g, '')
   .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+/** Restos de plantillas borradas: "La Absolita, () es…" → "La Absolita es…". */
+const wkPulir = s => s.replace(/\s*\(\s*[,;:]?\s*\)/g, '').replace(/\s+([,.;:])/g, '$1').replace(/,\s*,/g, ',').replace(/,(\s*es\b)/g, '$1').replace(/\s{2,}/g, ' ').trim();
 function wkPlantilla(s) {
   s = s.trimStart(); if (!s.startsWith('{{')) return null;
   let d = 0, i = 0;
@@ -2126,7 +2128,7 @@ async function wkZona(nombre, conGym = true) {
     interes: secs.filter(s => /inter[eé]s|lugares|edificios/i.test(s.titulo)).flatMap(s => s.texto.split('\n').filter(l => /^\*/.test(l)).map(l => wkLimpiar(l.replace(/^\*+/, '')).slice(0, 160))).filter(Boolean).slice(0, 16),
     gym: null,
     intro: (() => { const pl0 = wkPlantilla(wt), sin = pl0 ? wt.trimStart().slice(pl0.fin) : wt, h = sin.search(/^={2,4}/m), pre = h >= 0 ? sin.slice(0, h) : sin;
-      const p = pre.split(/\n\s*\n/).map(x => wkLimpiar(x.replace(/^[:*#]+\s*/gm, ''))).find(x => x.length > 40) || '';
+      const p = pre.split(/\n\s*\n/).map(x => wkPulir(wkLimpiar(x.replace(/^[:*#]+\s*/gm, '')))).find(x => x.length > 40) || '';
       return p.length > 420 ? p.slice(0, 400).replace(/\s+\S*$/, '') + '…' : p; })()
   };
   if (conGym) {
@@ -2737,11 +2739,11 @@ function objFicha(titulo, wt) {
   const i = wt.search(/\{\{\s*objeto\s*[|\n}]/i), pl = i >= 0 ? wkPlantilla(wt.slice(i)) : null, q = pl ? pl.params : {};
   const cuerpo = pl ? wt.slice(i).trimStart().slice(pl.fin) : wt;
   const corte = cuerpo.search(/^={2,4}/m), intro = corte >= 0 ? cuerpo.slice(0, corte) : cuerpo;
-  const parr = intro.split(/\n\s*\n/).map(x => wkLimpiar(x.replace(/^[:*#]+\s*/gm, ''))).filter(x => x.length > 20);
+  const parr = intro.split(/\n\s*\n/).map(x => wkPulir(wkLimpiar(x.replace(/^[:*#]+\s*/gm, '')))).filter(x => x.length > 20);
   let ef = parr[0] || '';
   if (ef.length > 300) ef = ef.slice(0, 280).replace(/\s+\S*$/, '') + '…';
   const sec = wkSeccion(wt, /obtenci|ubicaci|d[oó]nde|localizaci|conseguir/i);
-  let donde = sec ? sec.split('\n').map(l => wkLimpiar(l.replace(/^[:*#]+\s*/, ''))).filter(x => x.length > 3 && !/^\{\||^\|/.test(x)).slice(0, 4).join(' · ') : '';
+  let donde = sec ? sec.split('\n').map(l => wkPulir(wkLimpiar(l.replace(/^[:*#]+\s*/, '')))).filter(x => x.length > 3 && !/^\{\||^\|/.test(x)).slice(0, 4).join(' · ') : '';
   const compra = wkLimpiar(q.compra || ''); if (!donde && compra && !/^[\d.,\s$₽]+$/.test(compra)) donde = 'Se compra en ' + compra;
   if (donde.length > 260) donde = donde.slice(0, 240).replace(/\s+\S*$/, '') + '…';
   return { n: titulo, clase: wkLimpiar(q.clase || q.tipo || q.grupo || q.bolsillo || ''), ef, donde, mega: '', z: '', compra: /^[\d.,\s]+$/.test(compra) ? compra : '' };
@@ -2756,7 +2758,7 @@ function megaDe(titulo, wt, POK) {
 }
 async function wkCatalogo() {
   if (CAT.lista) return CAT.lista;
-  const g = wkCache('objcat2', 24); if (g) return (CAT.lista = g);
+  const g = wkCache('objcat3', 24); if (g) return (CAT.lista = g);
   const cat = c => wkCategoria(c).catch(() => []);
   const nombres = [...new Set(OBJ_CLASES.flatMap(c => c.cats).concat(['Objetos', 'Objetos exclusivos', 'Objetos Exclusivos']))];
   const res = await Promise.all(nombres.map(cat)), por = Object.fromEntries(nombres.map((n, i) => [n, new Set(res[i])]));
@@ -2771,7 +2773,7 @@ async function wkCatalogo() {
     if (por['Objetos exclusivos'].has(t) || por['Objetos Exclusivos'].has(t)) f.exc = 1;
     return f;
   }).filter(Boolean).sort((a, b) => a.n.localeCompare(b.n, 'es'));
-  return (CAT.lista = wkCache('objcat2', 0, lista));
+  return (CAT.lista = wkCache('objcat3', 0, lista));
 }
 async function pintarCatalogo() {
   const el = $('#catObj'); if (!el) return;
