@@ -8,6 +8,25 @@ var Core = (function () {
   // Líderes informados por la administración (se cargan solo si el team no tiene líder).
   var LIDERES = { 'Team Aqua': 'Kaivel', 'Team Rekiem': 'omarito', 'Team Plasma': 'Racso', 'Team Rocket': 'Wilfresh', 'Team Delta': 'José Luís', 'Team Magma': 'Leonardo', 'Escuadrón Élite': 'Stormacher' };
   var CUPO = 30;
+  // Permisos que el admin puede dar a cada rol. Cada uno habilita estas acciones (las de admin siempre las tiene el admin).
+  var PERMISOS = [
+    { id: 'noticias', nombre: 'Noticias', desc: 'Publicar, editar y borrar noticias', ops: ['noticiaGuardar', 'noticiaBorrar'] },
+    { id: 'guerra', nombre: 'Guerra de teams', desc: 'Registrar y borrar partes de guerra', ops: ['guerraRegistrar', 'guerraBorrar'] },
+    { id: 'zonas', nombre: 'Zonas', desc: 'Crear, editar, borrar y ubicar zonas en el mapa', ops: ['zonaGuardar', 'zonaUbicar', 'zonaBorrar'] },
+    { id: 'reglas', nombre: 'Reglas', desc: 'Escribir y ordenar las reglas', ops: ['reglaGuardar', 'reglaBorrar', 'reglaMover'] },
+    { id: 'torneos', nombre: 'Torneos y combates', desc: 'Calendario de torneos y clasificación', ops: ['torneoGuardar', 'torneoBorrar', 'combateGuardar', 'combateBorrar'] },
+    { id: 'teams', nombre: 'Teams', desc: 'Crear y editar teams, logos, miembros y cupo', ops: ['equipoGuardar', 'equipoBorrar', 'equipoMiembros', 'equipoLogo', 'equiposRestaurar', 'logoSubir', 'cupo'] },
+    { id: 'carnets', nombre: 'Carnets', desc: 'Editar o borrar carnets y darles clave nueva', ops: ['carnetBorrar', 'carnetClave', 'carnetEditar'] },
+    { id: 'mundo', nombre: 'Mapas y regiones', desc: 'Agregar, renombrar y cambiar mapas', ops: ['regionGuardar', 'regionMapa', 'regionMover', 'regionBorrar', 'mapaSubir'] },
+    { id: 'wiki', nombre: 'Guía de zonas', desc: 'Editar el resumen de cada zona', ops: ['wikiGuardar'] },
+    { id: 'comunidad', nombre: 'Grupos de WhatsApp', desc: 'Actualizar los miembros de cada grupo', ops: ['grupoMiembros'] },
+    { id: 'mensajes', nombre: 'Mensajes', desc: 'Leer y borrar los mensajes de contacto', ops: ['mensajes', 'mensajeBorrar'] }
+  ];
+  /** Qué permiso hace falta para una acción ('' si es solo del admin). */
+  function permisoDe(accion) {
+    for (var i = 0; i < PERMISOS.length; i++) if (PERMISOS[i].ops.indexOf(accion) >= 0) return PERMISOS[i].id;
+    return '';
+  }
   // Regiones del mapa: cada zona pertenece a una y sus coordenadas son sobre el mapa de esa región.
   // Las de fábrica; el admin puede agregar más desde la web (pestaña Regiones de la planilla).
   var REGIONES = [{ id: 'star', nombre: 'Región Star', orden: '1', mapa: '', actualizado: '' }, { id: 'jungla', nombre: 'La Jungla', orden: '2', mapa: '', actualizado: '' }];
@@ -436,7 +455,7 @@ var Core = (function () {
     };
   }
 
-  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial };
+  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial, PERMISOS: PERMISOS, permisoDe: permisoDe };
 })();
 // ===== FIN DEL NÚCLEO =====
 // Si alojás este HTML fuera de Google (GitHub Pages, etc.), pegá acá la URL /exec de tu Apps Script.
@@ -452,7 +471,7 @@ if (location.hostname === 'stormacher95.github.io') {
   gc.async = true; gc.dataset.goatcounter = 'https://reloaded-online.goatcounter.com/count'; gc.src = 'https://gc.zgo.at/count.js';
   document.head.appendChild(gc);
 }
-const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
+const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
 const WPP_GENERAL = 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6';
@@ -475,10 +494,37 @@ const Demo = {
     const mapas = {};
     (v.regiones || []).forEach(r => { mapas[r.id] = this.mapas[r.id] ? { url: this.mapas[r.id] } : r.id === 'star' ? { url: 'mapa-territorial-reloaded-online.png' } : null; });
     v.config = { modo: 'demo', mapa: mapas.star, mapas, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
+    const roles = this.roles(), r = admin && this.sesion;
+    v.config.staff = roles.filter(x => x.publico).map(x => ({ nombre: x.nombre, color: x.color, personas: x.personas || '' }));
+    if (r) Object.assign(v.config, { rol: 'rol', rolId: r.id, rolNombre: r.nombre, rolColor: r.color, permisos: r.permisos.slice() });
+    else if (admin) Object.assign(v.config, { rol: 'admin', roles: roles.map(x => ({ id: x.id, nombre: x.nombre, color: x.color, personas: x.personas || '', publico: !!x.publico, permisos: x.permisos.slice(), conClave: true })) });
     return v;
+  },
+  rk: 'reloaded-roles-demo',
+  roles() { try { return JSON.parse(localStorage.getItem(this.rk) || '[]'); } catch (e) { return this.rolesMem || []; } },
+  guardarRoles(l) { this.rolesMem = l; try { localStorage.setItem(this.rk, JSON.stringify(l)); } catch (e) { } },
+  rolGuardar(p) {
+    const l = this.roles(), nombre = Core.txt(p.nombre, 30);
+    if (!nombre) throw new Error('Escribí el nombre del rol.');
+    if (/^admin(istrador|istraci[oó]n)?$/i.test(nombre)) throw new Error('Ese nombre es del admin. Elegí otro.');
+    let r = p.id ? l.find(x => x.id === p.id) : null;
+    if (p.id && !r) throw new Error('Ese rol ya no existe.');
+    if (l.some(x => x !== r && x.nombre.toLowerCase() === nombre.toLowerCase())) throw new Error('Ya hay un rol con ese nombre.');
+    const permisos = [...new Set(p.permisos || [])].filter(x => Core.PERMISOS.some(q => q.id === x));
+    if (!permisos.length) throw new Error('Elegí al menos un permiso para el rol.');
+    const clave = String(p.clave || '');
+    if (!r && !clave) throw new Error('El rol necesita una clave para poder entrar.');
+    if (clave && clave.length < 8) throw new Error('La clave del rol necesita al menos 8 caracteres.');
+    if (clave === 'demo') throw new Error('La clave del rol tiene que ser distinta de la de admin.');
+    const otro = clave && l.find(x => x !== r && x.clave === clave); if (otro) throw new Error('Esa clave ya la usa el rol ' + otro.nombre + '.');
+    if (!r) { const base = Core.txt(nombre, 30).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'rol'; let id = base, k = 2; while (l.some(x => x.id === id)) id = base + '-' + (k++); r = { id }; l.push(r); }
+    Object.assign(r, { nombre, color: /^#[0-9a-f]{6}$/i.test(p.color || '') ? p.color : (r.color || '#7cc4e8'), personas: Core.txt(p.personas, 200), publico: !!p.publico, permisos });
+    if (clave) r.clave = clave;
+    this.guardarRoles(l);
   },
   api(a, p, tok) {
     const ctx = { ahora: new Date().toISOString(), admin: true };
+    this.sesion = null;
     if (a === 'datos') return this.vista(false);
     const dc = DemoC.leer(), pub = c => { const o = Object.assign({}, c); delete o.clave; o.captura = c.capturaEstado === 'aprobada' ? { url: c.capturaData } : null; o.capturaPendiente = c.capturaEstado === 'pendiente'; delete o.capturaData; delete o.capturaEstado; return o; };
     const dbusca = id => dc.find(x => x.id === id) || (() => { throw new Error('Ese carnet no existe o fue borrado.'); })();
@@ -493,7 +539,8 @@ const Demo = {
     }
     if (a === 'carnetVerificar') { if (dbusca(p.id).clave !== p.clave) throw new Error('Clave incorrecta.'); return { ok: true }; }
     if (a === 'carnetEditar') {
-      const c = dbusca(p.id); if (tok !== 'demo-token' && c.clave !== p.clave) throw new Error('Clave incorrecta.');
+      const rc = String(tok || '').startsWith('demo-rol:') && this.roles().find(x => 'demo-rol:' + x.id === tok);
+      const c = dbusca(p.id); if (tok !== 'demo-token' && !(rc && rc.permisos.includes('carnets')) && c.clave !== p.clave) throw new Error('Clave incorrecta.');
       const d = Core.limpiarCarnet(p, this.db().equipos);
       if (dc.some(x => x.id !== c.id && x.nombre.toLowerCase() === d.nombre.toLowerCase())) throw new Error('Ya hay un carnet con ese nombre de entrenador.');
       Object.assign(c, d, { actualizado: ctx.ahora }); if (p.nuevaClave) c.clave = p.nuevaClave;
@@ -501,9 +548,25 @@ const Demo = {
     }
     if (a === 'carnetBorrarPropio') { const c = dbusca(p.id); if (c.clave !== p.clave) throw new Error('Clave incorrecta.'); DemoC.guardar(dc.filter(x => x.id !== c.id)); return { borrado: true }; }
     if (a === 'contacto') { if (String(p.mensaje || '').trim().length < 10) throw new Error('Contanos un poco más en el mensaje (mínimo 10 caracteres).'); return { enviado: true }; }
-    if (a === 'login') { if (p.clave !== 'demo') throw new Error('Clave incorrecta. En la demostración la clave es "demo".'); return { token: 'demo-token' }; }
+    if (a === 'login') {
+      if (p.clave === 'demo') return { token: 'demo-token', rol: 'admin' };
+      const r = this.roles().find(x => x.clave && x.clave === p.clave);
+      if (r) return { token: 'demo-rol:' + r.id, rol: 'rol', nombre: r.nombre, color: r.color, permisos: r.permisos };
+      throw new Error('Clave incorrecta. En la demostración la clave es "demo".');
+    }
     if (a === 'imagen') throw new Error('Sin imagen');
-    if (tok !== 'demo-token') throw new Error('Tu sesión de admin venció. Volvé a ingresar.');
+    if (tok !== 'demo-token') {
+      const r = String(tok || '').startsWith('demo-rol:') && this.roles().find(x => 'demo-rol:' + x.id === tok);
+      if (!r) throw new Error('Tu sesión de admin venció. Volvé a ingresar.');
+      this.sesion = r;
+      if (a !== 'logout' && a !== 'adminDatos') {
+        const pm = Core.permisoDe(a);
+        if (!pm || !r.permisos.includes(pm)) throw new Error('Tu rol (' + r.nombre + ') no tiene permiso para eso. Pedíselo al admin.');
+        if (a === 'noticiaGuardar' && p.zona && p.zona.territorio && !r.permisos.includes('guerra')) throw new Error('Tu rol (' + r.nombre + ') no puede registrar guerras: publicá la noticia sin cambiar la zona.');
+      }
+    }
+    if (a === 'rolGuardar') { this.rolGuardar(p); return this.vista(true); }
+    if (a === 'rolBorrar') { const l = this.roles(); if (!l.some(x => x.id === p.id)) throw new Error('Ese rol ya no existe.'); this.guardarRoles(l.filter(x => x.id !== p.id)); return this.vista(true); }
     if (a === 'logout') return true;
     if (a === 'adminDatos') return this.vista(true);
     if (a === 'carnetBorrar') { DemoC.guardar(dc.filter(x => x.id !== p.id)); return { borrado: true }; }
@@ -560,10 +623,20 @@ async function cargar(silencioso) {
 }
 
 // ---------- Utilidades de presentación ----------
-const esAdmin = () => !!S.token && S.rol !== 'editor';
-const esEditor = () => !!S.token && S.rol === 'editor';
-const puedeNoticias = () => !!S.token;
-const puedeGuerra = () => !!S.token; // admin y noticiero
+// Sesiones: el admin puede todo; un rol (los crea el admin, con su clave) solo lo que tenga habilitado.
+const esAdmin = () => !!S.token && S.rol === 'admin';
+const esRol = () => !!S.token && !esAdmin();
+function permisosSesion() {
+  if (!S.token) return [];
+  if (esAdmin()) return Core.PERMISOS.map(p => p.id);
+  const c = S.d.config || {};
+  return Array.isArray(c.permisos) ? c.permisos : S.rol === 'editor' ? ['noticias', 'guerra', 'zonas', 'reglas'] : [];
+}
+const puede = p => permisosSesion().includes(p);
+const puedeAlgo = (...ps) => ps.some(puede);
+const nombreSesion = () => esAdmin() ? 'Administración' : ((S.d.config && S.d.config.rolNombre) || almacen.get('rlo-rol-nombre') || (S.rol === 'editor' ? 'Noticiero' : 'Rol'));
+const puedeNoticias = () => puede('noticias');
+const puedeGuerra = () => puedeAlgo('guerra', 'zonas');
 const equipo = n => S.d.equipos.find(e => e.nombre === n);
 const colorEq = n => (equipo(n) || {}).color || '#93b9c3';
 function colorZona(t) {
@@ -611,15 +684,17 @@ function render() {
   if (hay('#listaTorneos')) renderTorneos();
   renderEstado();
   $('#adminbar').hidden = !S.token;
-  $('#adminbarTitulo').textContent = esEditor() ? 'Noticiero' : 'Administración';
-  $$('#adminbar [data-solo-rol]').forEach(e => { e.hidden = (e.dataset.soloRol === 'editor') !== esEditor(); });
+  $('#adminbarTitulo').textContent = nombreSesion();
+  $('#adminbar').style.setProperty('--rol', esAdmin() ? '#b03b40' : ((S.d.config && S.d.config.rolColor) || '#2f7fa3'));
+  $$('#adminbar [data-perm]').forEach(e => { e.hidden = !puede(e.dataset.perm); });
+  if (hay('#staff')) renderStaff();
   if (hay('#clasif')) renderClasif();
   if (hay('#gridCarnets')) renderCarnets();
   renderGrupos();
   renderReglas();
   if (hay('#gridWiki')) renderWiki();
   if (hay('#wikiArticulo')) pintarWikiPagina();
-  $$('.solo-admin').forEach(e => e.hidden = !esAdmin());
+  $$('.solo-admin').forEach(e => e.hidden = !puede('mundo'));
 }
 
 function renderDominio() {
@@ -715,11 +790,11 @@ function renderMapa() {
       if (!fuentes.length) sin();
       else { if (otraRegion) img.classList.add('llegando'); img.hidden = false; vacioEl.hidden = true; prox(); }
     }
-    const pins = zonasRegion(rg).filter(t => t.x !== '' && t.x != null && !isNaN(parseFloat(t.x)));
+    const pins = zonasRegion(rg).filter(t => t.x !== '' && t.x != null && !isNaN(parseFloat(t.x))).map(zonaVista);
     $('.pins', esc_).innerHTML = img.hidden ? '' : pins.map(t => {
       const cl = t.estado === 'Controlada' ? '' : t.estado === 'En disputa' ? 'disputa' : t.estado === 'Punto Muerto' ? 'muerto' : 'neutral';
       const logo = (t.estado === 'Controlada' || t.estado === 'En disputa') && t.equipo ? emblema(t.equipo) : null;
-      return `<button type="button" class="pin ${cl}${logo ? ' logo' : ''}" data-act="zona" data-id="${esc(t.id)}" style="left:${parseFloat(t.x)}%;top:${parseFloat(t.y)}%;--c:${esc(colorZona(t))}" aria-label="${esc(t.nombre)}: ${esc(t.estado === 'Controlada' ? t.equipo : t.estado + (t.equipo ? ' (' + t.equipo + ')' : ''))}">${logo ? imgEmblema(logo) : ''}<span class="pin-et">${esc(t.nombre)}</span></button>`;
+      return `<button type="button" class="pin ${cl}${logo ? ' logo' : ''}${S.replay && S.replay.cambio === t.id ? ' cambio' : ''}" data-act="zona" data-id="${esc(t.id)}" style="left:${parseFloat(t.x)}%;top:${parseFloat(t.y)}%;--c:${esc(colorZona(t))}" aria-label="${esc(t.nombre)}: ${esc(t.estado === 'Controlada' ? t.equipo : t.estado + (t.equipo ? ' (' + t.equipo + ')' : ''))}">${logo ? imgEmblema(logo) : ''}<span class="pin-et">${esc(t.nombre)}</span></button>`;
     }).join('');
   });
   $$('[data-region-nombre]').forEach(e => { e.textContent = nombreRegion(rg); });
@@ -729,13 +804,107 @@ function renderMapa() {
   const zr = zonasRegion(rg), ubicadas = zr.filter(t => t.x !== '' && t.x != null).length, faltan = pendientesUbicar().length;
   let info = ubicadas ? esc(`${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa: cada emblema muestra qué team la controla y cambia solo al registrar una guerra.`)
     : !zr.length && rg !== 'star' ? esc(`Todavía no hay zonas cargadas en ${tituloRegion(rg)}.`)
-    : esc(puedeGuerra() ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.');
-  if (puedeGuerra() && faltan > 0) info += ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>`;
-  if (esAdmin() && rg !== 'star') info += ` <button class="link" type="button" data-act="nueva-zona">Agregar zona de ${esc(tituloRegion(rg))}</button>`;
-  if (esAdmin() && !mapaDe(rg) && !MAPAS_BASE[rg]) info += ` <button class="link" type="button" data-act="region-mapa" data-id="${esc(rg)}">Subir el mapa de ${esc(tituloRegion(rg))}</button>`;
+    : esc(puede('zonas') ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.');
+  if (puede('zonas') && faltan > 0) info += ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>`;
+  if (puede('zonas') && rg !== 'star') info += ` <button class="link" type="button" data-act="nueva-zona">Agregar zona de ${esc(tituloRegion(rg))}</button>`;
+  if (puede('mundo') && !mapaDe(rg) && !MAPAS_BASE[rg]) info += ` <button class="link" type="button" data-act="region-mapa" data-id="${esc(rg)}">Subir el mapa de ${esc(tituloRegion(rg))}</button>`;
   // Un Codigo.gs viejo no guarda la región: avisar antes de que marquen zonas de La Jungla sobre la Star.
-  if (puedeGuerra() && rg !== 'star' && MODO !== 'demo' && !(S.d.config && S.d.config.mapas)) info += ' <b>Para guardar zonas en este mapa hay que actualizar el Codigo.gs.</b>';
+  if (puede('zonas') && rg !== 'star' && MODO !== 'demo' && !(S.d.config && S.d.config.mapas)) info += ' <b>Para guardar zonas en este mapa hay que actualizar el Codigo.gs.</b>';
   if (hay('#pinsInfo')) $('#pinsInfo').innerHTML = info;
+  renderReplay();
+}
+
+// ---------- Replay de la guerra: el mapa reconstruido parte por parte ----------
+/** Estado de una zona en el momento del replay (o el de ahora si no hay replay). */
+function zonaVista(t) { const r = S.replay; if (!r) return t; const e = r.cuadros[r.i].est[t.id]; return e ? Object.assign({}, t, e) : t; }
+function replayCuadros() {
+  const zonas = S.d.territorios, ids = new Set(zonas.map(z => z.id));
+  const gs = S.d.guerras.slice().reverse().map((g, k) => ({ g, k, f: new Date(g.fecha).getTime() })).filter(x => ids.has(x.g.territorioId) && !isNaN(x.f) && Core.ACCIONES[x.g.accion]);
+  gs.sort((a, b) => a.f - b.f || a.k - b.k);
+  const N = { estado: 'Neutral', equipo: '', retador: '' }, C = eq => ({ estado: 'Controlada', equipo: eq, retador: '' });
+  const primera = {}, est = {};
+  gs.forEach(({ g }) => { if (!primera[g.territorioId]) primera[g.territorioId] = g; });
+  zonas.forEach(z => {
+    const g = primera[z.id];
+    if (!g) { est[z.id] = { estado: z.estado, equipo: z.equipo, retador: z.retador || '' }; return; }
+    // antes del primer parte: lo deducimos del parte (a quién se la sacaron, quién la defendió)
+    const l = g.perdedor && g.perdedor !== 'Zona libre' ? g.perdedor : '';
+    est[z.id] = g.accion === 'toma' ? N : g.accion === 'defensa' ? C(g.ganador) : l ? C(l) : N;
+  });
+  const cuadros = [{ est: Object.assign({}, est), g: null }];
+  gs.forEach(({ g }) => {
+    const t = Object.assign({}, est[g.territorioId]), a = g.accion, gan = g.ganador, per = g.perdedor && g.perdedor !== 'Zona libre' ? g.perdedor : '';
+    if (a === 'conquista' || a === 'toma' || a === 'defensa' || a === 'resguardo') Object.assign(t, C(gan));
+    else if (a === 'disputa') { t.estado = 'En disputa'; t.retador = gan && gan !== t.equipo ? gan : per; }
+    else if (a === 'liberacion') Object.assign(t, N);
+    else if (a === 'muerto') Object.assign(t, N, { estado: 'Punto Muerto' });
+    est[g.territorioId] = t;
+    cuadros.push({ est: Object.assign({}, est), g });
+  });
+  return cuadros;
+}
+const REPLAY_VEL = [1, 2, 4];
+function replayAbrir() {
+  const cuadros = replayCuadros(); if (cuadros.length < 2) return;
+  replayParar();
+  S.replay = { cuadros, i: 0, play: false, vel: (S.replay && S.replay.vel) || 1, cambio: '' };
+  replayIr(0); replayPlay(true);
+}
+function replayCerrar() { replayParar(); S.replay = null; renderMapa(); }
+function replayParar() { if (S.replay) { clearTimeout(S.replay.timer); S.replay.play = false; } }
+function replayPlay(on) {
+  const r = S.replay; if (!r) return;
+  clearTimeout(r.timer);
+  if (on && r.i >= r.cuadros.length - 1) replayIr(0);
+  r.play = on;
+  if (on) { const paso = () => { if (!S.replay || !S.replay.play) return; if (r.i >= r.cuadros.length - 1) { r.play = false; renderReplay(); return; } replayIr(r.i + 1); r.timer = setTimeout(paso, 1500 / r.vel); }; r.timer = setTimeout(paso, r.i === 0 ? 900 : 1500 / r.vel); }
+  renderReplay();
+}
+function replayIr(i) {
+  const r = S.replay; if (!r) return;
+  r.i = Math.max(0, Math.min(r.cuadros.length - 1, i));
+  const g = r.cuadros[r.i].g; r.cambio = g ? g.territorioId : '';
+  // seguir la acción: si el parte es de otra región, el mapa se pasa a esa región
+  const t = g && S.d.territorios.find(z => z.id === g.territorioId);
+  if (t && t.x !== '' && t.x != null && regionDeZona(t) !== S.region) S.region = regionDeZona(t);
+  renderMapa();
+}
+function renderReplay() {
+  const el = $('#replay'); if (!el) return;
+  const hay_ = S.d.guerras.length > 0, r = S.replay;
+  el.hidden = !hay_ || !!S.ubicando;
+  el.classList.toggle('on', !!r);
+  if (!hay_) return;
+  if (!r) {
+    if (!el.querySelector('.replay-abrir')) el.innerHTML = `<button type="button" class="replay-abrir" data-act="replay"><span class="replay-ico" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg></span><span><b>Replay de la guerra</b><small>Mirá cómo cambiaron de dueño las zonas, parte por parte</small></span></button>`;
+    return;
+  }
+  const n = r.cuadros.length - 1, c = r.cuadros[r.i], g = c.g;
+  // marcador: zonas por team en ese momento
+  const cuenta = {}; Object.values(c.est).forEach(z => { if (z.estado === 'Controlada' && z.equipo) cuenta[z.equipo] = (cuenta[z.equipo] || 0) + 1; });
+  const top = Object.entries(cuenta).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'es')).slice(0, 5), max = top.length ? top[0][1] : 1;
+  if (!el.querySelector('.replay-ctrl')) {
+    el.innerHTML = `<div class="replay-parte" aria-live="polite"></div>
+      <div class="replay-ctrl"><button type="button" class="replay-btn" data-act="replay-play"></button>
+        <div class="replay-linea"><div class="replay-pista" aria-hidden="true"></div><input type="range" class="replay-rango" min="0" step="1" aria-label="Momento de la guerra"></div>
+        <button type="button" class="replay-vel" data-act="replay-vel" aria-label="Velocidad"></button><button type="button" class="replay-x" data-act="replay-cerrar">Volver al presente</button></div>
+      <ol class="replay-marcador" aria-label="Zonas por team en ese momento"></ol>`;
+    const rango = $('.replay-rango', el);
+    rango.oninput = () => { const v = +rango.value; replayPlay(false); replayIr(v); };
+  }
+  const rango = $('.replay-rango', el), pista = $('.replay-pista', el);
+  rango.max = n; rango.value = r.i; el.style.setProperty('--p', (n ? r.i / n * 100 : 100) + '%');
+  if (pista.dataset.n !== String(n)) { pista.dataset.n = n; pista.innerHTML = r.cuadros.slice(1).map(x => `<i style="--c:${esc(x.g.ganador ? colorEq(x.g.ganador) : '#93b9c3')}"></i>`).join(''); }
+  $('[data-act="replay-play"]', el).innerHTML = r.play ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zm5 0h3v11H9z"/></svg>' : r.i >= n ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 3.7l1.6.6A3.8 3.8 0 1 0 8 4.2V6L4.7 3.4 8 .8z"/></svg>' : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>';
+  $('[data-act="replay-play"]', el).setAttribute('aria-label', r.play ? 'Pausar' : r.i >= n ? 'Ver de nuevo' : 'Reproducir');
+  $('[data-act="replay-vel"]', el).textContent = r.vel + '×';
+  const parte = $('.replay-parte', el), clave = String(r.i);
+  if (parte.dataset.i !== clave) {
+    parte.dataset.i = clave;
+    parte.innerHTML = `<span class="replay-n">${r.i ? 'Parte ' + r.i + ' de ' + n : 'Inicio'}</span>${g ? `<time>${fecha(g.fecha, false)}</time><b>${pintar(g.resumen)}</b>${g.nota ? `<small>${esc(g.nota)}</small>` : ''}` : '<b>Así estaba la región antes del primer parte registrado.</b>'}`;
+    parte.classList.remove('entra'); void parte.offsetWidth; parte.classList.add('entra');
+  }
+  $('.replay-marcador', el).innerHTML = top.length ? top.map(([eq, k], i) => { const lg = emblema(eq); return `<li style="--c:${esc(colorEq(eq))};--w:${Math.max(8, k / max * 100)}%"><span class="rm-emb">${lg ? imgEmblema(lg) : ''}</span><span class="rm-nom">${esc(eq)}</span><span class="rm-barra"><i></i></span><b>${k}</b></li>`; }).join('') : '<li class="rm-vacio">Ningún team controla zonas todavía</li>';
 }
 
 function renderTeams() {
@@ -777,7 +946,7 @@ function renderCronica() {
   $('#linea').innerHTML = g.length ? g.slice(0, S.verGuerras).map(x => `
     <li style="--c:${esc(x.ganador ? colorEq(x.ganador) : '#93b9c3')}">
       <time>${fecha(x.fecha)}</time><p>${pintar(x.resumen)}</p>
-      <div class="meta"><button class="link" type="button" data-act="zona" data-id="${esc(x.territorioId)}">${esc(x.territorio)}</button>${x.nota ? `<span>${esc(x.nota)}</span>` : ''}${puedeGuerra() ? `<button class="link" type="button" data-act="borrar-guerra" data-id="${esc(x.id)}" style="color:#ffb8ba">Borrar del historial</button>` : ''}</div>
+      <div class="meta"><button class="link" type="button" data-act="zona" data-id="${esc(x.territorioId)}">${esc(x.territorio)}</button>${x.nota ? `<span>${esc(x.nota)}</span>` : ''}${puede('guerra') ? `<button class="link" type="button" data-act="borrar-guerra" data-id="${esc(x.id)}" style="color:#ffb8ba">Borrar del historial</button>` : ''}</div>
     </li>`).join('') : `<li style="--c:#93b9c3"><p class="muted">${S.cargando ? 'Cargando…' : 'Todavía no hay partes de guerra.'}</p></li>`;
   $('#lineaMas').innerHTML = g.length > S.verGuerras ? `<button class="btn sm" type="button" data-act="mas-guerras">Ver ${Math.min(20, g.length - S.verGuerras)} partes más</button>` : '';
   $('#archivo').innerHTML = S.d.noticias.length ? S.d.noticias.map((n, i) => `
@@ -790,11 +959,11 @@ function renderTorneos() {
   if (!hay('#listaTorneos')) return; // en la web por páginas esta sección puede estar en otra página
   $('#listaTorneos').innerHTML = S.d.torneos.length ? S.d.torneos.map(t => `
     <article class="torneo"><div class="torneo-f">${esc(t.fecha)}</div><div><h3>${esc(t.nombre)}</h3><p class="fmt">${esc(t.formato)}</p>${t.info ? `<p>${esc(t.info)}</p>` : ''}
-      <div class="acc">${t.enlace ? `<a class="btn sm sand" href="${esc(t.enlace)}" target="_blank" rel="noopener">Inscribirme</a>` : ''}${esAdmin() ? `<button class="btn sm" type="button" data-act="editar-torneo" data-id="${esc(t.id)}">Editar</button><button class="btn sm danger" type="button" data-act="borrar-torneo" data-id="${esc(t.id)}">Quitar</button>` : ''}</div></div></article>`).join('')
+      <div class="acc">${t.enlace ? `<a class="btn sm sand" href="${esc(t.enlace)}" target="_blank" rel="noopener">Inscribirme</a>` : ''}${puede('torneos') ? `<button class="btn sm" type="button" data-act="editar-torneo" data-id="${esc(t.id)}">Editar</button><button class="btn sm danger" type="button" data-act="borrar-torneo" data-id="${esc(t.id)}">Quitar</button>` : ''}</div></div></article>`).join('')
     : `<p class="vacio">${S.cargando ? 'Cargando…' : 'Todavía no hay torneos publicados. Volvé pronto para conocer la próxima competencia.'}</p>`;
   $('#listaCombates').innerHTML = S.d.combates.length ? S.d.combates.slice(0, 12).map(c => `
     <li><span><b class="eq" style="--c:${esc(c.equipoGanador ? colorEq(c.equipoGanador) : '#eaf5f1')}">${esc(c.ganador)}</b> venció a <span class="eq" style="--c:${esc(c.equipoRival ? colorEq(c.equipoRival) : '#c3dbe0')}">${esc(c.rival)}</span></span>
-    ${esAdmin() ? `<button class="link" type="button" data-act="borrar-combate" data-id="${esc(c.id)}" style="color:#ffb8ba">Borrar</button>` : '<span></span>'}
+    ${puede('torneos') ? `<button class="link" type="button" data-act="borrar-combate" data-id="${esc(c.id)}" style="color:#ffb8ba">Borrar</button>` : '<span></span>'}
     <small>${esc(c.formato)} · ${fecha(c.fecha, false)}${c.nota ? ' · ' + esc(c.nota) : ''}</small></li>`).join('')
     : `<li><small>Todavía no hay combates registrados.</small></li>`;
 }
@@ -824,10 +993,11 @@ function abrir(d) { if (!d.open) d.showModal(); }
 function cerrar(d) { if (d.open) d.close(); }
 function campo(c, pre = 'f') {
   const id = pre + '-' + c.n, req = c.req ? ' required' : '', max = c.max ? ` maxlength="${c.max}"` : '';
+  if (c.t === 'checks') return `<fieldset class="campo checks" id="${id}"${c.ancho ? ' style="grid-column:1/-1"' : ''}><legend>${esc(c.l)}</legend><div class="checks-g">${c.opc.map((o, i) => `<label class="check" style="--i:${i}"><input type="checkbox" name="${c.n}" value="${esc(o.v)}"${(c.v || []).includes(o.v) ? ' checked' : ''}><span class="check-c" aria-hidden="true"></span><span class="check-t"><b>${esc(o.l)}</b>${o.d ? `<small>${esc(o.d)}</small>` : ''}</span></label>`).join('')}</div>${c.ayuda ? `<small>${esc(c.ayuda)}</small>` : ''}</fieldset>`;
   let ctrl;
   if (c.t === 'select') ctrl = `<select id="${id}" name="${c.n}"${req}>${c.opc.map(o => { const v = typeof o === 'string' ? o : o.v, l = typeof o === 'string' ? o : o.l; return `<option value="${esc(v)}"${String(v) === String(c.v ?? '') ? ' selected' : ''}>${esc(l)}</option>`; }).join('')}</select>`;
   else if (c.t === 'textarea') ctrl = `<textarea id="${id}" name="${c.n}"${req}${max} placeholder="${esc(c.ph || '')}">${esc(c.v || '')}</textarea>`;
-  else ctrl = `<input id="${id}" name="${c.n}" type="${c.t || 'text'}"${req}${max} value="${esc(c.v || '')}" placeholder="${esc(c.ph || '')}"${c.t === 'file' ? ' accept="image/png,image/jpeg,image/webp,image/gif"' : ''}${c.t === 'password' ? ' autocomplete="current-password"' : ''}>`;
+  else ctrl = `<input id="${id}" name="${c.n}" type="${c.t || 'text'}"${req}${max} value="${esc(c.v || '')}" placeholder="${esc(c.ph || '')}"${c.t === 'file' ? ' accept="image/png,image/jpeg,image/webp,image/gif"' : ''}${c.t === 'password' ? ` autocomplete="${c.ac || 'current-password'}"` : ''}>`;
   return `<label class="campo" for="${id}"${c.ancho ? ' style="grid-column:1/-1"' : ''}>${esc(c.l)}${ctrl}${c.ayuda ? `<small>${esc(c.ayuda)}</small>` : ''}</label>`;
 }
 /** Formulario genérico: se queda abierto si enviar() falla y muestra el error. */
@@ -841,7 +1011,7 @@ function formulario({ titulo, texto, campos = [], boton = 'Guardar', peligro = f
     ev.preventDefault(); err.textContent = '';
     const falta = campos.find(c => c.req && !String(f.elements[c.n].value || '').trim());
     if (falta) { err.textContent = 'Completá “' + falta.l + '”.'; f.elements[falta.n].focus(); return; }
-    const vals = {}; campos.forEach(c => { vals[c.n] = c.t === 'file' ? f.elements[c.n].files[0] : f.elements[c.n].value; });
+    const vals = {}; campos.forEach(c => { vals[c.n] = c.t === 'file' ? f.elements[c.n].files[0] : c.t === 'checks' ? [...f.querySelectorAll(`input[name="${c.n}"]:checked`)].map(i => i.value) : f.elements[c.n].value; });
     const txt = b.textContent; b.disabled = true; b.textContent = 'Guardando…';
     try { await enviar(vals); if (f.isConnected) cerrar(d); }
     catch (e) { err.textContent = e.message; }
@@ -862,17 +1032,17 @@ function fichaTeam(id) {
     <div class="dlg-cuerpo">
       <p class="lore">${esc(e.lore || 'Este team está escribiendo su historia en la comunidad.')}</p>
       ${lleno ? `<p class="aviso-lleno">${esc(e.nombre)} está lleno: completó su cupo de ${cupo()} miembros. Consultá en el grupo general si se libera un lugar o mirá otros teams.</p>` : `<p class="muted">Para sumarte a ${esc(e.nombre)}, escribile al líder o a un admin en el grupo general de WhatsApp. Quedan ${cupo() - m} ${cupo() - m === 1 ? 'lugar' : 'lugares'}.</p>`}
-      <dl class="ficha"><div><dt>Líder</dt><dd>${esc(e.lider && e.lider !== '—' ? e.lider : 'Sin asignar')}</dd></div><div><dt>Miembros</dt><dd>${esAdmin() ? `<small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(m)}</small>${controlMiembros(e)}` : m + ' de ' + cupo() + (lleno ? ' · Lleno' : '')}</dd></div><div><dt>Zonas controladas</dt><dd>${zonas.length}</dd></div></dl>
+      <dl class="ficha"><div><dt>Líder</dt><dd>${esc(e.lider && e.lider !== '—' ? e.lider : 'Sin asignar')}</dd></div><div><dt>Miembros</dt><dd>${puede('teams') ? `<small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(m)}</small>${controlMiembros(e)}` : m + ' de ' + cupo() + (lleno ? ' · Lleno' : '')}</dd></div><div><dt>Zonas controladas</dt><dd>${zonas.length}</dd></div></dl>
       ${carnetsTeam.length ? `<div><h3 style="font-size:18px;margin-bottom:8px">Entrenadores con carnet</h3><div class="zchips">${carnetsTeam.map(c => `<button type="button" data-act="carnet" data-id="${esc(c.id)}" style="--c:${esc(e.color)}">${esc(c.nombre)}</button>`).join('')}</div></div>` : ''}
       ${zonas.length ? `<div><h3 style="font-size:18px;margin-bottom:8px">Territorio</h3><div class="zchips">${zonas.map(z => `<button type="button" data-act="zona" data-id="${esc(z.id)}" style="--c:${esc(e.color)}">${esc(z.nombre)}</button>`).join('')}</div></div>` : ''}
-      <div class="dlg-acc">${esAdmin() ? `<button class="btn danger" type="button" data-act="borrar-team" data-id="${esc(e.id)}">Quitar team</button>${e.logo ? `<button class="btn" type="button" data-act="logo-quitar" data-id="${esc(e.id)}">Quitar logo</button>` : ''}<button class="btn" type="button" data-act="logo-team" data-id="${esc(e.id)}">${e.logo ? 'Cambiar logo' : 'Poner logo'}</button><button class="btn" type="button" data-act="editar-team" data-id="${esc(e.id)}">Editar</button>` : ''}${lleno ? `<a class="btn" href="${WPP_GENERAL}" target="_blank" rel="noopener">Consultar en el grupo general</a>` : `<a class="btn sand" href="${WPP_GENERAL}" target="_blank" rel="noopener">Pedir ingreso por WhatsApp</a>`}</div>
+      <div class="dlg-acc">${puede('teams') ? `<button class="btn danger" type="button" data-act="borrar-team" data-id="${esc(e.id)}">Quitar team</button>${e.logo ? `<button class="btn" type="button" data-act="logo-quitar" data-id="${esc(e.id)}">Quitar logo</button>` : ''}<button class="btn" type="button" data-act="logo-team" data-id="${esc(e.id)}">${e.logo ? 'Cambiar logo' : 'Poner logo'}</button><button class="btn" type="button" data-act="editar-team" data-id="${esc(e.id)}">Editar</button>` : ''}${lleno ? `<a class="btn" href="${WPP_GENERAL}" target="_blank" rel="noopener">Consultar en el grupo general</a>` : `<a class="btn sand" href="${WPP_GENERAL}" target="_blank" rel="noopener">Pedir ingreso por WhatsApp</a>`}</div>
     </div></div>`;
   abrir(d);
 }
 
 function fichaZona(id) {
   const t = S.d.territorios.find(x => x.id === id); if (!t) return;
-  const hist = S.d.guerras.filter(g => g.territorioId === t.id), c = colorZona(t), adm = puedeGuerra();
+  const hist = S.d.guerras.filter(g => g.territorioId === t.id), c = colorZona(t);
   const opcEq = [{ v: '', l: 'Elegí un team…' }].concat(S.d.equipos.map(e => ({ v: e.nombre, l: e.nombre })));
   const opcRiv = [{ v: '', l: 'Sin rival / zona libre' }].concat(S.d.equipos.map(e => ({ v: e.nombre, l: e.nombre })));
   const enMapa = t.x !== '' && t.x != null;
@@ -882,7 +1052,7 @@ function fichaZona(id) {
       <dl class="ficha"><div><dt>Último parte</dt><dd>${pintar(t.ultimo || 'Zona neutral')}</dd></div>${t.retador ? `<div><dt>Retador</dt><dd>${pintar(t.retador)}</dd></div>` : ''}<div><dt>Referencia en el mapa</dt><dd>${esc(t.referencia || 'Por confirmar')}</dd></div></dl>
       <div class="dlg-acc" style="justify-content:flex-start">${enMapa ? `<button class="btn sm" type="button" data-act="ver-en-mapa" data-id="${esc(t.id)}">Ver en el mapa</button>` : ''}<button class="btn sm sand" type="button" data-act="wiki" data-zona="${esc(t.nombre)}">Guía de la zona</button></div>
       <div><h3 style="font-size:18px;margin-bottom:8px">Historial de guerras</h3>${hist.length ? `<ol class="hist">${hist.slice(0, 25).map(g => `<li style="--c:${esc(g.ganador ? colorEq(g.ganador) : '#93b9c3')}"><time>${fecha(g.fecha)}</time>${pintar(g.resumen)}${g.nota ? `<br><small class="muted">${esc(g.nota)}</small>` : ''}</li>`).join('')}</ol>` : '<p class="muted">Sin batallas registradas en esta zona.</p>'}</div>
-      ${adm ? `<form class="caja-admin" id="formGuerra"><h3>Registrar resultado</h3>
+      ${puede('guerra') ? `<form class="caja-admin" id="formGuerra"><h3>Registrar resultado</h3>
         <div class="campos dos">
           ${campo({ n: 'accion', l: 'Qué pasó', t: 'select', ancho: true, opc: [{ v: 'conquista', l: 'Conquista: venció al team que la tenía' }, { v: 'toma', l: 'Tomó la zona libre' }, { v: 'defensa', l: 'Defendió y ganó' }, { v: 'disputa', l: 'Quedó en disputa' }, { v: 'resguardo', l: 'Resguardo del Escuadrón Élite' }, { v: 'liberacion', l: 'Liberada / neutral' }, { v: 'muerto', l: 'Marcar como Punto Muerto' }] }, 'z')}
           ${campo({ n: 'ganador', l: 'Team ganador', t: 'select', opc: opcEq }, 'z')}
@@ -890,8 +1060,8 @@ function fichaZona(id) {
           ${campo({ n: 'nota', l: 'Nota (opcional)', ph: 'Ej.: captura compartida en el grupo', max: 200, ancho: true }, 'z')}
           ${campo({ n: 'referencia', l: 'Referencia en el mapa', v: t.referencia, ph: 'Ej.: costa sur, junto a la Ruta 10', max: 120, ancho: true }, 'z')}
         </div><p class="form-error" role="alert"></p>
-        <div class="dlg-acc"><button class="btn sand" type="submit">Guardar resultado</button></div></form>
-        <div class="dlg-acc" style="justify-content:flex-start"><button class="btn sm" type="button" data-act="ubicar" data-id="${esc(t.id)}">${enMapa ? 'Mover en el mapa' : 'Ubicar en el mapa'}</button>${enMapa ? `<button class="btn sm" type="button" data-act="desubicar" data-id="${esc(t.id)}">Quitar del mapa</button>` : ''}<button class="btn sm" type="button" data-act="editar-zona" data-id="${esc(t.id)}">Editar zona</button>${esAdmin() ? `<button class="btn sm danger" type="button" data-act="borrar-zona" data-id="${esc(t.id)}">Borrar zona</button>` : ''}</div>` : ''}
+        <div class="dlg-acc"><button class="btn sand" type="submit">Guardar resultado</button></div></form>` : ''}${puede('zonas') ? `
+        <div class="dlg-acc" style="justify-content:flex-start"><button class="btn sm" type="button" data-act="ubicar" data-id="${esc(t.id)}">${enMapa ? 'Mover en el mapa' : 'Ubicar en el mapa'}</button>${enMapa ? `<button class="btn sm" type="button" data-act="desubicar" data-id="${esc(t.id)}">Quitar del mapa</button>` : ''}<button class="btn sm" type="button" data-act="editar-zona" data-id="${esc(t.id)}">Editar zona</button>${puede('zonas') ? `<button class="btn sm danger" type="button" data-act="borrar-zona" data-id="${esc(t.id)}">Borrar zona</button>` : ''}</div>` : ''}
     </div></div>`;
   const f = $('#formGuerra', d);
   if (f) f.onsubmit = async ev => {
@@ -1215,7 +1385,7 @@ function pokeHTML(x) {
 function enlaceCarnet(c) { return (MULTIPAGINA ? SITIO_URL + 'carnets.html' : (SITIO_URL || location.href.split('#')[0])) + '#carnet/' + c.id; }
 
 function carnetHTML(c) {
-  const col = c.equipo ? colorEq(c.equipo) : '#93b9c3', adm = esAdmin();
+  const col = c.equipo ? colorEq(c.equipo) : '#93b9c3', adm = puede('carnets');
   const desde = c.creado && !isNaN(new Date(c.creado)) ? new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(new Date(c.creado)) : '';
   const url = enlaceCarnet(c);
   const wa = 'https://wa.me/?text=' + encodeURIComponent('🎴 Carnet de entrenador de ' + c.nombre + ' (' + numCarnet(c.numero) + ')\n' + url);
@@ -1230,6 +1400,7 @@ function carnetHTML(c) {
       <div class="equipo-poke">${Array.from({ length: 6 }, (_, i) => pokeHTML(c.pokemon[i])).join('')}</div>
       <div class="dlg-acc">
         ${adm ? `<button class="btn sm danger" type="button" data-act="carnet-borrar" data-id="${esc(c.id)}">Borrar carnet</button><button class="btn sm" type="button" data-act="carnet-clave" data-id="${esc(c.id)}">Clave nueva</button>` : ''}
+        ${c.pokemon.length ? `<button class="btn sm" type="button" data-act="analizar-carnet" data-id="${esc(c.id)}">Analizar equipo</button>` : ''}
         <button class="btn sm" type="button" data-act="copiar" data-url="${esc(url)}">Copiar enlace</button>
         <a class="btn sm" href="${esc(wa)}" target="_blank" rel="noopener">Compartir</a>
         <button class="btn sm sand" type="button" data-act="carnet-editar" data-id="${esc(c.id)}">Editar</button>
@@ -1314,7 +1485,7 @@ function formCarnet(c, clave) {
   cargarDex().then(() => { for (let i = 0; i < 6; i++) completarEspecie(i, false); });
   const bb = $('[data-borrar-carnet]', f);
   if (bb) bb.onclick = () => confirmar('Borrar el carnet de ' + c.nombre, 'Se borra para siempre de la web y de la planilla. No se puede deshacer.', 'Borrar carnet', async () => {
-    await llamar(clave || !esAdmin() ? 'carnetBorrarPropio' : 'carnetBorrar', { id: c.id, clave: clave || '' });
+    await llamar(clave || !puede('carnets') ? 'carnetBorrarPropio' : 'carnetBorrar', { id: c.id, clave: clave || '' });
     const mi = MI.get(); if (mi && mi.id === c.id) MI.borrar();
     if (location.hash.indexOf(c.id) >= 0) history.replaceState(null, '', location.pathname + location.search);
     cerrar(d); toast('Carnet borrado.'); cargarCarnets();
@@ -1347,7 +1518,7 @@ function formCarnet(c, clave) {
 
 function editarCarnet(id) {
   const c = S.carnetAbierto && S.carnetAbierto.id === id ? S.carnetAbierto : null; if (!c) return;
-  if (esAdmin()) { cerrar($('#dlgCarnet')); formCarnet(c, ''); return; }
+  if (puede('carnets')) { cerrar($('#dlgCarnet')); formCarnet(c, ''); return; }
   formulario({
     titulo: 'Editar el carnet de ' + c.nombre, texto: 'Escribí la clave que elegiste al crearlo. Si no la recordás, pedile una nueva a un admin en el grupo.', boton: 'Seguir',
     campos: [{ n: 'clave', l: 'Clave del carnet', t: 'password', req: true }],
@@ -1403,20 +1574,89 @@ function cambiarMiembros(id, valor) {
 function panelAdmin() {
   const z = S.d.territorios, ctrl = z.filter(t => t.estado === 'Controlada').length;
   const ubic = z.filter(t => t.x !== '' && t.x != null).length;
-  const b = (act, titulo, sub) => `<button type="button" data-act="${act}"><b>${titulo}</b><span>${sub}</span></button>`;
+  const cfg = S.d.config || {}, adm = esAdmin();
+  const b = (act, titulo, sub, perm) => perm && !puede(perm) ? '' : `<button type="button" data-act="${act}"><b>${titulo}</b><span>${sub}</span></button>`;
+  const sec = (titulo, cuerpo) => cuerpo && cuerpo.replace(/<[^>]*>/g, '').trim() ? `<div><h3>${titulo}</h3>${cuerpo}</div>` : '';
+  const btns = (...l) => { const h = l.join(''); return h ? `<div class="panel-btns">${h}</div>` : ''; };
   const d = $('#dlgPanel');
-  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">Reloaded Online</p><h2>Panel de administración</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">Reloaded Online</p><h2>${adm ? 'Panel de administración' : 'Panel de ' + esc(nombreSesion())}</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo panel-g">
+      ${adm ? '' : `<p class="rol-aviso" style="--c:${esc(cfg.rolColor || '#7cc4e8')}"><b>${esc(nombreSesion())}</b> · podés: ${esc(Core.PERMISOS.filter(p => puede(p.id)).map(p => p.nombre.toLowerCase()).join(', ') || 'nada todavía')}.</p>`}
       <div class="panel-stats"><div><b>${ctrl}/${z.length}</b><span>zonas con dueño</span></div><div><b>${S.d.guerras.length}</b><span>partes de guerra</span></div><div><b>${(S.carnets || []).length}</b><span>carnets</span></div><div><b>${ubic}</b><span>zonas en el mapa</span></div></div>
-      <div><h3>Publicar</h3><div class="panel-btns">${b('nueva-noticia', 'Publicar noticia', 'Va a la portada')}${b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…')}${b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario')}${b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación')}</div></div>
-      <div><h3>Miembros por team</h3><div class="cupo-ctrl"><span><b>Cupo por team</b><small class="mm-estado" id="cupoEstado">Al llegar a este número, el team figura como Lleno.</small></span><span class="contador" data-cupo><button type="button" data-act="cupo" data-paso="-1" aria-label="Bajar el cupo">−</button><input type="number" inputmode="numeric" min="1" max="999" value="${cupo()}" data-cupo-input aria-label="Cupo de miembros por team"><button type="button" data-act="cupo" data-paso="1" aria-label="Subir el cupo">+</button></span></div><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>
-      <div><h3>Mundo</h3><div class="panel-btns">${b('nuevo-team', 'Nuevo team', 'Nombre, color y lore')}${b('nueva-zona', 'Nueva zona', 'Se suma al atlas')}${b('regiones', 'Mapas y regiones', 'Agregar, renombrar y cambiar mapas')}</div></div>
-      <div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>
-      <div><h3>Comunidad</h3><div class="panel-btns">${b('mensajes', 'Mensajes' + (S.d.config && S.d.config.mensajes ? ' (' + S.d.config.mensajes + ')' : ''), S.d.config && S.d.config.mensajes ? 'Contacto y pedidos de retiro' : 'No hay mensajes nuevos')}</div></div>
-      <div><h3>Cuenta</h3><div class="panel-btns">${b('planilla', 'Abrir planilla', 'Los datos en tu Drive')}${b('clave', 'Cambiar clave', 'Para entrar como admin')}${b('clave-editor', 'Clave del noticiero', S.d.config && S.d.config.editor ? 'Activa · cambiarla' : 'Noticias, zonas, reglas y crónica')}${S.d.config && S.d.config.editor ? b('quitar-editor', 'Quitar noticiero', 'Su clave deja de andar') : ''}${b('salir', 'Salir', 'Cerrar la sesión de admin')}</div></div>
-      <p class="muted">Para editar un team, una zona o un carnet, abrí su ficha: las opciones de admin aparecen ahí.</p>
+      ${sec('Publicar', btns(b('nueva-noticia', 'Publicar noticia', 'Va a la portada', 'noticias'), b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…', 'guerra'), b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario', 'torneos'), b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación', 'torneos')))}
+      ${puede('teams') ? `<div><h3>Miembros por team</h3><div class="cupo-ctrl"><span><b>Cupo por team</b><small class="mm-estado" id="cupoEstado">Al llegar a este número, el team figura como Lleno.</small></span><span class="contador" data-cupo><button type="button" data-act="cupo" data-paso="-1" aria-label="Bajar el cupo">−</button><input type="number" inputmode="numeric" min="1" max="999" value="${cupo()}" data-cupo-input aria-label="Cupo de miembros por team"><button type="button" data-act="cupo" data-paso="1" aria-label="Subir el cupo">+</button></span></div><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>` : ''}
+      ${sec('Mundo', btns(b('nuevo-team', 'Nuevo team', 'Nombre, color, logo y lore', 'teams'), b('nueva-zona', 'Nueva zona', 'Se suma al atlas', 'zonas'), b('regiones', 'Mapas y regiones', 'Agregar, renombrar y cambiar mapas', 'mundo')))}
+      ${puede('comunidad') ? `<div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>` : ''}
+      ${sec('Comunidad', btns(b('mensajes', 'Mensajes' + (cfg.mensajes ? ' (' + cfg.mensajes + ')' : ''), cfg.mensajes ? 'Contacto y pedidos de retiro' : 'No hay mensajes nuevos', 'mensajes')))}
+      ${adm ? panelRolesHTML() : ''}
+      <div><h3>Cuenta</h3><div class="panel-btns">${adm ? b('planilla', 'Abrir planilla', 'Los datos en tu Drive') + b('clave', 'Cambiar clave', 'Para entrar como admin') : ''}${b('salir', 'Salir', adm ? 'Cerrar la sesión de admin' : 'Cerrar la sesión de ' + esc(nombreSesion()))}</div></div>
+      <p class="muted">Para editar un team, una zona o un carnet, abrí su ficha: las opciones aparecen ahí.</p>
     </div></div>`;
   abrir(d);
+}
+
+// ---------- Roles a medida: el admin elige nombre, color, permisos y clave ----------
+const ROL_COLORES = ['#7cc4e8', '#e8a33c', '#9b7cf0', '#4fc98a', '#ef6f8f', '#f4d38b', '#5aa9ff', '#c78b5a'];
+const ROL_PLANTILLAS = [
+  { nombre: 'Noticiero', color: '#7cc4e8', permisos: ['noticias', 'guerra', 'zonas', 'reglas'] },
+  { nombre: 'Moderador', color: '#ef6f8f', permisos: ['teams', 'carnets', 'comunidad', 'mensajes'] },
+  { nombre: 'Organizador de torneos', color: '#e8a33c', permisos: ['torneos', 'noticias'] },
+  { nombre: 'Cartógrafo', color: '#4fc98a', permisos: ['zonas', 'mundo', 'wiki'] }
+];
+function panelRolesHTML() {
+  const cfg = S.d.config || {};
+  if (!Array.isArray(cfg.roles)) return `<div><h3>Roles</h3><p class="muted" style="font-size:13px">Para crear roles a tu medida pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo. Mientras tanto sigue andando la clave del noticiero.</p><div class="panel-btns"><button type="button" data-act="clave-editor"><b>Clave del noticiero</b><span>${cfg.editor ? 'Activa · cambiarla' : 'Noticias, zonas, reglas y crónica'}</span></button>${cfg.editor ? '<button type="button" data-act="quitar-editor"><b>Quitar noticiero</b><span>Su clave deja de andar</span></button>' : ''}</div></div>`;
+  const roles = cfg.roles;
+  return `<div><h3>Roles</h3>
+    ${roles.length ? `<ul class="roles-lista">${roles.map((r, i) => `<li style="--c:${esc(r.color)};--i:${i}"><span class="rol-chip">${esc(r.nombre)}</span><small>${esc(r.permisos.map(id => (Core.PERMISOS.find(p => p.id === id) || {}).nombre).filter(Boolean).join(' · '))}${r.publico ? ' · <b>visible en Comunidad</b>' : ''}</small><span class="rol-acc"><button class="btn sm" type="button" data-act="rol-editar" data-id="${esc(r.id)}">Editar</button><button class="btn sm danger" type="button" data-act="rol-borrar" data-id="${esc(r.id)}" aria-label="Borrar el rol ${esc(r.nombre)}">Borrar</button></span></li>`).join('')}</ul>`
+      : '<p class="muted" style="font-size:13px">Todavía no hay roles. Creá uno, elegí qué puede hacer y pasale la clave a quien lo tenga.</p>'}
+    <div class="panel-btns" style="margin-top:8px"><button type="button" data-act="rol-nuevo"><b>+ Nuevo rol</b><span>Nombre, color, permisos y clave</span></button></div></div>`;
+}
+function formRol(r) {
+  const nuevo = !r, roles = (S.d.config && S.d.config.roles) || [];
+  r = r || { nombre: '', color: ROL_COLORES[roles.length % ROL_COLORES.length], permisos: [], personas: '', publico: false };
+  formulario({
+    titulo: nuevo ? 'Nuevo rol' : 'Editar ' + r.nombre, boton: nuevo ? 'Crear rol' : 'Guardar cambios', dos: true,
+    texto: nuevo ? 'Quien entre con la clave de este rol (en el mismo acceso de admin) solo va a poder hacer lo que marques acá.' : '',
+    campos: [
+      { n: 'nombre', l: 'Nombre del rol', v: r.nombre, req: true, max: 30, ph: 'Ej.: Moderador' },
+      { n: 'color', l: 'Color', t: 'color', v: r.color },
+      { n: 'permisos', l: 'Qué puede hacer', t: 'checks', v: r.permisos, ancho: true, opc: Core.PERMISOS.map(p => ({ v: p.id, l: p.nombre, d: p.desc })) },
+      { n: 'personas', l: 'Quiénes lo tienen (opcional)', v: r.personas, max: 200, ph: 'Ej.: Fer, Wilfresh', ancho: true },
+      { n: 'publico', l: '¿Mostrarlo en Comunidad?', t: 'select', v: r.publico ? 'si' : 'no', ancho: true, opc: [{ v: 'no', l: 'No, es interno' }, { v: 'si', l: 'Sí, con su color y quiénes lo tienen' }] },
+      { n: 'clave', l: nuevo ? 'Clave del rol (mínimo 8)' : 'Clave nueva (opcional)', t: 'password', req: nuevo, ac: 'new-password', ayuda: nuevo ? '' : 'Vacía = queda la actual. Si la cambiás, se cierran sus sesiones abiertas.' },
+      { n: 'repetir', l: 'Repetí la clave', t: 'password', req: nuevo, ac: 'new-password' }
+    ],
+    enviar: async v => {
+      if (!v.permisos.length) throw new Error('Marcá al menos un permiso.');
+      if (v.clave !== v.repetir) throw new Error('Las claves no coinciden.');
+      await accion('rolGuardar', { id: nuevo ? '' : r.id, nombre: v.nombre, color: v.color, permisos: v.permisos, personas: v.personas, publico: v.publico === 'si', clave: v.clave }, nuevo ? 'Rol "' + Core.txt(v.nombre, 30) + '" creado: pasale la clave a quien lo tenga.' : 'Rol actualizado.');
+      panelAdmin();
+    }
+  });
+  // Plantillas rápidas: completan nombre, color y permisos con un toque.
+  if (nuevo) {
+    const d = $('#dlgForm'), campos = $('.campos', d);
+    campos.insertAdjacentHTML('beforebegin', `<div class="rol-plantillas"><span>Empezar desde:</span>${ROL_PLANTILLAS.filter(t => !roles.some(x => x.nombre.toLowerCase() === t.nombre.toLowerCase())).map(t => `<button type="button" class="rol-chip" style="--c:${t.color}" data-plantilla="${esc(t.nombre)}">${esc(t.nombre)}</button>`).join('')}</div>`);
+    $$('[data-plantilla]', d).forEach(bt => bt.onclick = () => {
+      const t = ROL_PLANTILLAS.find(x => x.nombre === bt.dataset.plantilla), f = $('form', d);
+      f.elements.nombre.value = t.nombre; f.elements.color.value = t.color;
+      $$('input[name="permisos"]', d).forEach(i => { i.checked = t.permisos.includes(i.value); });
+      $$('[data-plantilla]', d).forEach(x => x.classList.toggle('on', x === bt));
+    });
+  }
+}
+function borrarRol(id) {
+  const r = ((S.d.config && S.d.config.roles) || []).find(x => x.id === id); if (!r) return;
+  confirmar('Borrar el rol ' + r.nombre, 'Su clave deja de funcionar y las sesiones abiertas con ese rol se cierran.', 'Borrar rol', async () => { await accion('rolBorrar', { id }, 'Rol borrado.'); panelAdmin(); });
+}
+function renderStaff() {
+  const l = (S.d.config && S.d.config.staff) || [], el = $('#staff');
+  el.hidden = !l.length;
+  el.innerHTML = l.length ? `<h3 class="sub">Roles de la comunidad</h3><div class="staff-g">${l.map((r, i) => {
+    const gente = String(r.personas || '').split(/\s*[,;]\s*/).filter(Boolean);
+    return `<div class="staff-c" style="--c:${esc(r.color)};--i:${i}"><span class="rol-chip">${esc(r.nombre)}</span>${gente.length ? `<ul>${gente.map(n => `<li>${avatar(n, r.color, 30)}<span>${esc(n)}</span></li>`).join('')}</ul>` : '<p class="muted">Sin asignar todavía</p>'}</div>`;
+  }).join('')}</div>` : '';
 }
 
 function formGuerra() {
@@ -1437,26 +1677,27 @@ function formGuerra() {
 
 function entrarAdmin() {
   formulario({
-    titulo: 'Acceso de administración', texto: MODO === 'demo' ? 'Estás en la demostración: la clave es demo.' : 'Entrá con la clave de admin o con la del noticiero. Se valida en el Drive de la comunidad.', boton: 'Entrar',
+    titulo: 'Acceso de administración', texto: MODO === 'demo' ? 'Estás en la demostración: la clave es demo (o la de un rol que crees).' : 'Entrá con la clave de admin o con la de tu rol. Se valida en el Drive de la comunidad.', boton: 'Entrar',
     campos: [{ n: 'clave', l: 'Clave', t: 'password', req: true }],
     enviar: async v => {
       const r = await llamar('login', { clave: v.clave });
       S.token = r.token; S.rol = r.rol || 'admin';
-      almacen.set('rlo-token', S.token); almacen.set('rlo-rol', S.rol);
+      almacen.set('rlo-token', S.token); almacen.set('rlo-rol', S.rol); almacen.set('rlo-rol-nombre', r.nombre || '');
       await cargar();
-      toast(esEditor() ? 'Sesión del noticiero iniciada: noticias, zonas, reglas y crónica.' : 'Sesión de admin iniciada.');
+      toast(esAdmin() ? 'Sesión de admin iniciada.' : 'Entraste como ' + nombreSesion() + ': ' + Core.PERMISOS.filter(p => puede(p.id)).map(p => p.nombre.toLowerCase()).join(', ') + '.');
     }
   });
 }
 function salirAdmin(vencida) {
   if (S.token && !vencida) llamar('logout').catch(() => { });
-  S.token = ''; S.rol = ''; almacen.set('rlo-token', ''); almacen.set('rlo-rol', ''); cancelarUbicar();
+  S.token = ''; S.rol = ''; almacen.set('rlo-token', ''); almacen.set('rlo-rol', ''); almacen.set('rlo-rol-nombre', ''); cancelarUbicar();
   if (vencida) toast('Tu sesión de admin venció. Volvé a ingresar.', 'error');
   if (!vencida) cargar(true); else render();
 }
 
 function ubicar(id, serie) {
   const t = S.d.territorios.find(x => x.id === id); if (!t) return;
+  if (S.replay) replayCerrar();
   cambiarRegion(regionDeZona(t)); // se puede pasar a la otra región con las flechas antes de tocar el mapa
   S.ubicando = id; S.ubicarSerie = !!serie; document.body.classList.add('ubicando');
   $$('#ubicarNombre, #ubicarNombre2').forEach(b => { b.textContent = t.nombre; });
@@ -1533,6 +1774,17 @@ document.addEventListener('click', async ev => {
       case 'mas-guerras': S.verGuerras += 20; renderCronica(); break;
       case 'ampliar': abrir($('#dlgMapa')); break;
       case 'region': cambiarRegion(regionVecina(+el.dataset.dir || 1)); break;
+      case 'replay': replayAbrir(); break;
+      case 'analizar-carnet': { const c = (S.carnetAbierto && S.carnetAbierto.id === id) ? S.carnetAbierto : null; if (c) analizarDesdeCarnet(c); break; }
+      case 'eq-quitar': EQ.lista.splice(+el.dataset.i, 1); eqGuardar(); renderEquipo(); break;
+      case 'eq-atk-quitar': { const m = EQ.lista[+el.dataset.i]; if (m) { m.atk = m.atk.filter(t => t !== el.dataset.t); eqGuardar(); renderEquipo(); } break; }
+      case 'eq-sumar': eqAgregar(el.dataset.n); break;
+      case 'eq-vaciar': EQ.lista = []; eqGuardar(); renderEquipo(); $('#eqBuscar') && $('#eqBuscar').focus(); break;
+      case 'eq-azar': eqAzar(); break;
+      case 'eq-compartir': { const u = eqEnlace(); await copiarTexto(u); toast('Enlace del equipo copiado.'); break; }
+      case 'replay-play': replayPlay(!(S.replay && S.replay.play)); break;
+      case 'replay-vel': if (S.replay) { S.replay.vel = REPLAY_VEL[(REPLAY_VEL.indexOf(S.replay.vel) + 1) % REPLAY_VEL.length]; if (S.replay.play) replayPlay(true); else renderReplay(); } break;
+      case 'replay-cerrar': replayCerrar(); break;
       case 'ver-en-mapa': marcarPin(id); break;
       case 'cancelar-ubicar': { const eraSerie = S.ubicarSerie; cancelarUbicar(); if (eraSerie) { cerrar($('#dlgMapa')); renderMapa(); } break; }
       case 'saltar-ubicar': S.saltadas = (S.saltadas || []).concat(S.ubicando ? [S.ubicando] : []); ubicarSiguiente(); break;
@@ -1606,6 +1858,9 @@ document.addEventListener('click', async ev => {
       case 'mensajes': cerrar($('#dlgPanel')); verMensajes(); break;
       case 'borrar-mensaje': confirmar('Borrar mensaje', 'Se borra de la web y de la pestaña Contacto de la planilla.', 'Borrar', async () => { pintarMensajes(await llamar('mensajeBorrar', { id })); cargar(true); }); break;
       case 'salir': cerrar($('#dlgPanel')); salirAdmin(); break;
+      case 'rol-nuevo': cerrar($('#dlgPanel')); formRol(); break;
+      case 'rol-editar': cerrar($('#dlgPanel')); formRol(((S.d.config && S.d.config.roles) || []).find(x => x.id === id)); break;
+      case 'rol-borrar': cerrar($('#dlgPanel')); borrarRol(id); break;
     }
   } catch (e) { toast(e.message, 'error'); }
 });
@@ -1909,7 +2164,7 @@ function articuloWikiHTML(zona, enPagina) {
   const w = wkTexto(zona), e = wkEstado(t), url = esc(wkUrl(WK.paginas[zona] || zona));
   return `<div class="wk-art">
       <div class="wk-control" style="--c:${esc(e.c)}">${e.lg ? `<span class="mini">${imgEmblema(e.lg)}</span>` : '<span class="mini punto"></span>'}<span>${t.estado === 'Controlada' ? 'Controlada por <b>' + esc(t.equipo) + '</b>' : '<b>' + esc(e.txt) + '</b>'} en la guerra de teams</span>
-        <span class="acc">${t.id && S.d.territorios.some(x => x.id === t.id) ? `<button class="btn sm" type="button" data-act="wiki-a-zona" data-id="${esc(t.id)}">Ver en el atlas</button>` : ''}<a class="btn sm" data-wk-original href="${url}" target="_blank" rel="noopener">Wiki original ↗</a>${esAdmin() ? `<button class="btn sm sand" type="button" data-act="wiki-editar" data-zona="${esc(zona)}">Editar resumen</button>` : ''}</span></div>
+        <span class="acc">${t.id && S.d.territorios.some(x => x.id === t.id) ? `<button class="btn sm" type="button" data-act="wiki-a-zona" data-id="${esc(t.id)}">Ver en el atlas</button>` : ''}<a class="btn sm" data-wk-original href="${url}" target="_blank" rel="noopener">Wiki original ↗</a>${puede('wiki') ? `<button class="btn sm sand" type="button" data-act="wiki-editar" data-zona="${esc(zona)}">Editar resumen</button>` : ''}</span></div>
       ${w.resumen ? `<p class="wk-resumen">${esc(w.resumen)}</p>` : ''}
       ${w.notas ? `<div class="wk-notas"><b>En Reloaded Online</b>${esc(w.notas)}</div>` : ''}
       <div class="wk-art" data-wk-vivo><p class="wk-cargando"><i></i>Trayendo los datos de la wiki…</p></div>
@@ -1942,7 +2197,7 @@ async function abrirWiki(zona, desdeRuta) {
 /** Página propia de una zona (wiki/<zona>.html): el artículo va en la página, no en un diálogo. */
 function pintarWikiPagina(forzar) {
   const caja = $('#wikiArticulo'); if (!caja) return;
-  const zona = caja.dataset.zona, firma = JSON.stringify([wkTexto(zona), (wkZonas().find(x => x.nombre === zona) || {}).estado, (wkZonas().find(x => x.nombre === zona) || {}).equipo, esAdmin()]);
+  const zona = caja.dataset.zona, firma = JSON.stringify([wkTexto(zona), (wkZonas().find(x => x.nombre === zona) || {}).estado, (wkZonas().find(x => x.nombre === zona) || {}).equipo, puede('wiki')]);
   if (!forzar && caja.dataset.firma === firma) return;
   caja.dataset.firma = firma;
   caja.innerHTML = articuloWikiHTML(zona, true);
@@ -2744,6 +2999,156 @@ function calcTipos() {
   const g = (f, t) => { const l = TIPOS.filter(d => f(EFECT(a, d))); return l.length ? `<div class="deb-f"><span class="deb-t">${t}</span><span>${l.map(tipoChip).join('')}</span></div>` : ''; };
   $('#resA').innerHTML = `<div class="deb">${g(m => m === 2, 'Súper eficaz contra')}${g(m => m === 0.5, 'Poco eficaz contra')}${g(m => m === 0, 'No afecta a')}</div>`;
 }
+// ----- Analizador de equipos (Pokédex de Reloaded + tabla de tipos) -----
+const EQ = { lista: [], dex: null, q: '', sel: 0 };
+let eqDexPromesa = null;
+function eqDex() {
+  if (!eqDexPromesa) eqDexPromesa = (async () => {
+    for (const u of [MULTIPAGINA ? '/datos/pokedex-wiki.json' : null, PKW_URL].filter(Boolean)) {
+      try { const r = await fetch(u); if (r.ok) { const d = await r.json(); const l = (d.pokemon || []).filter(x => x.n && (x.t || []).length); if (l.length) return l; } } catch (e) { }
+    }
+    eqDexPromesa = null; throw new Error('No pude cargar la Pokédex.');
+  })();
+  return eqDexPromesa;
+}
+const eqBuscarPk = n => EQ.dex && (EQ.dex.find(x => pkSlug(x.n) === pkSlug(n)) || EQ.dex.find(x => wkNorm(x.n) === wkNorm(n)));
+const eqTipos = m => m.pk.t.filter(Boolean);
+/** Enlace para compartir: #e=charizard.4b~pikachu (letras = tipos de ataque extra). */
+function eqCodigo() { return EQ.lista.map(m => pkSlug(m.pk.n) + (m.atk.join() !== eqTipos(m).join() ? '.' + m.atk.map(t => TIPOS.indexOf(t).toString(36)).join('') : '')).join('~'); }
+function eqEnlace() { const c = eqCodigo(); return (MULTIPAGINA ? (SITIO_URL || location.origin + '/') + 'wiki/equipo.html' : location.href.split('#')[0]) + (c ? '#e=' + c : ''); }
+function eqLeerCodigo(c) {
+  return String(c || '').split('~').map(x => { const [sl, at] = x.split('.'); const pk = eqBuscarPk(sl); if (!pk) return null; const def = pk.t.filter(Boolean); const atk = at ? [...at].map(ch => TIPOS[parseInt(ch, 36)]).filter(Boolean) : def; return { pk, atk: [...new Set(atk)].slice(0, 4) }; }).filter(Boolean).slice(0, 6);
+}
+function eqGuardar() {
+  try { localStorage.setItem('rlo-equipo', eqCodigo()); } catch (e) { }
+  if (/^#e=/.test(location.hash) || EQ.lista.length) history.replaceState(null, '', location.pathname + location.search + (EQ.lista.length ? '#e=' + eqCodigo() : (MULTIPAGINA ? '' : '#equipo')));
+}
+function eqAgregar(n) {
+  const pk = eqBuscarPk(n); if (!pk) return;
+  if (EQ.lista.length >= 6) { toast('El equipo ya tiene 6 Pokémon: sacá uno para sumar otro.', 'error'); return; }
+  EQ.lista.push({ pk, atk: pk.t.filter(Boolean), nuevo: true });
+  EQ.q = ''; eqGuardar(); renderEquipo();
+  const b = $('#eqBuscar'); if (b) { b.value = ''; b.focus(); }
+}
+function eqAzar() {
+  if (!EQ.dex) return;
+  const pool = EQ.dex.filter(x => !x.leg && x.loc && x.loc.evo), l = [];
+  while (l.length < 6 && pool.length) { const x = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; if (!l.some(y => y.t.join() === x.t.join())) l.push(x); }
+  EQ.lista = l.map(pk => ({ pk, atk: pk.t.filter(Boolean), nuevo: true })); eqGuardar(); renderEquipo();
+}
+async function analizarDesdeCarnet(c) {
+  const l = c.pokemon.map(x => x.especie).filter(Boolean).map(pkSlug).join('~');
+  if (MULTIPAGINA && !hay('#analizador')) { location.href = '/wiki/equipo.html#e=' + l; return; }
+  $$('dialog[open]').forEach(cerrar);
+  location.hash = '#e=' + l; ir('equipo');
+  try { EQ.dex = EQ.dex || await eqDex(); EQ.lista = eqLeerCodigo(l); EQ.lista.forEach(m => m.nuevo = true); renderEquipo(); } catch (e) { }
+}
+async function pintarEquipo() {
+  const el = $('#analizador'); if (!el) return;
+  try { EQ.dex = await eqDex(); }
+  catch (e) { el.innerHTML = '<p class="vacio">No pude cargar la Pokédex. <button class="link" type="button" data-act="wk-reintentar" data-carga="equipo">Reintentar</button></p>'; return; }
+  const h = location.hash.match(/^#e=([\w.~-]*)/);
+  let guardado = ''; try { guardado = localStorage.getItem('rlo-equipo') || ''; } catch (e) { }
+  EQ.lista = eqLeerCodigo(h ? h[1] : guardado);
+  el.innerHTML = `<div class="eq-arma">
+      <div class="eq-busca"><label class="sr" for="eqBuscar">Buscá un Pokémon</label><input id="eqBuscar" class="sel" type="search" autocomplete="off" placeholder="Buscá un Pokémon por nombre o número…" role="combobox" aria-expanded="false" aria-controls="eqSug" aria-autocomplete="list"><ul class="eq-sug" id="eqSug" role="listbox" hidden></ul></div>
+      <div class="eq-acc"><button class="btn sm" type="button" data-act="eq-azar">Equipo al azar</button><button class="btn sm" type="button" data-act="eq-compartir">Copiar enlace</button><button class="btn sm" type="button" data-act="eq-vaciar">Vaciar</button></div>
+    </div>
+    <div class="eq-slots" id="eqSlots"></div>
+    <div id="eqRes" aria-live="polite"></div>`;
+  const inp = $('#eqBuscar'), sug = $('#eqSug');
+  const pintarSug = () => {
+    const q = wkNorm(inp.value);
+    if (!q) { sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); return; }
+    const num = /^\d+$/.test(q) ? +q : null;
+    const l = EQ.dex.filter(x => num != null ? x.num === num : wkNorm(x.n).includes(q)).sort((a, b) => (wkNorm(b.n).startsWith(q) - wkNorm(a.n).startsWith(q)) || a.num - b.num).slice(0, 8);
+    EQ.sel = Math.min(EQ.sel, Math.max(0, l.length - 1));
+    sug.innerHTML = l.length ? l.map((x, i) => `<li role="option" id="eqo${i}" aria-selected="${i === EQ.sel}" data-act="eq-sumar" data-n="${esc(x.n)}"><span class="eq-num">#${String(x.num).padStart(3, '0')}</span><b>${esc(x.n)}</b><span class="eq-tt">${x.t.map(tipoChip).join('')}</span></li>`).join('') : '<li class="eq-nada">No hay ningún Pokémon con ese nombre.</li>';
+    sug.hidden = false; inp.setAttribute('aria-expanded', 'true'); inp.setAttribute('aria-activedescendant', l.length ? 'eqo' + EQ.sel : '');
+  };
+  inp.addEventListener('input', () => { EQ.sel = 0; pintarSug(); });
+  inp.addEventListener('keydown', ev => {
+    const ops = $$('li[role=option]', sug);
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); if (!ops.length) return; EQ.sel = (EQ.sel + (ev.key === 'ArrowDown' ? 1 : -1) + ops.length) % ops.length; pintarSug(); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); if (ops[EQ.sel]) eqAgregar(ops[EQ.sel].dataset.n); }
+    else if (ev.key === 'Escape') { inp.value = ''; pintarSug(); }
+  });
+  inp.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); }, 180));
+  inp.addEventListener('focus', pintarSug);
+  el.addEventListener('change', ev => {
+    const s_ = ev.target.closest('.eq-mas'); if (!s_ || !s_.value) return;
+    const m = EQ.lista[+s_.dataset.i]; if (m && m.atk.length < 4 && !m.atk.includes(s_.value)) { m.atk.push(s_.value); eqGuardar(); renderEquipo(); }
+  });
+  renderEquipo();
+}
+const EQ_MULT = { 4: 'x4', 2: 'x2', 1: 'x1', 0.5: 'xh', 0.25: 'xq', 0: 'x0' };
+function eqAnalisis() {
+  const L = EQ.lista, def = L.map(m => Object.fromEntries(defensa(eqTipos(m))));
+  const filas = TIPOS.map(a => { const ms = def.map(d => d[a]); return { a, ms, debiles: ms.filter(x => x > 1).length, resisten: ms.filter(x => x < 1).length }; });
+  const problemas = filas.filter(f => L.length >= 2 && ((f.debiles >= 2 && f.resisten === 0) || f.debiles >= 3)).map(f => f.a);
+  const atk = [...new Set(L.flatMap(m => m.atk))];
+  const cobertura = TIPOS.map(d => ({ d, m: atk.length ? Math.max(...atk.map(a => EFECT(a, d))) : 0 }));
+  const sinCubrir = cobertura.filter(c => c.m < 2).map(c => c.d);
+  // Defensa: qué combinación de tipos (que exista en la Pokédex) taparía más agujeros
+  let sugDef = [];
+  if (problemas.length) {
+    const combos = {}; EQ.dex.forEach(x => { const k = x.t.filter(Boolean).join('/'); (combos[k] = combos[k] || []).push(x); });
+    sugDef = Object.entries(combos).map(([k, pks]) => {
+      const ts = k.split('/'), d = Object.fromEntries(defensa(ts));
+      const tapa = problemas.filter(a => d[a] < 1), suma = problemas.filter(a => d[a] > 1);
+      return { ts, tapa, suma, score: tapa.length * 2 + problemas.filter(a => d[a] === 0).length * 0.5 - suma.length * 2 - defensa(ts).filter(([, m]) => m > 1).length * 0.1, pks };
+    }).filter(x => x.tapa.length && !x.suma.length).sort((a, b) => b.score - a.score).slice(0, 3);
+  }
+  // Ataque: qué tipos de movimiento cubren más tipos que hoy no golpeás fuerte
+  const sugAtk = sinCubrir.length ? TIPOS.filter(a => !atk.includes(a)).map(a => ({ a, cubre: sinCubrir.filter(d => EFECT(a, d) >= 2) })).filter(x => x.cubre.length).sort((x, y) => y.cubre.length - x.cubre.length).slice(0, 3) : [];
+  const repetidos = Object.entries(L.flatMap(eqTipos).reduce((o, t) => (o[t] = (o[t] || 0) + 1, o), {})).filter(([, k]) => k >= 3).map(([t]) => t);
+  let nota = 100 - problemas.length * 12 - sinCubrir.length * 3.5 - repetidos.length * 6 - Math.max(0, 6 - L.length) * 4;
+  nota = Math.max(0, Math.min(100, Math.round(nota)));
+  const letra = nota >= 88 ? 'S' : nota >= 76 ? 'A' : nota >= 62 ? 'B' : nota >= 48 ? 'C' : 'D';
+  return { filas, problemas, cobertura, sinCubrir, sugDef, sugAtk, repetidos, nota, letra, atk };
+}
+function eqEjemplos(pks) {
+  const enEq = new Set(EQ.lista.map(m => m.pk.n));
+  return pks.filter(x => !enEq.has(x.n)).sort((a, b) => (!!b.loc?.evo - !!a.loc?.evo) || (!!a.leg - !!b.leg) || a.num - b.num).slice(0, 3);
+}
+function renderEquipo() {
+  const slots = $('#eqSlots'), res = $('#eqRes'); if (!slots || !EQ.dex) return;
+  slots.innerHTML = Array.from({ length: 6 }, (_, i) => {
+    const m = EQ.lista[i];
+    if (!m) return `<button type="button" class="eq-slot libre" onclick="document.getElementById('eqBuscar').focus()"><span>+</span><small>Sumar Pokémon</small></button>`;
+    const ts = eqTipos(m), c1 = COLOR_TIPO[ts[0]] || '#3d9ab8', c2 = COLOR_TIPO[ts[1]] || c1, nuevo = m.nuevo; m.nuevo = false;
+    return `<article class="eq-slot${nuevo ? ' llega' : ''}" style="--t1:${c1};--t2:${c2};--i:${i}">
+      <header><span class="eq-num">#${String(m.pk.num).padStart(3, '0')}</span><a class="eq-nom" href="${esc(pkHref(m.pk.n))}">${esc(m.pk.n)}</a><button type="button" class="eq-x" data-act="eq-quitar" data-i="${i}" aria-label="Sacar a ${esc(m.pk.n)} del equipo">✕</button></header>
+      <div class="eq-tt">${ts.map(tipoChip).join('')}</div>
+      <div class="eq-atk"><small>Ataques</small><span>${m.atk.map(t => `<button type="button" class="eq-chip" style="--tc:${COLOR_TIPO[t]};--tt:${TIPO_CLARO.indexOf(t) >= 0 ? '#1d2327' : '#fff'}" data-act="eq-atk-quitar" data-i="${i}" data-t="${esc(t)}" aria-label="Quitar ataque tipo ${esc(t)}">${esc(t)} <i aria-hidden="true">×</i></button>`).join('')}${m.atk.length < 4 ? `<select class="eq-mas" data-i="${i}" aria-label="Sumar un tipo de ataque a ${esc(m.pk.n)}"><option value="">+ tipo</option>${TIPOS.filter(t => !m.atk.includes(t)).map(t => `<option>${t}</option>`).join('')}</select>` : ''}</span></div>
+    </article>`;
+  }).join('');
+  if (!EQ.lista.length) { res.innerHTML = '<div class="eq-vacio"><p><b>Empezá sumando un Pokémon.</b> Buscalo por nombre o número, o probá con un equipo al azar.</p></div>'; return; }
+  const A = eqAnalisis(), L = EQ.lista;
+  const celda = m => `<td class="em ${EQ_MULT[m] || 'x1'}">${m === 1 ? '' : MULT_TXT[m] || '×' + m}</td>`;
+  const tabla = `<div class="eq-tabla-w"><table class="eq-tabla"><caption>Cuánto le pega cada tipo de ataque a cada miembro</caption><thead><tr><th scope="col">Ataque</th>${L.map(m => `<th scope="col" title="${esc(m.pk.n)}"><span>${esc(m.pk.n)}</span></th>`).join('')}<th scope="col" class="eq-tot">Débiles</th><th scope="col" class="eq-tot">Resisten</th></tr></thead>
+    <tbody>${A.filas.map((f, k) => `<tr class="${A.problemas.includes(f.a) ? 'peligro' : ''}" style="--k:${k}"><th scope="row">${tipoChip(f.a)}</th>${f.ms.map(celda).join('')}<td class="eq-tot${f.debiles >= 2 ? ' mal' : ''}">${f.debiles || ''}</td><td class="eq-tot${f.resisten ? ' bien' : ''}">${f.resisten || ''}</td></tr>`).join('')}</tbody></table></div>`;
+  const cubiertos = 18 - A.sinCubrir.length;
+  const cob = `<div class="eq-cob">${A.cobertura.map((c, k) => `<span class="eq-cobt ${c.m >= 2 ? 'si' : c.m < 1 ? 'mal' : ''}" style="--tc:${COLOR_TIPO[c.d]};--k:${k}" title="${esc(c.d)}: ${c.m >= 2 ? 'súper eficaz' : c.m < 1 ? 'poco eficaz' : 'normal'}">${esc(c.d)}<b>${c.m >= 2 ? '✓' : c.m < 1 ? '½' : '·'}</b></span>`).join('')}</div>`;
+  const ej = pks => eqEjemplos(pks).map(x => `<button type="button" class="eq-ej" data-act="eq-sumar" data-n="${esc(x.n)}">+ ${esc(x.n)}</button>`).join('');
+  const sug = [
+    ...A.sugDef.map(x => `<li class="sug-def"><b>Sumá un Pokémon ${x.ts.map(tipoChip).join('')}</b><span>resiste ${x.tapa.map(tipoChip).join('')}, donde hoy el equipo sufre.</span>${ej(x.pks) ? `<span class="eq-ejs">${ej(x.pks)}</span>` : ''}</li>`),
+    ...A.sugAtk.map(x => `<li class="sug-atk"><b>Un ataque de tipo ${tipoChip(x.a)}</b><span>te da golpes súper eficaces contra ${x.cubre.map(tipoChip).join('')}.</span></li>`),
+    ...A.repetidos.map(t => `<li class="sug-rep"><b>Tenés 3 o más Pokémon de tipo ${tipoChip(t)}</b><span>comparten las mismas debilidades: variar ayuda.</span></li>`)
+  ];
+  const meter = Math.round(A.nota);
+  res.innerHTML = `<div class="eq-resumen">
+      <div class="eq-nota nota-${A.letra}" style="--n:${meter}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="eq-aro"/><circle cx="60" cy="60" r="52" class="eq-aro-v" pathLength="100"/></svg><b>${A.letra}</b><small>Balance ${meter}/100</small></div>
+      <ul class="eq-datos"><li><b>${L.length}/6</b><span>Pokémon</span></li><li class="${A.problemas.length ? 'mal' : 'bien'}"><b>${A.problemas.length}</b><span>${A.problemas.length === 1 ? 'punto débil' : 'puntos débiles'}</span></li><li class="${cubiertos >= 14 ? 'bien' : cubiertos < 10 ? 'mal' : ''}"><b>${cubiertos}/18</b><span>tipos que golpeás fuerte</span></li></ul>
+    </div>
+    ${A.problemas.length ? `<p class="eq-alerta">Tu equipo sufre contra ${A.problemas.map(tipoChip).join('')}</p>` : L.length >= 2 ? '<p class="eq-ok">Ningún tipo de ataque hace estragos en tu equipo. ¡Bien defendido!</p>' : ''}
+    <div class="eq-g">
+      <div><h3>Debilidades y resistencias</h3>${tabla}<p class="muted eq-nota-txt">No tiene en cuenta habilidades como Levitación o Absorbe agua.</p></div>
+      <div><h3>Cobertura de ataque</h3><p class="muted">Con los tipos de ataque que marcaste (de base, los del propio Pokémon), golpeás súper eficaz a ${cubiertos} de 18 tipos.</p>${cob}
+        <h3 style="margin-top:18px">Sugerencias</h3>${sug.length ? `<ul class="eq-sug-l">${sug.join('')}</ul>` : '<p class="eq-ok">No vemos huecos importantes. ¡A combatir!</p>'}</div>
+    </div>`;
+}
+
 /** En las páginas con id en el hash (#h-…), abre y resalta la tarjeta. */
 function anclaHash() {
   const m = location.hash.match(/^#(h-[\w-]+)$/); if (!m) return;
@@ -2756,7 +3161,17 @@ window.addEventListener('hashchange', anclaHash);
 
 // ----- Carga perezosa: cada sección pide sus datos cuando se acerca a la pantalla -----
 { const pp = $('#pkPagina'); if (pp) pintarPokemonPagina(pp); }
-const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos };
+// Páginas generadas antes de los roles: su barra de admin trae data-solo-rol; la pasamos a permisos.
+$$('#adminbar [data-solo-rol]').forEach(e => { if (e.dataset.soloRol === 'editor') e.remove(); else e.removeAttribute('data-solo-rol'); });
+{ const PERM_ACT = { 'nueva-noticia': 'noticias', 'nueva-guerra': 'guerra', 'nuevo-torneo': 'torneos', 'nuevo-combate': 'torneos' };
+  $$('#adminbar .adminbar-acc [data-act]').forEach(b => { if (!b.dataset.perm && PERM_ACT[b.dataset.act]) b.dataset.perm = PERM_ACT[b.dataset.act]; }); }
+// Las páginas de la wiki generadas antes del analizador suman su pestaña acá (así no hay que volver a subir las 1.200 páginas).
+$$('.wk-nav').forEach(n => {
+  if (n.querySelector('[data-ir="equipo"]')) return;
+  const t = n.querySelector('[data-ir="tipos"]'); if (!t) return;
+  const a = document.createElement('a'); a.href = MULTIPAGINA ? '/wiki/equipo.html' : '#equipo'; a.dataset.ir = 'equipo'; a.textContent = 'Analizador'; t.after(a);
+});
+const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos, equipo: pintarEquipo };
 (() => {
   const els = $$('[data-wk-carga]');
   const una = el => { if (el.dataset.cargado) return; el.dataset.cargado = '1'; WK_CARGAS[el.dataset.wkCarga](); };
@@ -2782,7 +3197,7 @@ const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pin
 // ---------- Reglas (las editan el admin y el noticiero) ----------
 function renderReglas() {
   const ol = $('#listaReglas'); if (!ol || !Array.isArray(S.d.reglas)) return; // con el código viejo quedan las reglas fijas
-  const ed = puedeGuerra(), rs = S.d.reglas;
+  const ed = puede('reglas'), rs = S.d.reglas;
   ol.innerHTML = rs.length ? rs.map((r, i) => `<li${r.destacada === '1' ? ' class="elite"' : ''}><div><h3>${esc(r.titulo)}</h3><p>${esc(r.texto)}</p>${r.nota ? `<small>${esc(r.nota)}</small>` : ''}${ed ? `<div class="regla-acc"><button class="btn sm" type="button" data-act="regla-editar" data-id="${esc(r.id)}">Editar</button><button class="btn sm" type="button" data-act="regla-mover" data-dir="-1" data-id="${esc(r.id)}"${i === 0 ? ' disabled' : ''} aria-label="Subir ${esc(r.titulo)}">↑</button><button class="btn sm" type="button" data-act="regla-mover" data-dir="1" data-id="${esc(r.id)}"${i === rs.length - 1 ? ' disabled' : ''} aria-label="Bajar ${esc(r.titulo)}">↓</button><button class="btn sm danger" type="button" data-act="regla-borrar" data-id="${esc(r.id)}">Borrar</button></div>` : ''}</div></li>`).join('')
     : `<li class="vacia"><div><p>${ed ? 'Todavía no hay reglas. Agregá la primera con el botón de abajo.' : 'Las reglas se están actualizando.'}</p></div></li>`;
   $('#reglasAcc').hidden = !ed;
@@ -2938,7 +3353,7 @@ if (MULTIPAGINA) {
   else if (mh && !document.getElementById(mh[1]) && PAGINA_DE[mh[1]] && mh[1] !== 'admin') location.replace(PAGINA_DE[mh[1]]);
 }
 S.token = almacen.get('rlo-token'); S.rol = S.token ? (almacen.get('rlo-rol') || 'admin') : '';
-if (MODO === 'demo' && S.token !== 'demo-token') { S.token = ''; S.rol = ''; }
+if (MODO === 'demo' && S.token !== 'demo-token' && !/^demo-rol:/.test(S.token)) { S.token = ''; S.rol = ''; }
 const quiereAdmin = /(^|[?&#])admin\b/.test(location.search + location.hash) || /\/admin\/?$/.test(location.pathname) || window.__ADMIN__;
 let guardado = null;
 if (MODO !== 'demo') try { guardado = JSON.parse(localStorage.getItem('rlo-cache-v1') || 'null'); } catch (e) { }

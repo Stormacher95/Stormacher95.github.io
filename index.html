@@ -23,19 +23,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/estilos.css?v=2f9e6de2ba">
+<link rel="stylesheet" href="/estilos.css?v=4cd2c84611">
 </head>
 <body>
 <div class="adminbar" id="adminbar" hidden>
   <div class="wrap adminbar-in">
     <span class="adminbar-t"><i></i><span id="adminbarTitulo">Administración</span></span>
-    <div class="adminbar-acc" role="toolbar" aria-label="Acciones rápidas" data-solo-rol="admin">
-      <button type="button" data-act="nueva-noticia">Publicar noticia</button>
-      <button type="button" data-act="nueva-guerra">Registrar guerra</button>
-      <button type="button" data-act="nuevo-torneo">Nuevo torneo</button>
-      <button type="button" data-act="nuevo-combate">Registrar combate</button>
+    <div class="adminbar-acc" role="toolbar" aria-label="Acciones rápidas">
+      <button type="button" data-act="nueva-noticia" data-perm="noticias">Publicar noticia</button>
+      <button type="button" data-act="nueva-guerra" data-perm="guerra">Registrar guerra</button>
+      <button type="button" data-act="nuevo-torneo" data-perm="torneos">Nuevo torneo</button>
+      <button type="button" data-act="nuevo-combate" data-perm="torneos">Registrar combate</button>
     </div>
-    <div class="adminbar-fin"><button type="button" class="oscuro" data-act="nueva-noticia" data-solo-rol="editor" hidden><span class="ab-l">Publicar noticia</span><span class="ab-c">+ Noticia</span></button><button type="button" data-act="nueva-guerra" data-solo-rol="editor" hidden><span class="ab-l">Registrar guerra</span><span class="ab-c">+ Guerra</span></button><button type="button" class="oscuro" data-act="panel" data-solo-rol="admin">Panel</button><button type="button" data-act="salir">Salir</button></div>
+    <div class="adminbar-fin"><button type="button" class="oscuro" data-act="panel">Panel</button><button type="button" data-act="salir">Salir</button></div>
   </div>
 </div>
 <header class="top">
@@ -84,6 +84,7 @@
         <p id="notCuerpo"></p>
         <span class="flecha" aria-hidden="true">▼</span>
       </div>
+      <div class="replay" id="replay" hidden></div>
       <figcaption class="carta-pie"><span id="pinsInfo">Los puntos marcan zonas registradas en el atlas.</span><span><button class="link" type="button" data-act="ampliar">Ampliar mapa</button> · <button class="link" type="button" data-ir="cronica">Archivo de noticias</button></span></figcaption>
     </figure>
   </div>
@@ -162,6 +163,6 @@
 </dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="/app.js?v=2f9e6de2ba"></script>
+<script src="/app.js?v=4cd2c84611"></script>
 </body>
 </html>
