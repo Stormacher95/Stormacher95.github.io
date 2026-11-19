@@ -22,7 +22,8 @@ var Core = (function () {
     { id: 'comunidad', nombre: 'Grupos de WhatsApp', desc: 'Actualizar los miembros de cada grupo', ops: ['grupoMiembros'] },
     { id: 'mensajes', nombre: 'Mensajes', desc: 'Leer y borrar los mensajes de contacto', ops: ['mensajes', 'mensajeBorrar'] },
     { id: 'crianza', nombre: 'Crianza', desc: 'Publicar textos e imágenes en la sección Crianza', ops: ['publicacionGuardar', 'publicacionBorrar'] },
-    { id: 'mercado', nombre: 'Mercado', desc: 'Moderar el mercado: sacar ofertas, revisar denuncias y cambiar el grupo de intercambios', ops: ['mercadoModerar', 'mercadoRestaurar', 'mercadoGrupo'] }
+    { id: 'mercado', nombre: 'Mercado', desc: 'Moderar el mercado: sacar ofertas, revisar denuncias y cambiar el grupo de intercambios', ops: ['mercadoModerar', 'mercadoRestaurar', 'mercadoGrupo'] },
+    { id: 'horario', nombre: 'Horario de conquistas', desc: 'Cambiar las franjas y la hora de referencia, o mostrar y ocultar el horario', ops: ['horarioGuardar'] }
   ];
   /** Qué permiso hace falta para una acción ('' si es solo del admin). */
   function permisoDe(accion) {
@@ -66,6 +67,46 @@ var Core = (function () {
     mercado: ['id', 'num', 'fecha', 'vence', 'carnetId', 'autor', 'equipo', 'tipo', 'categoria', 'cosa', 'shiny', 'nivel', 'sexo', 'naturaleza', 'habilidad', 'objeto', 'huevo', 'cambio', 'texto', 'estado', 'wpp', 'denuncias', 'motivos', 'cerrado']
   };
   // Mercado: intercambios dentro del juego (sin plata real). Las ofertas vencen a los 7 días si no se renuevan.
+  // ---------- Horario de conquistas (editable por el admin o un rol con el permiso) ----------
+  /** Zonas horarias: [nombre en la tabla, zona IANA, nombre corto para "hora de …"]. */
+  var HORARIO_ZONAS = [
+    ['Cuba', 'America/Havana', 'Cuba'], ['México', 'America/Mexico_City', 'México'], ['Centroamérica', 'America/Tegucigalpa', 'Centroamérica'],
+    ['Colombia · Perú · Ecuador', 'America/Bogota', 'Colombia'], ['Venezuela · Bolivia', 'America/Caracas', 'Venezuela'],
+    ['Rep. Dominicana · Puerto Rico', 'America/Santo_Domingo', 'Rep. Dominicana'], ['Chile', 'America/Santiago', 'Chile'],
+    ['Argentina · Uruguay · Paraguay', 'America/Argentina/Buenos_Aires', 'Argentina'], ['España', 'Europe/Madrid', 'España']
+  ];
+  var HORARIO_BASE = {
+    visible: true, titulo: 'Horario de conquistas', texto: 'Las próximas conquistas se juegan en estas franjas.', aviso: '', tz: 'America/Havana',
+    franjas: [{ nombre: 'Lunes a viernes', dias: [1, 2, 3, 4, 5], desde: '19:00', hasta: '23:00' }, { nombre: 'Sábados y domingos', dias: [6, 0], desde: '15:00', hasta: '23:00' }]
+  };
+  var HORARIO_MAX_FRANJAS = 4;
+  /** Valida y normaliza el horario que se guarda; tira un error con el motivo si algo no cierra. */
+  function limpiarHorario(h) {
+    h = h || {};
+    var hora = /^([01]?\d|2[0-3]):([0-5]\d)$/, cortar = function (v, n) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n); };
+    var tz = String(h.tz || HORARIO_BASE.tz);
+    if (!HORARIO_ZONAS.some(function (z) { return z[1] === tz; })) throw new Error('Elegí la hora de referencia de la lista.');
+    var franjas = Array.isArray(h.franjas) ? h.franjas : [];
+    if (!franjas.length) throw new Error('Dejá al menos una franja (o ocultá el horario).');
+    if (franjas.length > HORARIO_MAX_FRANJAS) throw new Error('Pueden ser hasta ' + HORARIO_MAX_FRANJAS + ' franjas.');
+    var limpias = franjas.map(function (f, i) {
+      var n = i + 1, nombre = cortar(f.nombre, 30), dias = [];
+      (Array.isArray(f.dias) ? f.dias : []).forEach(function (d) { d = Number(d); if (d >= 0 && d <= 6 && d === Math.floor(d) && dias.indexOf(d) < 0) dias.push(d); });
+      if (!nombre) throw new Error('Ponele nombre a la franja ' + n + ' (ej.: Lunes a viernes).');
+      if (!dias.length) throw new Error('Elegí al menos un día en «' + nombre + '».');
+      var a = String(f.desde || '').trim().match(hora), b = String(f.hasta || '').trim().match(hora);
+      if (!a || !b) throw new Error('Revisá las horas de «' + nombre + '» (formato 19:00).');
+      var desde = ('0' + a[1]).slice(-2) + ':' + a[2], hasta = ('0' + b[1]).slice(-2) + ':' + b[2];
+      if (desde === hasta) throw new Error('En «' + nombre + '» la hora de inicio y la de cierre son iguales.');
+      dias.sort(function (x, y) { return ((x + 6) % 7) - ((y + 6) % 7); }); // de lunes a domingo
+      return { nombre: nombre, dias: dias, desde: desde, hasta: hasta };
+    });
+    return {
+      visible: !(h.visible === false || h.visible === '0' || h.visible === 'no'),
+      titulo: cortar(h.titulo, 60) || HORARIO_BASE.titulo, texto: cortar(h.texto, 240), aviso: cortar(h.aviso, 160), tz: tz, franjas: limpias
+    };
+  }
+
   var MERCADO = { dias: 7, maxPorCarnet: 8, tipos: ['ofrece', 'busca', 'regala'], categorias: ['pokemon', 'objeto', 'servicio'], denunciasParaOcultar: 3,
     naturalezas: ['Activa', 'Afable', 'Agitada', 'Alegre', 'Alocada', 'Amable', 'Audaz', 'Cauta', 'Dócil', 'Firme', 'Floja', 'Fuerte', 'Grosera', 'Huraña', 'Ingenua', 'Mansa', 'Miedosa', 'Modesta', 'Osada', 'Pícara', 'Plácida', 'Rara', 'Seria', 'Serena', 'Tímida'] };
   // Secciones de la wiki donde se puede publicar (texto e imagen) desde la web.
@@ -559,7 +600,7 @@ var Core = (function () {
     };
   }
 
-  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial, PERMISOS: PERMISOS, permisoDe: permisoDe, MERCADO: MERCADO, vistaMercado: vistaMercado };
+  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial, PERMISOS: PERMISOS, permisoDe: permisoDe, MERCADO: MERCADO, vistaMercado: vistaMercado, HORARIO_ZONAS: HORARIO_ZONAS, HORARIO_BASE: HORARIO_BASE, HORARIO_MAX_FRANJAS: HORARIO_MAX_FRANJAS, limpiarHorario: limpiarHorario };
 })();
 // ===== FIN DEL NÚCLEO =====
 // Si alojás este HTML fuera de Google (GitHub Pages, etc.), pegá acá la URL /exec de tu Apps Script.
@@ -600,6 +641,7 @@ const Demo = {
     v.config = { modo: 'demo', mapa: mapas.star, mapas, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
     const roles = this.roles(), r = admin && this.sesion;
     v.config.mercadoGrupo = this.mkGrupo || '';
+    v.config.horario = this.hz || null;
     v.config.staff = roles.filter(x => x.publico).map(x => ({ nombre: x.nombre, color: x.color, personas: x.personas || '' }));
     if (r) Object.assign(v.config, { rol: 'rol', rolId: r.id, rolNombre: r.nombre, rolColor: r.color, permisos: r.permisos.slice() });
     else if (admin) Object.assign(v.config, { rol: 'admin', roles: roles.map(x => ({ id: x.id, nombre: x.nombre, color: x.color, personas: x.personas || '', publico: !!x.publico, permisos: x.permisos.slice(), conClave: true })) });
@@ -682,6 +724,7 @@ const Demo = {
       }
     }
     if (a === 'rolGuardar') { this.rolGuardar(p); return this.vista(true); }
+    if (a === 'horarioGuardar') { this.hz = Core.limpiarHorario(p.horario); return this.vista(true); }
     if (a === 'mercadoGrupo') { const e = mkGrupoLimpio(p.enlace); if (e && !/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/.test(e)) throw new Error('Pegá el enlace de invitación del grupo (empieza con https://chat.whatsapp.com/).'); this.mkGrupo = e; return this.vista(true); }
     if (a === 'rolBorrar') { const l = this.roles(); if (!l.some(x => x.id === p.id)) throw new Error('Ese rol ya no existe.'); this.guardarRoles(l.filter(x => x.id !== p.id)); return this.vista(true); }
     if (a === 'logout') return true;
@@ -818,6 +861,7 @@ function render() {
   if (hay('#gridCarnets')) renderCarnets();
   renderGrupos();
   renderReglas();
+  try { pintarHorario(); } catch (err) { }
   if (hay('#gridWiki')) renderWiki();
   if (hay('#wikiArticulo')) pintarWikiPagina();
   $$('.solo-admin').forEach(e => e.hidden = !puede('mundo'));
@@ -1724,7 +1768,7 @@ function panelAdmin() {
 // ---------- Roles a medida: el admin elige nombre, color, permisos y clave ----------
 const ROL_COLORES = ['#7cc4e8', '#e8a33c', '#9b7cf0', '#4fc98a', '#ef6f8f', '#f4d38b', '#5aa9ff', '#c78b5a'];
 const ROL_PLANTILLAS = [
-  { nombre: 'Noticiero', color: '#7cc4e8', permisos: ['noticias', 'guerra', 'zonas', 'reglas'] },
+  { nombre: 'Noticiero', color: '#7cc4e8', permisos: ['noticias', 'guerra', 'zonas', 'reglas', 'horario'] },
   { nombre: 'Moderador', color: '#ef6f8f', permisos: ['teams', 'carnets', 'comunidad', 'mensajes'] },
   { nombre: 'Organizador de torneos', color: '#e8a33c', permisos: ['torneos', 'noticias'] },
   { nombre: 'Cartógrafo', color: '#4fc98a', permisos: ['zonas', 'mundo', 'wiki'] },
@@ -1978,6 +2022,8 @@ document.addEventListener('click', async ev => {
       case 'wiki-a-zona': cerrar($('#dlgWiki')); fichaZona(id); break;
       case 'wiki-editar': formWiki(el.dataset.zona || $('#dlgWiki').dataset.zona); break;
       case 'regla-nueva': formRegla(); break;
+      case 'horario-editar': formHorario(); break;
+      case 'horario-ver': await horarioVer(); break;
       case 'regla-editar': formRegla((S.d.reglas || []).find(x => x.id === id)); break;
       case 'regla-mover': await accion('reglaMover', { id, dir: el.dataset.dir }, 'Orden de las reglas actualizado'); break;
       case 'regla-borrar': { const r = (S.d.reglas || []).find(x => x.id === id); confirmar('Borrar regla', 'Se quita “' + (r ? r.titulo : 'la regla') + '” de la sección Reglas. No se puede deshacer.', 'Borrar', async () => { await accion('reglaBorrar', { id }, 'Regla borrada'); }); break; }
@@ -3932,20 +3978,8 @@ async function verMensajes() {
   if (location.hash === '#contacto') setTimeout(() => { f.scrollIntoView({ block: 'center' }); f.elements.mensaje.focus({ preventScroll: true }); }, 400);
 })();
 
-// ---------- Horario de conquistas (referencia: hora de Cuba) ----------
-const HORARIO = {
-  tz: 'America/Havana',
-  franjas: [
-    { id: 'semana', nombre: 'Lun a vie', dias: [1, 2, 3, 4, 5], desde: 19 * 60, hasta: 23 * 60 },
-    { id: 'finde', nombre: 'Sáb y dom', dias: [6, 0], desde: 15 * 60, hasta: 23 * 60 }
-  ],
-  paises: [
-    ['Cuba', 'America/Havana'], ['México', 'America/Mexico_City'], ['Centroamérica', 'America/Tegucigalpa'],
-    ['Colombia · Perú · Ecuador', 'America/Bogota'], ['Venezuela · Bolivia', 'America/Caracas'],
-    ['Rep. Dominicana · Puerto Rico', 'America/Santo_Domingo'], ['Chile', 'America/Santiago'],
-    ['Argentina · Uruguay · Paraguay', 'America/Argentina/Buenos_Aires'], ['España', 'Europe/Madrid']
-  ]
-};
+// ---------- Horario de conquistas (lo edita el admin o un rol con el permiso "Horario de conquistas") ----------
+const HZ_DIAS = [[1, 'L', 'lunes'], [2, 'M', 'martes'], [3, 'X', 'miércoles'], [4, 'J', 'jueves'], [5, 'V', 'viernes'], [6, 'S', 'sábado'], [0, 'D', 'domingo']];
 const PAIS_TZ = { 'America/Havana': 'Cuba', 'America/Mexico_City': 'México', 'America/Monterrey': 'México', 'America/Merida': 'México', 'America/Cancun': 'México', 'America/Tijuana': 'México', 'America/Chihuahua': 'México', 'America/Hermosillo': 'México', 'America/Mazatlan': 'México', 'America/Tegucigalpa': 'Honduras', 'America/Guatemala': 'Guatemala', 'America/El_Salvador': 'El Salvador', 'America/Managua': 'Nicaragua', 'America/Costa_Rica': 'Costa Rica', 'America/Panama': 'Panamá', 'America/Bogota': 'Colombia', 'America/Lima': 'Perú', 'America/Guayaquil': 'Ecuador', 'America/Caracas': 'Venezuela', 'America/La_Paz': 'Bolivia', 'America/Santo_Domingo': 'Rep. Dominicana', 'America/Puerto_Rico': 'Puerto Rico', 'America/Santiago': 'Chile', 'America/Montevideo': 'Uruguay', 'America/Asuncion': 'Paraguay', 'Europe/Madrid': 'España', 'America/New_York': 'EE. UU. (este)', 'America/Chicago': 'EE. UU. (centro)', 'America/Los_Angeles': 'EE. UU. (oeste)' };
 const paisTz = tz => PAIS_TZ[tz] || (/^America\/(Argentina\/|Buenos_Aires$|Cordoba$|Mendoza$|Catamarca$|Jujuy$|Rosario$)/.test(tz) ? 'Argentina' : '');
 const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -3956,68 +3990,162 @@ function partesTz(tz, d) {
 }
 function desfaseTz(tz, d) { const p = partesTz(tz, d); return Math.round((Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi) - d.getTime()) / 60000); }
 const hhmm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
-function franjaEn(f, tz, ahora) {
-  const dif = desfaseTz(tz, ahora) - desfaseTz(HORARIO.tz, ahora), a = f.desde + dif, b = f.hasta + dif;
+const h12 = m => { m = ((m % 1440) + 1440) % 1440; const h = Math.floor(m / 60); return (h % 12 || 12) + ':' + String(m % 60).padStart(2, '0') + (h < 12 ? ' a. m.' : ' p. m.'); };
+const aMin = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+const miZona = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (err) { return ''; } };
+/** El horario guardado (o el de siempre si el servidor todavía no tiene uno). */
+function horarioConfig() {
+  const h = S.d && S.d.config && S.d.config.horario;
+  try { if (h) return Core.limpiarHorario(h); } catch (e) { }
+  return JSON.parse(JSON.stringify(Core.HORARIO_BASE));
+}
+/** Con las franjas en minutos: si cierra antes de abrir (22:00 a 01:00) sigue al día siguiente. */
+function horarioMin(h) {
+  const z = Core.HORARIO_ZONAS.find(x => x[1] === h.tz) || Core.HORARIO_ZONAS[0];
+  return Object.assign({}, h, { ref: z[2], franjas: h.franjas.map((f, i) => { const desde = aMin(f.desde); let hasta = aMin(f.hasta); if (hasta <= desde) hasta += 1440; return Object.assign({}, f, { id: String(i), desde, hasta }); }) });
+}
+function franjaEn(f, tz, ahora, ref) {
+  const dif = desfaseTz(tz, ahora) - desfaseTz(ref, ahora), a = f.desde + dif, b = f.hasta + dif;
   const nota = a >= 1440 ? 'día siguiente' : a < 0 ? 'día anterior' : '';
   return { texto: hhmm(a) + ' a ' + hhmm(b), corto: hhmm(a) + '–' + hhmm(b), nota, dif };
 }
-function estadoConquistas(ahora) {
-  const c = partesTz(HORARIO.tz, ahora), min = c.h * 60 + c.mi;
-  for (let k = 0; k < 8; k++) {
-    const wd = (c.wd + k) % 7, f = HORARIO.franjas.find(x => x.dias.includes(wd));
-    if (!f) continue;
-    if (k === 0 && min >= f.desde && min < f.hasta) return { abierto: true, f, falta: f.hasta - min };
-    if (k > 0 || min < f.desde) {
-      const falta = k * 1440 + f.desde - min;
-      return { abierto: false, f, k, wd, falta, inicio: new Date(Math.floor(ahora.getTime() / 60000) * 60000 + falta * 60000) };
+/** Si las conquistas están abiertas ahora, o cuándo abre la próxima franja (mira desde ayer por las que cruzan la medianoche). */
+function estadoConquistas(H, ahora) {
+  const c = partesTz(H.tz, ahora), min = c.h * 60 + c.mi;
+  let prox = null;
+  for (let k = -1; k < 8; k++) {
+    const wd = ((c.wd + k) % 7 + 7) % 7;
+    for (const f of H.franjas) {
+      if (!f.dias.includes(wd)) continue;
+      const a = k * 1440 + f.desde, b = k * 1440 + f.hasta;
+      if (min >= a && min < b) return { abierto: true, f, falta: b - min };
+      if (a > min && (!prox || a < prox.a)) prox = { a, f, k, wd };
     }
   }
+  if (!prox) return null;
+  const falta = prox.a - min;
+  return { abierto: false, f: prox.f, k: prox.k, wd: prox.wd, falta, inicio: new Date(Math.floor(ahora.getTime() / 60000) * 60000 + falta * 60000) };
 }
 const duracion = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+let hzFirma = '';
+/** Arma la caja (título, franjas, tabla y botones) solo cuando cambia el horario o quién la mira. */
+function armarHorario(H, ed) {
+  const caja = $('#horario'); if (!caja) return false;
+  const firma = JSON.stringify([H, ed]);
+  if (firma === hzFirma && caja.dataset.armado) return false;
+  hzFirma = firma; caja.dataset.armado = '1';
+  const abierta = !!($('.hz-paises', caja) || {}).open;
+  caja.classList.toggle('hz-oculto', !H.visible);
+  caja.hidden = !H.visible && !ed;
+  caja.innerHTML = `${H.visible ? '' : '<p class="hz-aviso-oculto">Oculto: el público no ve el horario. Solo lo ven quienes lo pueden editar.</p>'}
+    <div class="horario-cab">
+      <div><h3 class="sub">${esc(H.titulo)}</h3><p>${esc([H.texto, 'La referencia es la hora de ' + H.ref + '.'].filter(Boolean).join(' '))}</p></div>
+      <span class="hz-estado" id="hzEstado" role="status"><i></i><span>Hora de ${esc(H.ref)}</span></span>
+    </div>
+    ${H.aviso ? `<p class="hz-aviso">${esc(H.aviso)}</p>` : ''}
+    <div class="horario-g">${H.franjas.map((f, i) => `<div class="franja" data-franja="${i}" style="--i:${i}"><small>${esc(f.nombre)}</small><b>${hhmm(f.desde)} a ${hhmm(f.hasta)}</b><span>${h12(f.desde)} a ${h12(f.hasta)} · hora de ${esc(H.ref)}</span></div>`).join('')}<div class="franja tu" id="hzTu" style="--i:${H.franjas.length}" hidden></div></div>
+    <details class="hz-paises"${abierta ? ' open' : ''}><summary>Ver el horario en otros países</summary><table class="hz-tabla" id="hzTabla"></table></details>
+    ${ed ? `<div class="hz-acc"><button class="btn sm sand" type="button" data-act="horario-editar">Editar horario</button><button class="btn sm" type="button" data-act="horario-ver">${H.visible ? 'Ocultar de la web' : 'Mostrar en la web'}</button></div>` : ''}`;
+  return true;
+}
 function pintarHorario() {
-  const ahora = new Date(), e = estadoConquistas(ahora); if (!e) return;
-  let miTz = ''; try { miTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (err) { }
-  const mismoQueCuba = !miTz || desfaseTz(miTz, ahora) === desfaseTz(HORARIO.tz, ahora);
+  const H = horarioMin(horarioConfig()), ahora = new Date(), nuevo = armarHorario(H, puede('horario'));
+  const chip = $('#hzHero'); if (chip) chip.hidden = !H.visible;
+  const e = estadoConquistas(H, ahora); if (!e) return;
+  const miTz = miZona(), ref = 'de ' + H.ref;
+  const mismaHora = !miTz || desfaseTz(miTz, ahora) === desfaseTz(H.tz, ahora);
   const horaLocal = d => new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
   let txt, corto;
   if (e.abierto) {
     const cierre = new Date(Math.floor(ahora.getTime() / 60000) * 60000 + e.falta * 60000);
-    txt = 'Conquistas abiertas · cierran a las ' + hhmm(e.f.hasta) + ' de Cuba' + (mismoQueCuba ? '' : ' (' + horaLocal(cierre) + ' en tu hora)');
+    txt = 'Conquistas abiertas · cierran a las ' + hhmm(e.f.hasta) + ' ' + ref + (mismaHora ? '' : ' (' + horaLocal(cierre) + ' en tu hora)');
     corto = 'Conquistas abiertas ahora · quedan ' + duracion(e.falta);
   } else {
     const relativo = (dias, wd) => dias === 0 ? 'hoy' : dias === 1 ? 'mañana' : 'el ' + DIAS_ES[wd];
-    const cuandoCuba = e.falta < 60 ? 'en ' + e.falta + ' min' : relativo(e.k, e.wd);
-    let cuandoTu = cuandoCuba;
-    if (!mismoQueCuba && e.falta >= 60) {
+    const cuandoRef = e.falta < 60 ? 'en ' + e.falta + ' min' : relativo(e.k, e.wd);
+    let cuandoTu = cuandoRef;
+    if (!mismaHora && e.falta >= 60) {
       const a = partesTz(miTz, ahora), b = partesTz(miTz, e.inicio);
-      const dias = Math.round((Date.UTC(b.y, b.mo - 1, b.d) - Date.UTC(a.y, a.mo - 1, a.d)) / 864e5);
-      cuandoTu = relativo(dias, b.wd);
+      cuandoTu = relativo(Math.round((Date.UTC(b.y, b.mo - 1, b.d) - Date.UTC(a.y, a.mo - 1, a.d)) / 864e5), b.wd);
     }
-    const aLas = e.falta < 60 ? '' : ' a las ' + hhmm(e.f.desde) + ' de Cuba';
-    txt = 'Cerradas · abren ' + cuandoCuba + aLas + (mismoQueCuba || e.falta < 60 ? '' : ' (' + (cuandoTu !== cuandoCuba ? cuandoTu + ' ' : '') + horaLocal(e.inicio) + ' en tu hora)');
-    corto = 'Próximas conquistas: ' + cuandoTu + (e.falta < 60 ? '' : ', ' + (mismoQueCuba ? hhmm(e.f.desde) + ' de Cuba' : horaLocal(e.inicio) + ' en tu hora'));
+    const aLas = e.falta < 60 ? '' : ' a las ' + hhmm(e.f.desde) + ' ' + ref;
+    txt = 'Cerradas · abren ' + cuandoRef + aLas + (mismaHora || e.falta < 60 ? '' : ' (' + (cuandoTu !== cuandoRef ? cuandoTu + ' ' : '') + horaLocal(e.inicio) + ' en tu hora)');
+    corto = 'Próximas conquistas: ' + cuandoTu + (e.falta < 60 ? '' : ', ' + (mismaHora ? hhmm(e.f.desde) + ' ' + ref : horaLocal(e.inicio) + ' en tu hora'));
   }
-  const est = $('#hzEstado'), chip = $('#hzHero');
+  const est = $('#hzEstado');
   if (est) { est.classList.toggle('on', e.abierto); est.lastElementChild.textContent = txt; }
   if (chip) { chip.classList.toggle('on', e.abierto); chip.lastElementChild.textContent = corto; }
-  const hoyCuba = partesTz(HORARIO.tz, ahora).wd;
-  $$('.franja[data-franja]').forEach(el => el.classList.toggle('hoy', HORARIO.franjas.some(f => f.id === el.dataset.franja && f.dias.includes(hoyCuba))));
+  const hoy = partesTz(H.tz, ahora).wd;
+  $$('.franja[data-franja]').forEach(el => { const f = H.franjas[+el.dataset.franja]; el.classList.toggle('hoy', !!f && f.dias.includes(hoy)); el.classList.toggle('ahora', e.abierto && e.f.id === el.dataset.franja); });
   const tu = $('#hzTu');
   if (tu) {
-    tu.hidden = mismoQueCuba;
-    if (!mismoQueCuba) {
+    tu.hidden = mismaHora;
+    if (!mismaHora) {
       const pais = paisTz(miTz);
-      tu.innerHTML = '<small>En tu hora' + (pais ? ' · ' + esc(pais) : '') + '</small><div class="tu-l">' + HORARIO.franjas.map(f => { const r = franjaEn(f, miTz, ahora); return '<span>' + f.nombre + '</span><b>' + r.texto + (r.nota ? ' <em class="nota">(' + r.nota + ')</em>' : '') + '</b>'; }).join('') + '</div><span>Se calcula con el horario de tu dispositivo.</span>';
+      tu.innerHTML = '<small>En tu hora' + (pais ? ' · ' + esc(pais) : '') + '</small><div class="tu-l">' + H.franjas.map(f => { const r = franjaEn(f, miTz, ahora, H.tz); return '<span>' + esc(f.nombre) + '</span><b>' + r.texto + (r.nota ? ' <em class="hz-nota">(' + r.nota + ')</em>' : '') + '</b>'; }).join('') + '</div><span>Se calcula con el horario de tu dispositivo.</span>';
     }
   }
   const tabla = $('#hzTabla');
-  if (tabla && !tabla.dataset.listo) {
+  if (tabla && (nuevo || !tabla.dataset.listo)) {
     tabla.dataset.listo = '1';
-    tabla.innerHTML = '<thead><tr><th>País</th>' + HORARIO.franjas.map(f => '<th>' + f.nombre + '</th>').join('') + '</tr></thead><tbody>' + HORARIO.paises.map(([n, tz]) => {
+    tabla.innerHTML = '<thead><tr><th>País</th>' + H.franjas.map(f => '<th>' + esc(f.nombre) + '</th>').join('') + '</tr></thead><tbody>' + Core.HORARIO_ZONAS.map(([n, tz]) => {
       const es = miTz && (tz === miTz || desfaseTz(tz, ahora) === desfaseTz(miTz, ahora) && paisTz(miTz) && n.includes(paisTz(miTz)));
-      return '<tr' + (es ? ' class="es-tu"' : '') + '><td>' + esc(n) + '</td>' + HORARIO.franjas.map(f => { const r = franjaEn(f, tz, ahora); return '<td><span class="hz-h">' + r.corto + '</span>' + (r.nota ? ' <em class="nota">' + r.nota + '</em>' : '') + '</td>'; }).join('') + '</tr>';
+      return '<tr' + (es ? ' class="es-tu"' : '') + (tz === H.tz ? ' data-ref="1"' : '') + '><td>' + esc(n) + (tz === H.tz ? ' <em class="hz-nota">referencia</em>' : '') + '</td>' + H.franjas.map(f => { const r = franjaEn(f, tz, ahora, H.tz); return '<td><span class="hz-h">' + r.corto + '</span>' + (r.nota ? ' <em class="hz-nota">' + r.nota + '</em>' : '') + '</td>'; }).join('') + '</tr>';
     }).join('') + '</tbody>';
   }
+}
+/** Editor: zona de referencia, textos, mostrar/ocultar y hasta 4 franjas con sus días y horas. */
+function formHorario() {
+  const cfg = S.d.config || {};
+  if (MODO !== 'demo' && !('horario' in cfg)) { toast('Para editar el horario pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo.'); return; }
+  const H = horarioConfig();
+  formulario({
+    titulo: 'Editar horario de conquistas', texto: 'Se publica al toque. Cada visitante ve las franjas convertidas a la hora de su país.', boton: 'Guardar horario', dos: true,
+    campos: [
+      { n: 'visible', l: 'En la web', t: 'select', v: H.visible ? '1' : '0', opc: [{ v: '1', l: 'Mostrar el horario' }, { v: '0', l: 'Ocultarlo' }] },
+      { n: 'tz', l: 'Hora de referencia', t: 'select', v: H.tz, opc: Core.HORARIO_ZONAS.map(z => ({ v: z[1], l: z[0] })) },
+      { n: 'titulo', l: 'Título', v: H.titulo, max: 60, req: true, ancho: true },
+      { n: 'texto', l: 'Texto (opcional)', t: 'textarea', v: H.texto, max: 240, ancho: true, ph: 'Ej.: Las próximas conquistas se juegan en estas franjas.', ayuda: 'Al final se agrega solo «La referencia es la hora de …».' },
+      { n: 'aviso', l: 'Aviso destacado (opcional)', v: H.aviso, max: 160, ancho: true, ph: 'Ej.: Este domingo no hay conquistas por el torneo.' }
+    ],
+    enviar: async v => {
+      const franjas = $$('#hzFranjas .hz-fr').map(fr => ({ nombre: $('[name=fr-nombre]', fr).value, dias: $$('[name=fr-dia]:checked', fr).map(i => +i.value), desde: $('[name=fr-desde]', fr).value, hasta: $('[name=fr-hasta]', fr).value }));
+      const h = Core.limpiarHorario({ visible: v.visible === '1', tz: v.tz, titulo: v.titulo, texto: v.texto, aviso: v.aviso, franjas });
+      await accion('horarioGuardar', { horario: h }, h.visible ? 'Horario guardado' : 'Horario guardado (oculto en la web)');
+    }
+  });
+  const d = $('#dlgForm');
+  $('.campos', d).insertAdjacentHTML('afterend', `<div class="hz-ed"><div class="hz-ed-cab"><b>Franjas</b><small>Tocá los días de cada franja. Si cierra antes de abrir (ej.: 22:00 a 01:00), termina al día siguiente.</small></div><div id="hzFranjas"></div><button class="btn sm" type="button" id="hzMas">+ Agregar franja</button></div>`);
+  const lista = $('#hzFranjas', d), mas = $('#hzMas', d), miTz = miZona();
+  const fila = f => `<fieldset class="hz-fr" aria-label="Franja"><div class="hz-fr-a"><input name="fr-nombre" maxlength="30" value="${esc(f.nombre)}" placeholder="Ej.: Lunes a viernes" aria-label="Nombre de la franja"><button class="hz-fr-x" type="button" aria-label="Quitar esta franja">✕</button></div>
+    <div class="hz-dias">${HZ_DIAS.map(([n, l, nom]) => `<label title="${nom}"><input type="checkbox" name="fr-dia" value="${n}"${f.dias.includes(n) ? ' checked' : ''} aria-label="${nom}"><span>${l}</span></label>`).join('')}</div>
+    <div class="hz-horas"><label>Abre<input type="time" name="fr-desde" value="${esc(f.desde)}" step="300"></label><label>Cierra<input type="time" name="fr-hasta" value="${esc(f.hasta)}" step="300"></label></div><small class="hz-fr-tu"></small></fieldset>`;
+  const vista = () => {
+    const tz = $('#f-tz', d).value, ahora = new Date(), filas = $$('.hz-fr', lista);
+    filas.forEach(fr => {
+      const a = $('[name=fr-desde]', fr).value, b = $('[name=fr-hasta]', fr).value, out = $('.hz-fr-tu', fr);
+      if (!/^\d\d:\d\d$/.test(a) || !/^\d\d:\d\d$/.test(b)) { out.textContent = ''; return; }
+      const f = { desde: aMin(a), hasta: aMin(b) <= aMin(a) ? aMin(b) + 1440 : aMin(b) };
+      const pasa = f.hasta >= 1440 ? ' · termina al día siguiente' : '';
+      if (!miTz || desfaseTz(miTz, ahora) === desfaseTz(tz, ahora)) { out.innerHTML = 'Dura ' + duracion(f.hasta - f.desde) + pasa; return; }
+      const r = franjaEn(f, miTz, ahora, tz);
+      out.innerHTML = 'En tu hora' + (paisTz(miTz) ? ' (' + esc(paisTz(miTz)) + ')' : '') + ': <b>' + r.texto + '</b>' + (r.nota ? ' · ' + r.nota : '') + ' · dura ' + duracion(f.hasta - f.desde);
+    });
+    mas.disabled = filas.length >= Core.HORARIO_MAX_FRANJAS;
+    $$('.hz-fr-x', lista).forEach(x => { x.disabled = filas.length <= 1; });
+  };
+  H.franjas.forEach(f => lista.insertAdjacentHTML('beforeend', fila(f)));
+  const limpiar = () => { $('.form-error', d).textContent = ''; vista(); };
+  lista.addEventListener('input', limpiar); lista.addEventListener('change', limpiar); $('#f-tz', d).addEventListener('change', vista);
+  lista.addEventListener('click', ev => { const x = ev.target.closest('.hz-fr-x'); if (x && !x.disabled) { x.closest('.hz-fr').remove(); vista(); } });
+  mas.onclick = () => { lista.insertAdjacentHTML('beforeend', fila({ nombre: '', dias: [], desde: '19:00', hasta: '23:00' })); vista(); $('.hz-fr:last-child [name=fr-nombre]', lista).focus(); };
+  vista();
+}
+async function horarioVer() {
+  const cfg = S.d.config || {};
+  if (MODO !== 'demo' && !('horario' in cfg)) { toast('Para ocultar el horario pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo.'); return; }
+  const h = horarioConfig(); h.visible = !h.visible;
+  try { await accion('horarioGuardar', { horario: h }, h.visible ? 'El horario se ve en la web' : 'Horario oculto: el público ya no lo ve'); } catch (e) { toast(e.message); }
 }
 try { pintarHorario(); } catch (err) { }
 setInterval(() => { if (!document.hidden) try { pintarHorario(); } catch (err) { } }, 30000);
