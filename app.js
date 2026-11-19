@@ -20,7 +20,8 @@ var Core = (function () {
     { id: 'mundo', nombre: 'Mapas y regiones', desc: 'Agregar, renombrar y cambiar mapas', ops: ['regionGuardar', 'regionMapa', 'regionMover', 'regionBorrar', 'mapaSubir'] },
     { id: 'wiki', nombre: 'Guía de zonas', desc: 'Editar el resumen de cada zona', ops: ['wikiGuardar'] },
     { id: 'comunidad', nombre: 'Grupos de WhatsApp', desc: 'Actualizar los miembros de cada grupo', ops: ['grupoMiembros'] },
-    { id: 'mensajes', nombre: 'Mensajes', desc: 'Leer y borrar los mensajes de contacto', ops: ['mensajes', 'mensajeBorrar'] }
+    { id: 'mensajes', nombre: 'Mensajes', desc: 'Leer y borrar los mensajes de contacto', ops: ['mensajes', 'mensajeBorrar'] },
+    { id: 'crianza', nombre: 'Crianza', desc: 'Publicar textos e imágenes en la sección Crianza', ops: ['publicacionGuardar', 'publicacionBorrar'] }
   ];
   /** Qué permiso hace falta para una acción ('' si es solo del admin). */
   function permisoDe(accion) {
@@ -59,8 +60,11 @@ var Core = (function () {
     grupos: ['id', 'nombre', 'enlace', 'miembros', 'actualizado', 'orden'],
     regiones: ['id', 'nombre', 'orden', 'mapa', 'actualizado'],
     reglas: ['id', 'orden', 'titulo', 'texto', 'nota', 'destacada'],
-    wiki: ['id', 'zona', 'resumen', 'notas', 'actualizado']
+    wiki: ['id', 'zona', 'resumen', 'notas', 'actualizado'],
+    publicaciones: ['id', 'seccion', 'fecha', 'titulo', 'texto', 'imagen', 'autor', 'rol', 'color', 'editado']
   };
+  // Secciones de la wiki donde se puede publicar (texto e imagen) desde la web.
+  var SECCIONES_PUB = ['crianza'];
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function txt(v, max) {
@@ -200,6 +204,7 @@ var Core = (function () {
       ],
       equipos: equipos, territorios: territorios, guerras: guerras, torneos: [], combates: [],
       regiones: REGIONES.map(function (r) { return { id: r.id, nombre: r.nombre, orden: r.orden, mapa: '', actualizado: '' }; }),
+      publicaciones: [],
       noticias: [{ id: 'n-inicial', fecha: 'Parte territorial', titulo: 'La disputa por Star se intensifica',
         cuerpo: 'La Comisaría confirmó nuevos movimientos: Team Rekiem controla Ciudad Sirio; Team Delta tomó Ciudad Deneb, recuperada previamente del Team Flare; y el Escuadrón Élite resguarda el Bosque Místico. Tras los reportes de policías heridos, las autoridades piden mantener la calma y no involucrarse con organizaciones enemigas. El origen de Team Delta sigue sin esclarecerse.' }]
     };
@@ -340,6 +345,24 @@ var Core = (function () {
         return { cambios: ['noticias'].concat(zonaCambios) };
       }
       case 'noticiaBorrar': quitar(db.noticias, p.id); return { cambios: ['noticias'] };
+      case 'publicacionGuardar': {
+        db.publicaciones = db.publicaciones || [];
+        x = p.id ? porId(db.publicaciones, p.id) : null;
+        if (p.id && !x) falla('Esa publicación ya no existe.');
+        var secPub = x ? x.seccion : (txt(p.seccion, 20).toLowerCase() || 'crianza');
+        if (SECCIONES_PUB.indexOf(secPub) < 0) falla('En esa sección no se puede publicar.');
+        var img = p.imagen === undefined ? (x ? x.imagen : '') : txt(p.imagen);
+        if (p.imagen !== undefined && img && !ID_ARCHIVO.test(img)) falla('Esa imagen no es válida.');
+        if (!txt(p.titulo) && !largo(p.texto) && !img) falla('Escribí algo o subí una imagen.');
+        if (!x) { x = { id: uid(), fecha: ahora, seccion: secPub }; db.publicaciones.unshift(x); }
+        else x.editado = ahora;
+        x.titulo = txt(p.titulo, 90); x.texto = largo(p.texto, 3000); x.imagen = img;
+        var quien = ctx.rol || {};
+        x.autor = txt(p.firma, 40) || txt(quien.nombre) || 'Admin';
+        x.rol = txt(quien.nombre, 30) || 'Administración'; x.color = /^#[0-9a-f]{6}$/i.test(quien.color || '') ? quien.color : '#b03b40';
+        return { cambios: ['publicaciones'], resultado: { id: x.id } };
+      }
+      case 'publicacionBorrar': db.publicaciones = db.publicaciones || []; quitar(db.publicaciones, p.id); return { cambios: ['publicaciones'] };
       case 'reglaGuardar': {
         db.reglas = db.reglas || [];
         if (!txt(p.titulo)) falla('La regla necesita un título.');
@@ -451,7 +474,8 @@ var Core = (function () {
       grupos: (db.grupos || []).slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); }),
       reglas: (db.reglas || []).slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); }),
       wiki: db.wiki || [],
-      regiones: listaRegiones(db)
+      regiones: listaRegiones(db),
+      publicaciones: (db.publicaciones || []).slice(0, admin ? 400 : 120)
     };
   }
 
@@ -471,7 +495,7 @@ if (location.hostname === 'stormacher95.github.io') {
   gc.async = true; gc.dataset.goatcounter = 'https://reloaded-online.goatcounter.com/count'; gc.src = 'https://gc.zgo.at/count.js';
   document.head.appendChild(gc);
 }
-const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', lugares: '/wiki/lugares.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
+const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', crianza: '/wiki/crianza.html', lugares: '/wiki/lugares.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
 const WPP_GENERAL = 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6';
@@ -575,8 +599,14 @@ const Demo = {
     if (a === 'carnetClave') { const c = dbusca(p.id); c.clave = Math.random().toString(36).slice(2, 8); DemoC.guardar(dc); return { clave: c.clave }; }
     if (a === 'clave') throw new Error('En la demostración la clave siempre es "demo". Con Drive conectado se cambia de verdad.');
     if (a === 'mapaSubir') { const rg = Core.region(p.region, this.db()); if (!rg) throw new Error('Esa región ya no existe.'); this.mapas[rg] = 'data:' + p.mime + ';base64,' + p.base64; return this.vista(true); }
+    if (a === 'publicacionGuardar' && p.base64) {
+      const q = Object.assign({}, p, { imagen: 'demo-imagen-subida' }); delete q.base64; delete q.mime; delete q.nombre;
+      const r = Core.aplicar(this.db(), a, q, Object.assign({}, ctx, { rol: this.sesion ? { nombre: this.sesion.nombre, color: this.sesion.color } : null }));
+      const x = this.db().publicaciones.find(y => y.id === r.resultado.id); x.imagen = 'data:' + p.mime + ';base64,' + p.base64;
+      this.guardar(); return this.vista(true);
+    }
     if (a === 'logoSubir') { const e = this.db().equipos.find(x => x.id === p.id); if (!e) throw new Error('Ese team ya no existe.'); e.logo = 'data:' + p.mime + ';base64,' + p.base64; this.guardar(); return this.vista(true); }
-    Core.aplicar(this.db(), a, p, ctx); this.guardar(); return this.vista(true);
+    Core.aplicar(this.db(), a, p, Object.assign({}, ctx, { rol: this.sesion ? { nombre: this.sesion.nombre, color: this.sesion.color } : null })); this.guardar(); return this.vista(true);
   }
 };
 
@@ -688,6 +718,7 @@ function render() {
   $('#adminbar').style.setProperty('--rol', esAdmin() ? '#b03b40' : ((S.d.config && S.d.config.rolColor) || '#2f7fa3'));
   $$('#adminbar [data-perm]').forEach(e => { e.hidden = !puede(e.dataset.perm); });
   if (hay('#staff')) renderStaff();
+  if (hay('#crianzaApp') && CR.gh) renderCrianza();
   if (hay('#clasif')) renderClasif();
   if (hay('#gridCarnets')) renderCarnets();
   renderGrupos();
@@ -1583,7 +1614,7 @@ function panelAdmin() {
     <div class="dlg-cuerpo panel-g">
       ${adm ? '' : `<p class="rol-aviso" style="--c:${esc(cfg.rolColor || '#7cc4e8')}"><b>${esc(nombreSesion())}</b> · podés: ${esc(Core.PERMISOS.filter(p => puede(p.id)).map(p => p.nombre.toLowerCase()).join(', ') || 'nada todavía')}.</p>`}
       <div class="panel-stats"><div><b>${ctrl}/${z.length}</b><span>zonas con dueño</span></div><div><b>${S.d.guerras.length}</b><span>partes de guerra</span></div><div><b>${(S.carnets || []).length}</b><span>carnets</span></div><div><b>${ubic}</b><span>zonas en el mapa</span></div></div>
-      ${sec('Publicar', btns(b('nueva-noticia', 'Publicar noticia', 'Va a la portada', 'noticias'), b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…', 'guerra'), b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario', 'torneos'), b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación', 'torneos')))}
+      ${sec('Publicar', btns(b('nueva-noticia', 'Publicar noticia', 'Va a la portada', 'noticias'), b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…', 'guerra'), b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario', 'torneos'), b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación', 'torneos'), b('cr-publicar', 'Publicar en Crianza', 'Texto e imagen', 'crianza')))}
       ${puede('teams') ? `<div><h3>Miembros por team</h3><div class="cupo-ctrl"><span><b>Cupo por team</b><small class="mm-estado" id="cupoEstado">Al llegar a este número, el team figura como Lleno.</small></span><span class="contador" data-cupo><button type="button" data-act="cupo" data-paso="-1" aria-label="Bajar el cupo">−</button><input type="number" inputmode="numeric" min="1" max="999" value="${cupo()}" data-cupo-input aria-label="Cupo de miembros por team"><button type="button" data-act="cupo" data-paso="1" aria-label="Subir el cupo">+</button></span></div><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>` : ''}
       ${sec('Mundo', btns(b('nuevo-team', 'Nuevo team', 'Nombre, color, logo y lore', 'teams'), b('nueva-zona', 'Nueva zona', 'Se suma al atlas', 'zonas'), b('regiones', 'Mapas y regiones', 'Agregar, renombrar y cambiar mapas', 'mundo')))}
       ${puede('comunidad') ? `<div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>` : ''}
@@ -1601,7 +1632,8 @@ const ROL_PLANTILLAS = [
   { nombre: 'Noticiero', color: '#7cc4e8', permisos: ['noticias', 'guerra', 'zonas', 'reglas'] },
   { nombre: 'Moderador', color: '#ef6f8f', permisos: ['teams', 'carnets', 'comunidad', 'mensajes'] },
   { nombre: 'Organizador de torneos', color: '#e8a33c', permisos: ['torneos', 'noticias'] },
-  { nombre: 'Cartógrafo', color: '#4fc98a', permisos: ['zonas', 'mundo', 'wiki'] }
+  { nombre: 'Cartógrafo', color: '#4fc98a', permisos: ['zonas', 'mundo', 'wiki'] },
+  { nombre: 'Criador', color: '#ee99ac', permisos: ['crianza'] }
 ];
 function panelRolesHTML() {
   const cfg = S.d.config || {};
@@ -1795,6 +1827,15 @@ document.addEventListener('click', async ev => {
       case 'borrar-zona': cerrar($('#dlgZona')); borrar('Borrar zona', 'Se borra la zona del atlas junto con su historial. No se puede deshacer.', 'zonaBorrar', 'Zona borrada'); break;
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
       case 'lug-filtro': LUG.f = el.dataset.f; renderLugares(); break;
+      case 'cr-tab': crTab(el.dataset.v); break;
+      case 'cr-grupo': CR.grupo = el.dataset.f; CR.q = ''; renderCrianza(); break;
+      case 'cr-ditto': CR.b = 'Ditto'; if (!CR.a) CR.a = ''; crGuardarPar(); renderCrianza(); break;
+      case 'cr-cambiar': [CR.a, CR.b] = [CR.b, CR.a]; crGuardarPar(); renderCrianza(); break;
+      case 'cr-compartir': { if (!CR.a || !CR.b) { toast('Elegí los dos Pokémon primero.', 'error'); break; } const u = (MULTIPAGINA ? (SITIO_URL || location.origin + '/') + 'wiki/crianza.html' : location.href.split('#')[0]) + '#cr=' + pkSlug(CR.a) + '~' + pkSlug(CR.b); await copiarTexto(u); toast('Enlace copiado.'); break; }
+      case 'cr-publicar': cerrar($('#dlgPanel')); if (!hay('#crianzaApp')) { location.href = MULTIPAGINA ? '/wiki/crianza.html#publicaciones' : '#crianza'; if (MULTIPAGINA) break; } CR.tab = 'pubs'; formPublicacion(); break;
+      case 'cr-editar': formPublicacion(crPubs().find(x => x.id === id)); break;
+      case 'cr-borrar': { const x = crPubs().find(y => y.id === id); if (x) confirmar('Borrar la publicación', 'Se saca de la sección Crianza. La imagen queda en tu carpeta de Drive.', 'Borrar', async () => { await accion('publicacionBorrar', { id }, 'Publicación borrada.'); renderCrianza(); }); break; }
+      case 'cr-foto': { const x = crPubs().find(y => y.id === id), im = x && imagenSubida(x.imagen, 2400); if (!im) break; const d = $('#dlgForm'); d.innerHTML = `<div class="dlg dlg-foto"><div class="dlg-cab"><p class="muted">Crianza · ${esc(x.autor || '')}</p><h2>${esc(x.titulo || 'Imagen')}</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div><div class="dlg-cuerpo"><img src="${esc(im.url)}" alt="${esc(x.titulo || 'Imagen de la publicación')}"${im.alt ? ` data-alt="${esc(im.alt)}"` : ''}${im.id ? ` data-lid="${esc(im.id)}"` : ''} onerror="imgFallo(this)"></div></div>`; abrir(d); break; }
       case 'obj-vista': objVista(el.dataset.v); break;
       case 'cat-clase': CAT.c = el.dataset.f; renderCatalogo(); break;
       case 'wiki': { const z = el.dataset.zona; if ($('#dlgZona').open) cerrar($('#dlgZona')); abrirWiki(z); break; }
@@ -3204,7 +3245,7 @@ async function pintarEquipo() {
     else if (ev.key === 'Enter') { ev.preventDefault(); if (ops[EQ.sel]) eqAgregar(ops[EQ.sel].dataset.n); }
     else if (ev.key === 'Escape') { inp.value = ''; pintarSug(); }
   });
-  inp.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); }, 180));
+  inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement === inp) return; sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); }, 180));
   inp.addEventListener('focus', pintarSug);
   el.addEventListener('change', ev => {
     const s_ = ev.target.closest('.eq-mas'); if (!s_ || !s_.value) return;
@@ -3280,6 +3321,213 @@ function renderEquipo() {
     </div>`;
 }
 
+// ----- Crianza: compatibilidad, grupos huevo, guía de la wiki y publicaciones de la comunidad -----
+const GH_CAT = { monstruo: 'Monstruo', agua1: 'Agua 1', agua2: 'Agua 2', agua3: 'Agua 3', bicho: 'Bicho', bicho1: 'Bicho', volador: 'Volador', tierra: 'Tierra', hada: 'Hada', planta: 'Planta', humanoide: 'Humanoide', mineral: 'Mineral', indeterminado: 'Indeterminado', dragon: 'Dragón', 'dragón': 'Dragón', especial: 'Especial', ninguno: 'Ninguno', legendario: 'Legendario', legendarios: 'Legendario' };
+const GH_NO = ['Ninguno', 'Legendario'];
+const GH_COLOR = { Monstruo: '#c03028', 'Agua 1': '#6890f0', 'Agua 2': '#4f7fd6', 'Agua 3': '#3a62b8', Bicho: '#a8b820', Volador: '#a890f0', Tierra: '#e0c068', Hada: '#ee99ac', Planta: '#78c850', Humanoide: '#c27a4a', Mineral: '#b8a038', Indeterminado: '#705898', Dragón: '#7038f8', Especial: '#f4d38b', Ninguno: '#68707a', Legendario: '#8d7bd6' };
+const CR = { tab: 'compat', a: '', b: '', gh: null, grupo: '', q: '', guia: null };
+const DITTOS = ['ditto', 'kytto'];
+async function crGrupos() {
+  if (CR.gh) return CR.gh;
+  let crudo = wkCache('gh1', 24 * 7);
+  if (!crudo) {
+    const cats = Object.keys(GH_CAT), cat = c => wkCategoria(c).catch(() => []);
+    const [res, sg] = await Promise.all([Promise.all(cats.map(k => cat('Pokémon de grupo huevo ' + k))), cat('Pokémon sin género')]);
+    if (!res.some(l => l.length)) throw new Error('La wiki no devolvió los grupos huevo.');
+    crudo = wkCache('gh1', 0, { g: Object.fromEntries(cats.map((k, i) => [k, res[i]])), sg });
+  }
+  const porPk = {}, grupos = {};
+  Object.entries(crudo.g).forEach(([k, l]) => { const g = GH_CAT[k]; if (!g) return; grupos[g] = grupos[g] || new Set(); l.forEach(n => { grupos[g].add(n); const kk = wkClave(n); (porPk[kk] = porPk[kk] || new Set()).add(g); }); });
+  return (CR.gh = { porPk, grupos: Object.fromEntries(Object.entries(grupos).map(([g, st]) => [g, [...st].sort((a, b) => a.localeCompare(b, 'es'))])), sinGenero: new Set((crudo.sg || []).map(wkClave)) });
+}
+const crGruposDe = n => { const p = CR.gh.porPk; return [...(p[wkClave(n)] || p[wkClave(String(n).split(' ')[0])] || [])]; };
+const crPk = n => EQ.dex && (EQ.dex.find(x => x.n === n) || eqBuscarPk(n));
+let crIndice = null;
+/** Pre-evolución según la ficha ("Charmander (nivel 16)." → Charmander). */
+function crPrevia(pk) {
+  const ev = pk && pk.loc && pk.loc.evo; if (!ev) return null;
+  crIndice = crIndice || EQ.dex.slice().sort((a, b) => b.n.length - a.n.length);
+  const t = wkNorm(ev); return crIndice.find(x => x !== pk && t.startsWith(wkNorm(x.n))) || null;
+}
+/** Crías especiales según las fichas: "Criando: De Pikachu, Raichu o Pikablue" (cualquiera de la lista) o "de Lugia y Mew" (esa pareja). */
+let crCrias = null;
+function crCriasLista() {
+  if (crCrias) return crCrias;
+  crIndice = crIndice || EQ.dex.slice().sort((a, b) => b.n.length - a.n.length);
+  crCrias = EQ.dex.filter(x => x.loc && /^\s*criando/i.test(x.loc.esp || '')).map(x => {
+    const frase = x.loc.esp.replace(/^\s*criando:?\s*/i, '').replace(/\b(Mr|Jr)\.\s/g, '$1§ ').split(/\.(?:\s|$)/)[0].replace(/§/g, '.'), limpia = frase.replace(/\([^)]*\)/g, ' '), t = ' ' + wkNorm(limpia).replace(/[^a-z0-9.\s-]/g, ' ').replace(/\s+/g, ' ') + ' ';
+    const padres = []; let r = t; crIndice.forEach(y => { const k = ' ' + wkNorm(y.n) + ' '; if (r.includes(k)) { padres.push(y.n); r = r.split(k).join(' # '); } });
+    return { cria: x.n, frase: frase.trim(), padres, pareja: /\s(con|y)\s/i.test(limpia) && !/,|\so\s/i.test(limpia) };
+  }).filter(c => c.padres.length);
+  return crCrias;
+}
+const crBase = n => { let pk = crPk(n), v = 0; if (!pk) return null; while (v++ < 4) { const pre = crPrevia(pk); if (!pre) break; pk = pre; } return pk; };
+/** Qué sale del huevo: la forma base de la línea, o la cría que nombra la wiki. */
+function crHuevo(n) {
+  const pk = crBase(n); if (!pk) return { n, nota: '' };
+  const c = crCriasLista().find(c => !c.pareja && c.padres.some(p => p === pk.n || p === n));
+  return c ? { n: c.cria, nota: 'Criando: ' + c.frase + '.' } : { n: pk.n, nota: '' };
+}
+function crCompat(a, b) {
+  const ga = crGruposDe(a), gb = crGruposDe(b), dA = DITTOS.includes(wkClave(a)), dB = DITTOS.includes(wkClave(b));
+  const uA = ga.includes('Especial'), uB = gb.includes('Especial');
+  const falta = [a, b].filter((n, i) => !(i ? gb : ga).length);
+  // parejas especiales de Reloaded (por ejemplo, de dos Manaphy sale Phione)
+  const par = crCriasLista().find(c => c.pareja && ((c.padres.length === 1 && wkClave(a) === wkClave(c.padres[0]) && wkClave(b) === wkClave(c.padres[0])) || (c.padres.length === 2 && [a, b].map(wkClave).sort().join() === c.padres.map(wkClave).sort().join())));
+  if (par) return { ok: true, por: 'Pareja especial de Reloaded: así lo dice la ficha de ' + par.cria + ' en la wiki.', huevos: [{ n: par.cria, nota: 'Criando: ' + par.frase + '.' }], comunes: ['Especial'] };
+  if (falta.length) return { ok: null, por: 'La wiki todavía no tiene el grupo huevo de ' + falta.join(' ni de ') + '.' };
+  const no = (n, g) => g.find(x => GH_NO.includes(x));
+  if (dA && dB) return { ok: false, por: 'Dos Ditto (o Kytto) no pueden criar entre sí.' };
+  for (const [n, g] of [[a, ga], [b, gb]]) if (no(n, g)) return { ok: false, por: `${n} está en el grupo ${no(n, g)}: no cría de forma normal.` + (no(n, g) === 'Legendario' ? ' Mirá la guía de la wiki: hay una sección sobre legendarios.' : ''), conDitto: false };
+  if (uA || uB) {
+    const otro = dA || (uA && !dB) ? b : a, comodin = otro === a ? b : a;
+    return { ok: true, por: `${comodin} está en el grupo Especial: cría con casi cualquier Pokémon.`, huevos: [crHuevo(otro === comodin ? a : otro)], comunes: ['Especial'] };
+  }
+  const sg = [a, b].filter(n => CR.gh.sinGenero.has(wkClave(n)));
+  if (sg.length) return { ok: false, por: `${sg.join(' y ')} no ${sg.length > 1 ? 'tienen' : 'tiene'} género: solo cría con Ditto.`, conDitto: true };
+  const comunes = ga.filter(g => gb.includes(g));
+  if (!comunes.length) return { ok: false, por: `No comparten grupo huevo: ${a} es ${ga.join(' / ')} y ${b} es ${gb.join(' / ')}.`, conDitto: true };
+  const h = [crHuevo(a), crHuevo(b)], huevos = h[0].n === h[1].n ? [h[0]] : h;
+  return { ok: true, por: `Comparten el grupo ${comunes.join(' y ')}. Tienen que ser macho y hembra: del huevo sale la especie de la madre.`, huevos, comunes, madre: huevos.length > 1 };
+}
+async function pintarCrianza() {
+  const el = $('#crianzaApp'); if (!el) return;
+  try { [EQ.dex] = await Promise.all([EQ.dex || eqDex(), crGrupos()]); }
+  catch (e) { el.innerHTML = wkFallo(e, 'crianza'); return; }
+  const h = location.hash.match(/^#cr=([\w-]+)~([\w-]+)/);
+  if (h) { const x = eqBuscarPk(h[1]), y = eqBuscarPk(h[2]); if (x) CR.a = x.n; if (y) CR.b = y.n; }
+  else if (/^#(publicaciones|grupos|guia)$/.test(location.hash)) CR.tab = { publicaciones: 'pubs', grupos: 'grupos', guia: 'guia' }[location.hash.slice(1)];
+  renderCrianza();
+}
+function crTab(v) { CR.tab = v; renderCrianza(); try { history.replaceState(null, '', location.pathname + location.search + ({ pubs: '#publicaciones', grupos: '#grupos', guia: '#guia' }[v] || (MULTIPAGINA ? '' : '#crianza'))); } catch (e) { } }
+const crPubs = () => (S.d.publicaciones || []).filter(x => x.seccion === 'crianza');
+function renderCrianza() {
+  const el = $('#crianzaApp'); if (!el || !CR.gh) return;
+  $$('[data-act="cr-tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === CR.tab)));
+  const n = crPubs().length; if (hay('#crPubN')) $('#crPubN').textContent = n ? n : '';
+  if (CR.tab === 'compat') return renderCrCompat(el);
+  if (CR.tab === 'pubs') return renderCrPubs(el);
+  if (CR.tab === 'grupos') return renderCrGrupos(el);
+  return renderCrGuia(el);
+}
+/** Buscador de Pokémon con sugerencias (teclado incluido). */
+function crBuscador(inp, sug, elegir) {
+  let sel = 0;
+  const pintar = () => {
+    const q = wkNorm(inp.value); if (!q) { sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); return; }
+    const num = /^\d+$/.test(q) ? +q : null;
+    const l = EQ.dex.filter(x => num != null ? x.num === num : wkNorm(x.n).includes(q)).sort((a, b) => (wkNorm(b.n).startsWith(q) - wkNorm(a.n).startsWith(q)) || a.num - b.num).slice(0, 7);
+    sel = Math.min(sel, Math.max(0, l.length - 1));
+    sug.innerHTML = l.length ? l.map((x, i) => `<li role="option" id="${sug.id}-${i}" aria-selected="${i === sel}" data-n="${esc(x.n)}"><span class="eq-num">#${String(x.num).padStart(3, '0')}</span><b>${esc(x.n)}</b><span class="eq-tt">${x.t.map(tipoChip).join('')}</span></li>`).join('') : '<li class="eq-nada">No hay ningún Pokémon con ese nombre.</li>';
+    sug.hidden = false; inp.setAttribute('aria-expanded', 'true'); inp.setAttribute('aria-activedescendant', l.length ? sug.id + '-' + sel : '');
+  };
+  inp.addEventListener('input', () => { sel = 0; pintar(); });
+  inp.addEventListener('focus', pintar);
+  inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement === inp) return; sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); }, 180));
+  inp.addEventListener('keydown', ev => {
+    const ops = $$('li[role=option]', sug);
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); if (!ops.length) return; sel = (sel + (ev.key === 'ArrowDown' ? 1 : -1) + ops.length) % ops.length; pintar(); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); if (ops[sel]) elegir(ops[sel].dataset.n); }
+    else if (ev.key === 'Escape') { inp.value = ''; pintar(); }
+  });
+  sug.addEventListener('mousedown', ev => { const li = ev.target.closest('li[data-n]'); if (li) { ev.preventDefault(); elegir(li.dataset.n); } });
+}
+const crHuevoSVG = (c1, c2, roto) => `<svg class="cr-huevo${roto ? ' roto' : ''}" viewBox="0 0 64 80" aria-hidden="true"><defs><linearGradient id="hg${c1.slice(1)}${c2.slice(1)}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#e8dcc4"/></linearGradient></defs><path d="M32 3C15 3 5 32 5 50c0 15 12 27 27 27s27-12 27-27C59 32 49 3 32 3z" fill="url(#hg${c1.slice(1)}${c2.slice(1)})" stroke="#2b1e05" stroke-width="2.5"/><circle cx="22" cy="40" r="7" fill="${c1}"/><circle cx="42" cy="55" r="9" fill="${c2}"/><circle cx="40" cy="24" r="4.5" fill="${c1}"/>${roto ? '<path d="M8 44l9-6 7 7 8-8 8 8 8-7 8 6" fill="none" stroke="#2b1e05" stroke-width="3" stroke-linejoin="round"/>' : ''}</svg>`;
+function renderCrCompat(el) {
+  if (!el.querySelector('.cr-compat')) {
+    el.innerHTML = `<div class="cr-compat">
+      <div class="cr-pareja">${['a', 'b'].map(l => `<div class="cr-lado" data-lado="${l}"><label class="sr" for="crB${l}">Pokémon ${l === 'a' ? '1' : '2'}</label><div class="eq-busca"><input id="crB${l}" class="sel" type="search" autocomplete="off" placeholder="${l === 'a' ? 'Primer Pokémon (ej.: Riolu)' : 'Segundo Pokémon (ej.: Ditto)'}" role="combobox" aria-expanded="false" aria-controls="crS${l}" aria-autocomplete="list"><ul class="eq-sug" id="crS${l}" role="listbox" hidden></ul></div><div class="cr-pk" id="crP${l}"></div></div>`).join('<div class="cr-mas" aria-hidden="true"><i></i></div>')}</div>
+      <div class="cr-rapido"><button type="button" class="btn sm" data-act="cr-ditto">Probar con Ditto</button><button type="button" class="btn sm" data-act="cr-cambiar">Intercambiar</button><button type="button" class="btn sm" data-act="cr-compartir">Copiar enlace</button></div>
+      <div class="cr-res" id="crRes" aria-live="polite"></div></div>`;
+    ['a', 'b'].forEach(l => crBuscador($('#crB' + l), $('#crS' + l), n => { CR[l] = n; $('#crB' + l).value = ''; $('#crS' + l).hidden = true; crGuardarPar(); renderCrCompat(el); if (l === 'a' && !CR.b) $('#crBb').focus(); }));
+  }
+  const card = n => { if (!n) return '<p class="cr-vacio">Elegí un Pokémon</p>'; const pk = crPk(n), g = crGruposDe(n); return `<a class="cr-card" href="${esc(pkHref(n))}" style="--t1:${COLOR_TIPO[(pk && pk.t[0]) || 'Normal']};--t2:${COLOR_TIPO[(pk && (pk.t[1] || pk.t[0])) || 'Normal']}"><span class="eq-num">#${String(pk ? pk.num : 0).padStart(3, '0')}</span><b>${esc(n)}</b><span class="eq-tt">${pk ? pk.t.map(tipoChip).join('') : ''}</span><span class="cr-gh">${g.length ? g.map(x => `<i style="--g:${GH_COLOR[x] || '#93b9c3'}">${esc(x)}</i>`).join('') : '<i>Sin grupo en la wiki</i>'}</span></a>`; };
+  $('#crPa').innerHTML = card(CR.a); $('#crPb').innerHTML = card(CR.b);
+  const res = $('#crRes');
+  if (!CR.a || !CR.b) { res.innerHTML = `<div class="cr-espera">${crHuevoSVG('#7cc4e8', '#f4d38b')}<p>Elegí dos Pokémon y te digo si pueden criar y qué sale del huevo.</p></div>`; return; }
+  const r = crCompat(CR.a, CR.b), c1 = GH_COLOR[(r.comunes || [])[0]] || '#7cc4e8', c2 = GH_COLOR[(r.comunes || [])[1] || (r.comunes || [])[0]] || '#f4d38b';
+  res.innerHTML = r.ok ? `<div class="cr-si">${crHuevoSVG(c1, c2)}<div><h3>¡Pueden criar!</h3><p>${esc(r.por)}</p>
+      <ul class="cr-huevos">${r.huevos.map((h, i) => `<li><span>${r.madre ? `Si la madre es ${esc(i ? CR.b : CR.a)}` : 'Del huevo sale'}</span>${pkA(h.n)}${h.nota ? `<small>Según la wiki: ${esc(h.nota)}</small>` : ''}</li>`).join('')}</ul></div></div>`
+    : `<div class="cr-no">${crHuevoSVG('#68707a', '#93a1aa', true)}<div><h3>${r.ok === null ? 'No sabemos todavía' : 'No pueden criar'}</h3><p>${esc(r.por)}</p>${r.conDitto ? '<button type="button" class="btn sm sand" data-act="cr-ditto">Probar con Ditto</button>' : ''}</div></div>`;
+}
+function crGuardarPar() { if (CR.a && CR.b) try { history.replaceState(null, '', location.pathname + location.search + '#cr=' + pkSlug(CR.a) + '~' + pkSlug(CR.b)); } catch (e) { } }
+function crTexto(t) { return esc(t).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener nofollow">${u.length > 48 ? u.slice(0, 45) + '…' : u}</a>`).replace(/\n/g, '<br>'); }
+function renderCrPubs(el) {
+  const l = crPubs(), puedo = puede('crianza'), viejo = !Array.isArray(S.d.publicaciones) && MODO !== 'demo';
+  el.innerHTML = `<div class="cr-pubs">
+    ${puedo && !viejo ? `<div class="cr-pub-cab"><button type="button" class="btn sand" data-act="cr-publicar">+ Nueva publicación</button><span class="muted">Texto, imagen o las dos cosas. Se firma con tu rol.</span></div>` : ''}
+    ${viejo && esAdmin() ? '<p class="aviso-lleno">Para publicar en Crianza pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo.</p>' : ''}
+    ${l.length ? l.map((x, i) => { const im = imagenSubida(x.imagen, 1600); return `<article class="cr-pub" style="--c:${esc(x.color || '#b03b40')};--i:${Math.min(i, 8)}">
+      ${im ? `<button type="button" class="cr-foto" data-act="cr-foto" data-id="${esc(x.id)}" aria-label="Ver la imagen en grande"><img src="${esc(im.url)}" alt="${esc(x.titulo || 'Imagen de la publicación')}"${im.alt ? ` data-alt="${esc(im.alt)}"` : ''}${im.id ? ` data-lid="${esc(im.id)}"` : ''} loading="lazy" decoding="async" onerror="imgFallo(this)"></button>` : ''}
+      <div class="cr-pub-c">${x.titulo ? `<h3>${esc(x.titulo)}</h3>` : ''}${x.texto ? `<p>${crTexto(x.texto)}</p>` : ''}
+        <div class="cr-pie"><span class="rol-chip" style="--c:${esc(x.color || '#b03b40')}">${esc(x.rol || 'Administración')}</span><span>${esc(x.autor || '')}</span><time datetime="${esc(x.fecha)}" title="${esc(fecha(x.fecha))}">${haceCuanto(x.fecha)}${x.editado ? ' · editado' : ''}</time>
+        ${puedo ? `<span class="cr-acc"><button type="button" class="link" data-act="cr-editar" data-id="${esc(x.id)}">Editar</button><button type="button" class="link" data-act="cr-borrar" data-id="${esc(x.id)}">Borrar</button></span>` : ''}</div></div></article>`; }).join('')
+      : `<div class="eq-vacio"><p><b>Todavía no hay publicaciones.</b> ${puedo ? 'Publicá la primera: una cadena de crianza, un consejo o una captura.' : 'Acá van a aparecer las cadenas de crianza, consejos y capturas de la comunidad.'}</p></div>`}
+  </div>`;
+}
+function formPublicacion(x) {
+  x = x || {};
+  const campos = [
+    { n: 'titulo', l: 'Título (opcional)', v: x.titulo, max: 90, ancho: true, ph: 'Ej.: Cadena para Lucario con Puño Drenaje' },
+    { n: 'texto', l: 'Texto', t: 'textarea', v: x.texto, max: 3000, ancho: true },
+    { n: 'archivo', l: x.imagen ? 'Cambiar la imagen (opcional)' : 'Imagen (opcional)', t: 'file', ancho: true, ayuda: 'PNG, JPG, WEBP o GIF. Se achica sola antes de subirla.' },
+    { n: 'firma', l: 'Firma (opcional)', v: x.autor && x.autor !== x.rol ? x.autor : '', max: 40, ph: nombreSesion() }
+  ];
+  if (x.imagen) campos.push({ n: 'quitar', l: 'Imagen actual', t: 'checks', opc: [{ v: 'si', l: 'Quitar la imagen' }], v: [] });
+  formulario({
+    titulo: x.id ? 'Editar publicación' : 'Nueva publicación en Crianza', boton: x.id ? 'Guardar cambios' : 'Publicar', dos: true, campos,
+    enviar: async v => {
+      const p = { id: x.id || '', seccion: 'crianza', titulo: v.titulo, texto: v.texto, firma: v.firma };
+      if (v.archivo) { const im = await achicarImagen(v.archivo, 1600); Object.assign(p, { mime: im.mime, base64: im.base64, nombre: v.archivo.name }); }
+      else if ((v.quitar || []).includes('si')) p.imagen = '';
+      if (!p.titulo.trim() && !p.texto.trim() && !p.base64 && !(x.imagen && p.imagen !== '')) throw new Error('Escribí algo o subí una imagen.');
+      await accion('publicacionGuardar', p, x.id ? 'Publicación actualizada.' : 'Publicado en Crianza.');
+      CR.tab = 'pubs'; renderCrianza();
+    }
+  });
+}
+function renderCrGrupos(el) {
+  const gs = Object.keys(CR.gh.grupos).sort((a, b) => GH_NO.includes(a) - GH_NO.includes(b) || a.localeCompare(b, 'es'));
+  if (!CR.grupo || !CR.gh.grupos[CR.grupo]) CR.grupo = gs[0];
+  const q = wkNorm(CR.q), l = CR.gh.grupos[CR.grupo].filter(n => !q || wkNorm(n).includes(q));
+  el.innerHTML = `<div class="chips cr-gchips" role="group" aria-label="Grupos huevo">${gs.map(g => `<button type="button" class="chip" style="--g:${GH_COLOR[g] || '#93b9c3'}" data-act="cr-grupo" data-f="${esc(g)}" aria-pressed="${g === CR.grupo}">${esc(g)}<b>${CR.gh.grupos[g].length}</b></button>`).join('')}</div>
+    <p class="muted cr-gnota">${GH_NO.includes(CR.grupo) ? 'Los Pokémon de este grupo no crían de forma normal.' : CR.grupo === 'Especial' ? 'Crían con casi cualquier Pokémon (como Ditto).' : 'Cualquier Pokémon de este grupo puede criar con otro del mismo grupo (macho y hembra).'}</p>
+    <input class="buscar" id="crBuscarG" type="search" placeholder="Filtrar en ${esc(CR.grupo)}…" aria-label="Filtrar Pokémon del grupo" value="${esc(CR.q)}" autocomplete="off">
+    <div class="cr-gl">${l.map((n, i) => { const pk = crPk(n); return `<a href="${esc(pkHref(n))}" class="cr-gi" style="--i:${Math.min(i, 30)}"><b>${esc(n)}</b>${pk ? `<span class="eq-tt">${pk.t.map(tipoChip).join('')}</span>` : ''}</a>`; }).join('') || '<p class="vacio">Ninguno coincide.</p>'}</div>`;
+  $('#crBuscarG').addEventListener('input', e => { CR.q = e.target.value; const pos = e.target.selectionStart; renderCrGrupos(el); const i = $('#crBuscarG'); i.focus(); i.setSelectionRange(pos, pos); });
+}
+/** Wikitexto de una sección → párrafos y listas (las tablas se ven en la wiki). */
+function wkBloques(t) {
+  const out = []; let lista = [];
+  const cerrar_ = () => { if (lista.length) { out.push('<ul>' + lista.map(x => `<li>${x}</li>`).join('') + '</ul>'); lista = []; } };
+  String(t).replace(/<ref[\s\S]*?<\/ref>|<ref[^>]*\/>/g, '').replace(/\{\|[\s\S]*?\n\|\}/g, '\n').split('\n').forEach(l => {
+    if (/^\s*(\{\||\||!)/.test(l)) { cerrar_(); return; }
+    if (/^\s*={3,}/.test(l)) { cerrar_(); const h = wkPulir(wkLimpiar(l.replace(/=+/g, ''))); if (h) out.push(`<h4>${esc(h)}</h4>`); return; }
+    const m = l.match(/^\s*[*#]+\s*(.*)/), x = wkPulir(wkLimpiar(m ? m[1] : l));
+    if (!x) { if (!m) cerrar_(); return; }
+    if (m) lista.push(esc(x)); else { cerrar_(); out.push(`<p>${esc(x)}</p>`); }
+  });
+  cerrar_(); return out.join('');
+}
+const CR_GUIA = ['Crianza Pokémon', 'Guardería Pokémon', 'Laboratorio de Crianza'];
+async function renderCrGuia(el) {
+  if (!CR.guia) {
+    el.innerHTML = '<p class="wk-cargando"><i></i>Trayendo la guía de crianza de la wiki…</p>';
+    try { CR.guia = wkCache('crguia1', 24) || wkCache('crguia1', 0, await wkVarias(CR_GUIA)); }
+    catch (e) { el.innerHTML = wkFallo(e, 'crianza'); return; }
+    if (CR.tab !== 'guia') return;
+  }
+  const bloques = CR_GUIA.filter(t => CR.guia[t]).map(t => {
+    const wt = CR.guia[t], pl = wkPlantilla(wt), cuerpo = pl ? wt.trimStart().slice(pl.fin) : wt;
+    const partes = cuerpo.split(/^==\s*([^=].*?)\s*==\s*$/m), intro = wkBloques(partes[0]);
+    const secs = []; for (let i = 1; i < partes.length; i += 2) { const h = wkPulir(wkLimpiar(partes[i])), b = wkBloques(partes[i + 1] || ''); if (h && b) secs.push([h, b]); }
+    const lugar = lugarDe(t);
+    return `<article class="cr-guia"><header><h3>${esc(t)}</h3>${lugar ? `<a class="btn sm" href="${MULTIPAGINA ? '/wiki/' + wkSlug(t) + '.html' : '#wiki/' + wkSlug(t)}">Ver el lugar</a>` : ''}<a class="btn sm" href="${esc(wkUrl(t))}" target="_blank" rel="noopener">Wiki original ↗</a></header>
+      ${intro ? `<div class="cr-intro">${intro}</div>` : ''}${secs.map(([h, b], i) => `<details${i === 0 && t === CR_GUIA[0] ? ' open' : ''}><summary>${esc(h)}</summary><div>${b}</div></details>`).join('')}</article>`;
+  });
+  el.innerHTML = bloques.length ? `<div class="cr-guias">${bloques.join('')}</div>` : '<p class="vacio">La wiki no devolvió la guía. Probá de nuevo más tarde.</p>';
+}
+
 /** En las páginas con id en el hash (#h-…), abre y resalta la tarjeta. */
 function anclaHash() {
   const m = location.hash.match(/^#(h-[\w-]+)$/); if (!m) return;
@@ -3297,12 +3545,12 @@ $$('#adminbar [data-solo-rol]').forEach(e => { if (e.dataset.soloRol === 'editor
 { const PERM_ACT = { 'nueva-noticia': 'noticias', 'nueva-guerra': 'guerra', 'nuevo-torneo': 'torneos', 'nuevo-combate': 'torneos' };
   $$('#adminbar .adminbar-acc [data-act]').forEach(b => { if (!b.dataset.perm && PERM_ACT[b.dataset.act]) b.dataset.perm = PERM_ACT[b.dataset.act]; }); }
 // Las páginas de la wiki generadas antes del analizador suman su pestaña acá (así no hay que volver a subir las 1.200 páginas).
-$$('.wk-nav').forEach(n => [['lugares', 'Islas y lugares', 'wiki'], ['equipo', 'Analizador', 'tipos']].forEach(([id, txt, tras]) => {
+$$('.wk-nav').forEach(n => [['lugares', 'Islas y lugares', 'wiki'], ['equipo', 'Analizador', 'tipos'], ['crianza', 'Crianza', 'equipo']].forEach(([id, txt, tras]) => {
   if (n.querySelector(`[data-ir="${id}"]`)) return;
   const t = n.querySelector(`[data-ir="${tras}"]`); if (!t) return;
   const a = document.createElement('a'); a.href = MULTIPAGINA ? PAGINA_DE[id] : '#' + id; a.dataset.ir = id; a.textContent = txt; t.after(a);
 }));
-const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos, equipo: pintarEquipo, lugares: pintarLugares, cat: pintarCatalogo };
+const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos, equipo: pintarEquipo, lugares: pintarLugares, cat: pintarCatalogo, crianza: pintarCrianza };
 (() => {
   const els = $$('[data-wk-carga]');
   const una = el => { if (el.dataset.cargado) return; el.dataset.cargado = '1'; WK_CARGAS[el.dataset.wkCarga](); };
