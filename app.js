@@ -682,7 +682,7 @@ const Demo = {
       }
     }
     if (a === 'rolGuardar') { this.rolGuardar(p); return this.vista(true); }
-    if (a === 'mercadoGrupo') { const e = String(p.enlace || '').trim(); if (e && !/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/.test(e)) throw new Error('Pegá el enlace de invitación del grupo (empieza con https://chat.whatsapp.com/).'); this.mkGrupo = e; return this.vista(true); }
+    if (a === 'mercadoGrupo') { const e = mkGrupoLimpio(p.enlace); if (e && !/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/.test(e)) throw new Error('Pegá el enlace de invitación del grupo (empieza con https://chat.whatsapp.com/).'); this.mkGrupo = e; return this.vista(true); }
     if (a === 'rolBorrar') { const l = this.roles(); if (!l.some(x => x.id === p.id)) throw new Error('Ese rol ya no existe.'); this.guardarRoles(l.filter(x => x.id !== p.id)); return this.vista(true); }
     if (a === 'logout') return true;
     if (a === 'adminDatos') return this.vista(true);
@@ -1951,7 +1951,7 @@ document.addEventListener('click', async ev => {
       case 'mk-ir-grupo': { const g = (S.d.config || {}).mercadoGrupo; await copiarTexto($('#mkMsg').value); window.open(g, '_blank', 'noopener'); toast('Mensaje copiado: pegalo en el grupo.'); break; }
       case 'mk-compartir': window.open('https://wa.me/?text=' + encodeURIComponent($('#mkMsg').value), '_blank', 'noopener'); break;
       case 'mk-wpp': { const w = window.open('', '_blank'); try { const r = await llamar('mercadoContacto', { id }); const u = 'https://wa.me/' + r.wpp + '?text=' + encodeURIComponent($('#mkMsg').value); if (w) { w.opener = null; w.location = u; } else location.href = u; } catch (e) { if (w) w.close(); throw e; } break; }
-      case 'mk-grupo-config': formulario({ titulo: 'Grupo de intercambios', boton: 'Guardar', texto: 'El botón «Mandarlo al grupo» abre este grupo de WhatsApp. Pegá el enlace de invitación.', campos: [{ n: 'enlace', l: 'Enlace del grupo', v: (S.d.config || {}).mercadoGrupo || '', ph: 'https://chat.whatsapp.com/…', ancho: true }], enviar: async v => { await accion('mercadoGrupo', { enlace: v.enlace.trim() }, v.enlace.trim() ? 'Enlace guardado.' : 'Enlace quitado.'); } }); break;
+      case 'mk-grupo-config': formulario({ titulo: 'Grupo de intercambios', boton: 'Guardar', texto: 'El botón «Mandarlo al grupo» abre este grupo de WhatsApp. Pegá el enlace de invitación.', campos: [{ n: 'enlace', l: 'Enlace del grupo', v: (S.d.config || {}).mercadoGrupo || '', ph: 'https://chat.whatsapp.com/…', ancho: true }], enviar: async v => { const e = mkGrupoLimpio(v.enlace); await accion('mercadoGrupo', { enlace: e }, e ? 'Enlace guardado.' : 'Enlace quitado.'); } }); break;
       case 'cr-grupo': CR.grupo = el.dataset.f; CR.q = ''; renderCrianza(); break;
       case 'cr-ditto': CR.b = 'Ditto'; if (!CR.a) CR.a = ''; crGuardarPar(); renderCrianza(); break;
       case 'cr-cambiar': [CR.a, CR.b] = [CR.b, CR.a]; crGuardarPar(); renderCrianza(); break;
@@ -3452,6 +3452,8 @@ const MK_CAT = { pokemon: 'Pokémon', objeto: 'Objeto', servicio: 'Servicio' };
 function mkYo() { try { return JSON.parse(sessionStorage.getItem('rlo-mk') || localStorage.getItem('rlo-mk') || 'null'); } catch (e) { return null; } }
 function mkGuardarYo(yo, recordar) { try { sessionStorage.removeItem('rlo-mk'); localStorage.removeItem('rlo-mk'); if (yo) (recordar ? localStorage : sessionStorage).setItem('rlo-mk', JSON.stringify(yo)); } catch (e) { } }
 const mkCod = m => 'M-' + String(m.num).padStart(3, '0');
+/** El enlace que comparte WhatsApp trae ?s=cl&p=…: se guarda solo https://chat.whatsapp.com/<código>. */
+function mkGrupoLimpio(s) { s = String(s || '').trim(); const m = s.match(/^(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,40})(?:[?#/].*)?$/i); return m ? 'https://chat.whatsapp.com/' + m[1] : s; }
 const mkLista = () => (S.d.mercado || []);
 const mkVisible = m => m.estado !== 'revisar' && !m.vencida;
 /** Coincidencias: alguien busca lo que otro ofrece o regala (misma cosa y categoría, carnets distintos). */
