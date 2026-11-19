@@ -21,7 +21,8 @@ var Core = (function () {
     { id: 'wiki', nombre: 'Guía de zonas', desc: 'Editar el resumen de cada zona', ops: ['wikiGuardar'] },
     { id: 'comunidad', nombre: 'Grupos de WhatsApp', desc: 'Actualizar los miembros de cada grupo', ops: ['grupoMiembros'] },
     { id: 'mensajes', nombre: 'Mensajes', desc: 'Leer y borrar los mensajes de contacto', ops: ['mensajes', 'mensajeBorrar'] },
-    { id: 'crianza', nombre: 'Crianza', desc: 'Publicar textos e imágenes en la sección Crianza', ops: ['publicacionGuardar', 'publicacionBorrar'] }
+    { id: 'crianza', nombre: 'Crianza', desc: 'Publicar textos e imágenes en la sección Crianza', ops: ['publicacionGuardar', 'publicacionBorrar'] },
+    { id: 'mercado', nombre: 'Mercado', desc: 'Moderar el mercado: sacar ofertas, revisar denuncias y cambiar el grupo de intercambios', ops: ['mercadoModerar', 'mercadoRestaurar', 'mercadoGrupo'] }
   ];
   /** Qué permiso hace falta para una acción ('' si es solo del admin). */
   function permisoDe(accion) {
@@ -61,11 +62,28 @@ var Core = (function () {
     regiones: ['id', 'nombre', 'orden', 'mapa', 'actualizado'],
     reglas: ['id', 'orden', 'titulo', 'texto', 'nota', 'destacada'],
     wiki: ['id', 'zona', 'resumen', 'notas', 'actualizado'],
-    publicaciones: ['id', 'seccion', 'fecha', 'titulo', 'texto', 'imagen', 'autor', 'rol', 'color', 'editado']
+    publicaciones: ['id', 'seccion', 'fecha', 'titulo', 'texto', 'imagen', 'autor', 'rol', 'color', 'editado'],
+    mercado: ['id', 'num', 'fecha', 'vence', 'carnetId', 'autor', 'equipo', 'tipo', 'categoria', 'cosa', 'shiny', 'nivel', 'sexo', 'naturaleza', 'habilidad', 'objeto', 'huevo', 'cambio', 'texto', 'estado', 'wpp', 'denuncias', 'motivos', 'cerrado']
   };
+  // Mercado: intercambios dentro del juego (sin plata real). Las ofertas vencen a los 7 días si no se renuevan.
+  var MERCADO = { dias: 7, maxPorCarnet: 8, tipos: ['ofrece', 'busca', 'regala'], categorias: ['pokemon', 'objeto', 'servicio'], denunciasParaOcultar: 3,
+    naturalezas: ['Activa', 'Afable', 'Agitada', 'Alegre', 'Alocada', 'Amable', 'Audaz', 'Cauta', 'Dócil', 'Firme', 'Floja', 'Fuerte', 'Grosera', 'Huraña', 'Ingenua', 'Mansa', 'Miedosa', 'Modesta', 'Osada', 'Pícara', 'Plácida', 'Rara', 'Seria', 'Serena', 'Tímida'] };
   // Secciones de la wiki donde se puede publicar (texto e imagen) desde la web.
   var SECCIONES_PUB = ['crianza'];
 
+  /** Saca las ofertas vencidas hace más de 30 días (las vencidas recientes quedan para poder renovarlas). */
+  function mercadoLimpiar(l, ahora) {
+    var limite = new Date(ahora).getTime() - 30 * 864e5;
+    return l.filter(function (m) { return !m.vence || new Date(m.vence).getTime() > limite; });
+  }
+  /** Lo que se muestra del mercado: nunca el número de WhatsApp (solo si hay uno). */
+  function vistaMercado(db, todo, ahora) {
+    var t = ahora ? new Date(ahora).getTime() : Date.now();
+    return (db.mercado || []).filter(function (m) { return todo || (m.estado !== 'revisar' && new Date(m.vence).getTime() > t); }).map(function (m) {
+      var o = {}; TABLAS.mercado.forEach(function (k) { if (k !== 'wpp' && (todo || (k !== 'motivos' && k !== 'denuncias'))) o[k] = m[k]; });
+      o.conWpp = !!m.wpp; o.vencida = new Date(m.vence).getTime() <= t; return o;
+    });
+  }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function txt(v, max) {
     v = (v == null ? '' : String(v)).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -205,6 +223,7 @@ var Core = (function () {
       equipos: equipos, territorios: territorios, guerras: guerras, torneos: [], combates: [],
       regiones: REGIONES.map(function (r) { return { id: r.id, nombre: r.nombre, orden: r.orden, mapa: '', actualizado: '' }; }),
       publicaciones: [],
+      mercado: [],
       noticias: [{ id: 'n-inicial', fecha: 'Parte territorial', titulo: 'La disputa por Star se intensifica',
         cuerpo: 'La Comisaría confirmó nuevos movimientos: Team Rekiem controla Ciudad Sirio; Team Delta tomó Ciudad Deneb, recuperada previamente del Team Flare; y el Escuadrón Élite resguarda el Bosque Místico. Tras los reportes de policías heridos, las autoridades piden mantener la calma y no involucrarse con organizaciones enemigas. El origen de Team Delta sigue sin esclarecerse.' }]
     };
@@ -248,7 +267,9 @@ var Core = (function () {
   function aplicar(db, op, p, ctx) {
     p = p || {};
     var ahora = ctx.ahora, x, t, i;
-    if (!ctx.admin) falla('Esta acción es solo para admins.');
+    // Las acciones del mercado las hace cualquiera con su carnet (llega verificado en ctx.carnet); el resto, admin o roles.
+    var PUBLICAS = { mercadoPublicar: 1, mercadoEditar: 1, mercadoRenovar: 1, mercadoCerrar: 1, mercadoBorrar: 1, mercadoDenunciar: 1 };
+    if (!ctx.admin && !PUBLICAS[op]) falla('Esta acción es solo para admins.');
     switch (op) {
       case 'equipoGuardar': {
         var n = txt(p.nombre, 40); if (!n) falla('Escribí el nombre del team.');
@@ -363,6 +384,64 @@ var Core = (function () {
         return { cambios: ['publicaciones'], resultado: { id: x.id } };
       }
       case 'publicacionBorrar': db.publicaciones = db.publicaciones || []; quitar(db.publicaciones, p.id); return { cambios: ['publicaciones'] };
+      // ----- Mercado: ctx.carnet llega verificado (clave del carnet) y ctx.moderador si es admin o rol Mercado -----
+      case 'mercadoPublicar': case 'mercadoEditar': {
+        db.mercado = mercadoLimpiar(db.mercado || [], ahora);
+        var yo = ctx.carnet; if (!yo || !yo.id) falla('Entrá con tu carnet para publicar.');
+        var nueva = op === 'mercadoPublicar';
+        x = nueva ? null : porId(db.mercado, p.id);
+        if (!nueva && !x) falla('Esa oferta ya no existe.');
+        if (x && x.carnetId !== yo.id) falla('Esa oferta es de otro carnet.');
+        var tipo = String(p.tipo || (x && x.tipo) || ''), cat = String(p.categoria || (x && x.categoria) || '');
+        if (MERCADO.tipos.indexOf(tipo) < 0) falla('Elegí si ofrecés, buscás o regalás.');
+        if (MERCADO.categorias.indexOf(cat) < 0) falla('Elegí si es un Pokémon, un objeto o un servicio.');
+        var cosa = txt(p.cosa, 60); if (!cosa) falla(cat === 'pokemon' ? 'Elegí el Pokémon.' : cat === 'objeto' ? 'Escribí el objeto.' : 'Contá qué servicio es.');
+        if (/\$|\busd\b|d[oó]lares?|\bpesos\b|plata real|dinero|paypal|mercado ?pago|transferencia/i.test(cosa + ' ' + (p.cambio || '') + ' ' + (p.texto || ''))) falla('En el mercado solo se cambian cosas del juego: nada de plata real.');
+        if (nueva) {
+          var mias = db.mercado.filter(function (m) { return m.carnetId === yo.id && m.estado === 'activa'; }).length;
+          if (mias >= MERCADO.maxPorCarnet) falla('Ya tenés ' + MERCADO.maxPorCarnet + ' ofertas activas. Cerrá o borrá alguna para publicar otra.');
+          var num = db.mercado.reduce(function (mx, m) { return Math.max(mx, Number(m.num) || 0); }, Number(ctx.ultimoNum) || 0) + 1;
+          x = { id: uid(), num: String(num), fecha: ahora, carnetId: yo.id, estado: 'activa', denuncias: '0', motivos: '' };
+          db.mercado.unshift(x);
+        }
+        x.autor = txt(yo.nombre, 40); x.equipo = txt(yo.equipo, 40);
+        x.tipo = tipo; x.categoria = cat; x.cosa = cosa;
+        var pk = cat === 'pokemon';
+        x.shiny = pk && (p.shiny === true || p.shiny === '1' || p.shiny === 'si') ? '1' : '';
+        x.huevo = pk && (p.huevo === true || p.huevo === '1' || p.huevo === 'si') ? '1' : '';
+        var nv = Math.floor(Number(p.nivel)); x.nivel = pk && !x.huevo && nv >= 1 && nv <= 100 ? String(nv) : '';
+        x.sexo = pk && (p.sexo === 'M' || p.sexo === 'H') ? p.sexo : '';
+        x.naturaleza = pk && MERCADO.naturalezas.indexOf(p.naturaleza) >= 0 ? p.naturaleza : '';
+        x.habilidad = pk ? txt(p.habilidad, 40) : ''; x.objeto = pk ? txt(p.objeto, 40) : '';
+        x.cambio = txt(p.cambio, 120); x.texto = largo(p.texto, 400);
+        if (p.wpp !== undefined) { var w = String(p.wpp || '').replace(/[^\d]/g, ''); if (w && (w.length < 10 || w.length > 15)) falla('El WhatsApp tiene que tener el código de país y el número (ej.: 5491122334455).'); x.wpp = w; }
+        x.vence = new Date(new Date(ahora).getTime() + MERCADO.dias * 864e5).toISOString();
+        return { cambios: ['mercado'], resultado: { id: x.id, num: x.num } };
+      }
+      case 'mercadoRenovar': case 'mercadoCerrar': case 'mercadoBorrar': {
+        db.mercado = mercadoLimpiar(db.mercado || [], ahora);
+        x = porId(db.mercado, p.id); if (!x) falla('Esa oferta ya no existe.');
+        if (!ctx.moderador && (!ctx.carnet || ctx.carnet.id !== x.carnetId)) falla('Esa oferta es de otro carnet.');
+        if (op === 'mercadoBorrar') { quitar(db.mercado, x.id); return { cambios: ['mercado'] }; }
+        if (op === 'mercadoCerrar') { x.estado = 'cerrada'; x.cerrado = ahora; x.vence = new Date(new Date(ahora).getTime() + 2 * 864e5).toISOString(); return { cambios: ['mercado'] }; }
+        if (x.estado === 'revisar') falla('La oferta está en revisión por denuncias.');
+        x.estado = 'activa'; x.cerrado = ''; x.vence = new Date(new Date(ahora).getTime() + MERCADO.dias * 864e5).toISOString();
+        return { cambios: ['mercado'] };
+      }
+      case 'mercadoModerar': db.mercado = db.mercado || []; quitar(db.mercado, p.id); return { cambios: ['mercado'] };
+      case 'mercadoRestaurar': {
+        x = porId(db.mercado || [], p.id); if (!x) falla('Esa oferta ya no existe.');
+        x.denuncias = '0'; x.motivos = ''; if (x.estado === 'revisar') x.estado = 'activa';
+        return { cambios: ['mercado'] };
+      }
+      case 'mercadoDenunciar': {
+        x = porId(db.mercado || [], p.id); if (!x) falla('Esa oferta ya no existe.');
+        var motivo = txt(p.motivo, 100); if (!motivo) falla('Contanos qué pasa con esta oferta.');
+        var ms = x.motivos ? String(x.motivos).split(' | ') : []; ms.unshift(motivo); x.motivos = ms.slice(0, 3).join(' | ');
+        x.denuncias = String((Number(x.denuncias) || 0) + 1);
+        if (Number(x.denuncias) >= MERCADO.denunciasParaOcultar && x.estado === 'activa') x.estado = 'revisar';
+        return { cambios: ['mercado'] };
+      }
       case 'reglaGuardar': {
         db.reglas = db.reglas || [];
         if (!txt(p.titulo)) falla('La regla necesita un título.');
@@ -475,11 +554,12 @@ var Core = (function () {
       reglas: (db.reglas || []).slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); }),
       wiki: db.wiki || [],
       regiones: listaRegiones(db),
-      publicaciones: (db.publicaciones || []).slice(0, admin ? 400 : 120)
+      publicaciones: (db.publicaciones || []).slice(0, admin ? 400 : 120),
+      mercado: vistaMercado(db, admin)
     };
   }
 
-  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial, PERMISOS: PERMISOS, permisoDe: permisoDe };
+  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial, PERMISOS: PERMISOS, permisoDe: permisoDe, MERCADO: MERCADO, vistaMercado: vistaMercado };
 })();
 // ===== FIN DEL NÚCLEO =====
 // Si alojás este HTML fuera de Google (GitHub Pages, etc.), pegá acá la URL /exec de tu Apps Script.
@@ -495,7 +575,7 @@ if (location.hostname === 'stormacher95.github.io') {
   gc.async = true; gc.dataset.goatcounter = 'https://reloaded-online.goatcounter.com/count'; gc.src = 'https://gc.zgo.at/count.js';
   document.head.appendChild(gc);
 }
-const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', crianza: '/wiki/crianza.html', lugares: '/wiki/lugares.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
+const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', crianza: '/wiki/crianza.html', mercado: '/mercado.html', lugares: '/wiki/lugares.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
 const WPP_GENERAL = 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6';
@@ -519,6 +599,7 @@ const Demo = {
     (v.regiones || []).forEach(r => { mapas[r.id] = this.mapas[r.id] ? { url: this.mapas[r.id] } : r.id === 'star' ? { url: 'mapa-territorial-reloaded-online.png' } : null; });
     v.config = { modo: 'demo', mapa: mapas.star, mapas, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
     const roles = this.roles(), r = admin && this.sesion;
+    v.config.mercadoGrupo = this.mkGrupo || '';
     v.config.staff = roles.filter(x => x.publico).map(x => ({ nombre: x.nombre, color: x.color, personas: x.personas || '' }));
     if (r) Object.assign(v.config, { rol: 'rol', rolId: r.id, rolNombre: r.nombre, rolColor: r.color, permisos: r.permisos.slice() });
     else if (admin) Object.assign(v.config, { rol: 'admin', roles: roles.map(x => ({ id: x.id, nombre: x.nombre, color: x.color, personas: x.personas || '', publico: !!x.publico, permisos: x.permisos.slice(), conClave: true })) });
@@ -562,6 +643,17 @@ const Demo = {
       dc.push(c); DemoC.guardar(dc); return pub(c);
     }
     if (a === 'carnetVerificar') { if (dbusca(p.id).clave !== p.clave) throw new Error('Clave incorrecta.'); return { ok: true }; }
+    if (/^mercado(Publicar|Editar|Renovar|Cerrar|Borrar|Denunciar|Contacto|Mias)$/.test(a)) {
+      const db = this.db(); db.mercado = db.mercado || [];
+      if (a === 'mercadoContacto') { const m = db.mercado.find(x => x.id === p.id); if (!m || !m.wpp) throw new Error('Esa oferta no tiene WhatsApp. Usá el grupo de intercambios.'); return { wpp: m.wpp }; }
+      const rr = String(tok || '').startsWith('demo-rol:') && this.roles().find(x => 'demo-rol:' + x.id === tok);
+      const mod = tok === 'demo-token' || !!(rr && rr.permisos.includes('mercado'));
+      let carnet = null;
+      if (a !== 'mercadoDenunciar' && !(mod && a === 'mercadoBorrar')) { const c = dbusca(p.carnet); if (c.clave !== p.clave) throw new Error('Clave incorrecta.'); carnet = { id: c.id, nombre: c.nombre, equipo: c.equipo }; }
+      if (a === 'mercadoMias') return { mias: db.mercado.filter(x => x.carnetId === carnet.id).map(x => Object.assign({}, x)) };
+      const r = Core.aplicar(db, a, p, { ahora: new Date().toISOString(), carnet, moderador: mod });
+      this.guardar(); return { mercado: Core.vistaMercado(db, false), resultado: r.resultado || null };
+    }
     if (a === 'carnetEditar') {
       const rc = String(tok || '').startsWith('demo-rol:') && this.roles().find(x => 'demo-rol:' + x.id === tok);
       const c = dbusca(p.id); if (tok !== 'demo-token' && !(rc && rc.permisos.includes('carnets')) && c.clave !== p.clave) throw new Error('Clave incorrecta.');
@@ -590,6 +682,7 @@ const Demo = {
       }
     }
     if (a === 'rolGuardar') { this.rolGuardar(p); return this.vista(true); }
+    if (a === 'mercadoGrupo') { const e = String(p.enlace || '').trim(); if (e && !/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/.test(e)) throw new Error('Pegá el enlace de invitación del grupo (empieza con https://chat.whatsapp.com/).'); this.mkGrupo = e; return this.vista(true); }
     if (a === 'rolBorrar') { const l = this.roles(); if (!l.some(x => x.id === p.id)) throw new Error('Ese rol ya no existe.'); this.guardarRoles(l.filter(x => x.id !== p.id)); return this.vista(true); }
     if (a === 'logout') return true;
     if (a === 'adminDatos') return this.vista(true);
@@ -719,6 +812,8 @@ function render() {
   $$('#adminbar [data-perm]').forEach(e => { e.hidden = !puede(e.dataset.perm); });
   if (hay('#staff')) renderStaff();
   if (hay('#crianzaApp') && CR.gh) renderCrianza();
+  if (hay('#mkLista')) renderMercado();
+  $$('[data-mk-pk]').forEach(mkEnFicha);
   if (hay('#clasif')) renderClasif();
   if (hay('#gridCarnets')) renderCarnets();
   renderGrupos();
@@ -1633,7 +1728,8 @@ const ROL_PLANTILLAS = [
   { nombre: 'Moderador', color: '#ef6f8f', permisos: ['teams', 'carnets', 'comunidad', 'mensajes'] },
   { nombre: 'Organizador de torneos', color: '#e8a33c', permisos: ['torneos', 'noticias'] },
   { nombre: 'Cartógrafo', color: '#4fc98a', permisos: ['zonas', 'mundo', 'wiki'] },
-  { nombre: 'Criador', color: '#ee99ac', permisos: ['crianza'] }
+  { nombre: 'Criador', color: '#ee99ac', permisos: ['crianza'] },
+  { nombre: 'Mercader', color: '#e8a33c', permisos: ['mercado'] }
 ];
 function panelRolesHTML() {
   const cfg = S.d.config || {};
@@ -1828,6 +1924,34 @@ document.addEventListener('click', async ev => {
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
       case 'lug-filtro': LUG.f = el.dataset.f; renderLugares(); break;
       case 'cr-tab': crTab(el.dataset.v); break;
+      case 'mk-tipo': MK.tipo = el.dataset.f; renderMercado(); break;
+      case 'mk-cat': MK.cat = MK.cat === el.dataset.f ? 'todos' : el.dataset.f; renderMercado(); break;
+      case 'mk-shiny': MK.shiny = !MK.shiny; renderMercado(); break;
+      case 'mk-solo': MK.solo = MK.solo === el.dataset.f ? '' : el.dataset.f; if (MK.solo === 'mias') await mkCargarMias(); renderMercado(); break;
+      case 'mk-match': { const m = mkLista().find(x => x.id === id); if (m) { MK.q = m.cosa; MK.tipo = 'todos'; MK.solo = ''; $('#buscarMk').value = m.cosa; renderMercado(); } break; }
+      case 'mk-ver-pk': cerrar($('#dlgWiki')); $$('dialog[open]').forEach(cerrar); MK.q = el.dataset.n; ir('mercado'); { const b = $('#buscarMk'); if (b) b.value = MK.q; } renderMercado(); break;
+      case 'mk-entrar': mkEntrar(); break;
+      case 'mk-salir': mkGuardarYo(null); MK.mias = null; if (MK.solo === 'mias') MK.solo = ''; renderMercado(); toast('Saliste del mercado.'); break;
+      case 'mk-publicar': if (!mkYo()) { mkEntrar(); break; } formMercado(); break;
+      case 'mk-editar': { const m = (MK.mias || []).find(x => x.id === id) || mkLista().find(x => x.id === id); if (!m) break; if (m.wpp === undefined && m.conWpp) { await mkCargarMias(); } formMercado((MK.mias || []).find(x => x.id === id) || m); break; }
+      case 'mk-cerrar': await mkAccion('mercadoCerrar', { id }, '¡Bien! La oferta queda como cambiada 2 días.'); break;
+      case 'mk-renovar': await mkAccion('mercadoRenovar', { id }, 'Renovada por 7 días más.'); break;
+      case 'mk-borrar': confirmar('Borrar la oferta', 'Se saca del mercado.', 'Borrar', async () => { await mkAccion('mercadoBorrar', { id }, 'Oferta borrada.'); }); break;
+      case 'mk-sacar': confirmar('Sacar la oferta', 'Como moderador, la sacás del mercado.', 'Sacar', async () => { await accion('mercadoModerar', { id }, 'Oferta sacada.'); }); break;
+      case 'mk-restaurar': await accion('mercadoRestaurar', { id }, 'La oferta vuelve al mercado.'); break;
+      case 'mk-denunciar': {
+        let ya = []; try { ya = JSON.parse(localStorage.getItem('rlo-denuncias') || '[]'); } catch (e) { }
+        if (ya.includes(id)) { toast('Ya denunciaste esta oferta. Gracias.'); break; }
+        formulario({ titulo: 'Denunciar la oferta', boton: 'Enviar denuncia', peligro: true, texto: 'Lo revisa un moderador. Con 3 denuncias la oferta pasa a revisión.',
+          campos: [{ n: 'motivo', l: '¿Qué pasa?', t: 'select', opc: ['Pide plata real', 'Pokémon u objeto hackeado', 'Estafa o no cumplió', 'Ofensiva o spam', 'Otro'] }, { n: 'detalle', l: 'Contanos más (opcional)', max: 80 }],
+          enviar: async v => { await mkAccion('mercadoDenunciar', { id, motivo: v.motivo + (v.detalle ? ': ' + v.detalle : '') }, 'Gracias: lo va a revisar un moderador.'); try { ya.push(id); localStorage.setItem('rlo-denuncias', JSON.stringify(ya.slice(-100))); } catch (e) { } } });
+        break;
+      }
+      case 'mk-quiero': { const m = mkLista().find(x => x.id === id); if (m) mkQuiero(m); break; }
+      case 'mk-ir-grupo': { const g = (S.d.config || {}).mercadoGrupo; await copiarTexto($('#mkMsg').value); window.open(g, '_blank', 'noopener'); toast('Mensaje copiado: pegalo en el grupo.'); break; }
+      case 'mk-compartir': window.open('https://wa.me/?text=' + encodeURIComponent($('#mkMsg').value), '_blank', 'noopener'); break;
+      case 'mk-wpp': { const w = window.open('', '_blank'); try { const r = await llamar('mercadoContacto', { id }); const u = 'https://wa.me/' + r.wpp + '?text=' + encodeURIComponent($('#mkMsg').value); if (w) { w.opener = null; w.location = u; } else location.href = u; } catch (e) { if (w) w.close(); throw e; } break; }
+      case 'mk-grupo-config': formulario({ titulo: 'Grupo de intercambios', boton: 'Guardar', texto: 'El botón «Mandarlo al grupo» abre este grupo de WhatsApp. Pegá el enlace de invitación.', campos: [{ n: 'enlace', l: 'Enlace del grupo', v: (S.d.config || {}).mercadoGrupo || '', ph: 'https://chat.whatsapp.com/…', ancho: true }], enviar: async v => { await accion('mercadoGrupo', { enlace: v.enlace.trim() }, v.enlace.trim() ? 'Enlace guardado.' : 'Enlace quitado.'); } }); break;
       case 'cr-grupo': CR.grupo = el.dataset.f; CR.q = ''; renderCrianza(); break;
       case 'cr-ditto': CR.b = 'Ditto'; if (!CR.a) CR.a = ''; crGuardarPar(); renderCrianza(); break;
       case 'cr-cambiar': [CR.a, CR.b] = [CR.b, CR.a]; crGuardarPar(); renderCrianza(); break;
@@ -2490,7 +2614,7 @@ function fichaPokemonHTML(p, enPagina) {
   const movs = p.movs.length ? `<div class="chips pk-tabs">${p.movs.map((g, i) => `<button type="button" class="chip" data-act="pk-tab" data-i="${i}" aria-pressed="${i === 0}">${esc(g.n)}<b>${g.l.length}</b></button>`).join('')}</div>`
     + p.movs.map((g, i) => { const col = /nivel/i.test(g.n) ? 'Nv.' : /m[to]|dt/i.test(g.n) ? 'N.°' : '', cx = col && g.l.some(x => x.x); return `<div class="pk-movs" data-i="${i}"${i ? ' hidden' : ''}><div style="overflow-x:auto"><table class="wk-tabla"><thead><tr>${cx ? `<th>${col}</th>` : ''}<th>Movimiento</th><th>Tipo</th><th>Categoría</th></tr></thead><tbody>${g.l.map(x => `<tr>${cx ? `<td>${esc(x.x)}</td>` : ''}<td>${esc(x.m)}</td><td>${tipoChip(x.t)}</td><td>${esc(x.c)}</td></tr>`).join('')}</tbody></table></div></div>`; }).join('') : '';
   const cuerpo = `<dl class="ficha">${datos.map(([k, v, html]) => `<div><dt>${k}</dt><dd>${html ? v : esc(v)}</dd></div>`).join('')}</dl>
-      ${sec('Estadísticas base', stats)}${p.tipos.length ? sec('Debilidades y resistencias', debilidadesHTML(p.tipos)) : ''}${sec('Evolución', evo)}${sec('Dónde encontrarlo', loc)}${sec('Movimientos', movs)}
+      <div data-mk-pk="${esc(p.n)}"></div>${sec('Estadísticas base', stats)}${p.tipos.length ? sec('Debilidades y resistencias', debilidadesHTML(p.tipos)) : ''}${sec('Evolución', evo)}${sec('Dónde encontrarlo', loc)}${sec('Movimientos', movs)}
       <p class="wk-pie">Datos de la <a href="${esc(p.url)}" target="_blank" rel="noopener">ficha de ${esc(p.n)} en la Wiki PokemonReloaded ↗</a>, hecha por su comunidad de editores (licencia CC BY-SA).${MULTIPAGINA && !enPagina ? ` · <a href="${pkHref(p.n)}">Página de ${esc(p.n)} en esta web</a>` : ''}</p>`;
   if (enPagina) return cuerpo;
   return `<div class="dlg" style="--c:${COLOR_TIPO[p.tipos[0]] || '#1a5d74'}"><div class="dlg-cab"><p class="muted">${esc([num, p.especie && 'Pokémon ' + p.especie].filter(Boolean).join(' · ') || 'Pokédex de Reloaded')}</p><h2>${esc(p.n)}</h2><p class="pk-tipos">${p.tipos.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Exclusivo de Reloaded</span>' : ''}</p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
@@ -2503,7 +2627,7 @@ async function pintarPokemonPagina(caja) {
     let p = await wkPokemon(n);
     // Si la ficha en vivo viene con menos datos que la página, se queda lo que ya teníamos
     if (!p.hab.length && caja.dataset.hab) p = Object.assign({}, p, { hab: caja.dataset.hab.split('|'), oculta: p.oculta || caja.dataset.oc || '' });
-    caja.innerHTML = fichaPokemonHTML(p, true);
+    caja.innerHTML = fichaPokemonHTML(p, true); $$('[data-mk-pk]', caja).forEach(mkEnFicha);
     const dz = $('[data-donde]', caja); if (dz) pkDonde(p.n, dz);
     const dl = $('[data-locl]', caja);
     if (dl && fijoHTML) { dl.innerHTML = fijoHTML; const v = $('[data-loc-ficha]', caja); if (v) v.hidden = true; const m = dl.parentNode.querySelector(':scope > p.muted'); if (m) m.hidden = true; }
@@ -2519,7 +2643,7 @@ async function abrirPokemon(nombre, desdeRuta) {
   abrir(d);
   try {
     const p = await wkPokemon(nombre);
-    if (d.dataset.n === nombre && d.open) { d.innerHTML = fichaPokemonHTML(p); const dz = $('[data-donde]', d); if (dz) pkDonde(p.n, dz); const dl = $('[data-locl]', d); if (dl) pkLocLista(p, dl); }
+    if (d.dataset.n === nombre && d.open) { d.innerHTML = fichaPokemonHTML(p); $$('[data-mk-pk]', d).forEach(mkEnFicha); const dz = $('[data-donde]', d); if (dz) pkDonde(p.n, dz); const dl = $('[data-locl]', d); if (dl) pkLocLista(p, dl); }
   } catch (e) {
     if (d.dataset.n === nombre && d.open) $('.dlg-cuerpo', d).innerHTML = `<div class="wk-error">No se pudo traer la ficha: ${esc(e.message)} <button class="link" type="button" data-act="pk-reintentar" data-n="${esc(nombre)}">Reintentar</button></div><p class="wk-pie" style="margin-top:12px"><a href="${esc(wkUrl(nombre))}" target="_blank" rel="noopener">Buscar ${esc(nombre)} en la Wiki PokemonReloaded ↗</a></p>`;
   }
@@ -3321,6 +3445,179 @@ function renderEquipo() {
     </div>`;
 }
 
+// ----- Mercado: ofertas con el carnet, matches, "Lo quiero" por el grupo o WhatsApp, denuncias y moderación -----
+const MK = { tipo: 'todos', cat: 'todos', q: '', shiny: false, solo: '', mias: null };
+const MK_TIPO = { ofrece: ['Ofrece', '#7fcf7b'], busca: ['Busca', '#5aa9ff'], regala: ['Regala', '#f4d38b'] };
+const MK_CAT = { pokemon: 'Pokémon', objeto: 'Objeto', servicio: 'Servicio' };
+function mkYo() { try { return JSON.parse(sessionStorage.getItem('rlo-mk') || localStorage.getItem('rlo-mk') || 'null'); } catch (e) { return null; } }
+function mkGuardarYo(yo, recordar) { try { sessionStorage.removeItem('rlo-mk'); localStorage.removeItem('rlo-mk'); if (yo) (recordar ? localStorage : sessionStorage).setItem('rlo-mk', JSON.stringify(yo)); } catch (e) { } }
+const mkCod = m => 'M-' + String(m.num).padStart(3, '0');
+const mkLista = () => (S.d.mercado || []);
+const mkVisible = m => m.estado !== 'revisar' && !m.vencida;
+/** Coincidencias: alguien busca lo que otro ofrece o regala (misma cosa y categoría, carnets distintos). */
+function mkMatches(m) {
+  if (!mkVisible(m) || m.estado !== 'activa') return [];
+  const k = wkClave(m.cosa), opuesto = m.tipo === 'busca' ? ['ofrece', 'regala'] : ['busca'];
+  return mkLista().filter(o => o.id !== m.id && o.carnetId !== m.carnetId && o.estado === 'activa' && mkVisible(o) && o.categoria === m.categoria && opuesto.includes(o.tipo) && wkClave(o.cosa) === k);
+}
+function mkVence(m) {
+  if (m.estado === 'cerrada') return '¡Cambiado!';
+  const d = Math.ceil((new Date(m.vence) - Date.now()) / 864e5);
+  return m.vencida || d <= 0 ? 'Vencida' : d === 1 ? 'Vence mañana' : 'Vence en ' + d + ' días';
+}
+function mkDesc(m) {
+  const det = [m.shiny && 'shiny', m.huevo && 'huevo', m.nivel && 'nv. ' + m.nivel, m.sexo && (m.sexo === 'M' ? '♂' : '♀')].filter(Boolean).join(' ');
+  return m.cosa + (det ? ' (' + det + ')' : '');
+}
+function mkEnlace(m) { return (MULTIPAGINA ? (SITIO_URL || location.origin + '/') + 'mercado.html' : location.href.split('#')[0]) + '#' + mkCod(m); }
+function mkMensaje(m) {
+  const yo = mkYo(), firma = yo ? ' Soy ' + yo.nombre + '.' : '';
+  return m.tipo === 'busca'
+    ? `¡Hola @${m.autor}! 👋 Vi en el Mercado de Reloaded Online que buscás ${mkDesc(m)} (${mkCod(m)}) y lo tengo.${firma} ¿Lo hablamos? ${mkEnlace(m)}`
+    : `¡Hola @${m.autor}! 👋 Me interesa tu oferta ${mkCod(m)} del Mercado de Reloaded Online: ${mkDesc(m)}.${m.cambio ? ' Vi que pedís: ' + m.cambio + '.' : ''}${firma} ${mkEnlace(m)}`;
+}
+function mkCarta(m, i, mias) {
+  const pk = m.categoria === 'pokemon' && EQ.dex ? eqBuscarPk(m.cosa) : null, t = MK_TIPO[m.tipo] || MK_TIPO.ofrece;
+  const c1 = pk ? COLOR_TIPO[pk.t[0]] : m.categoria === 'objeto' ? '#e8a33c' : '#9b7cf0', c2 = pk ? COLOR_TIPO[pk.t[1] || pk.t[0]] : c1;
+  const mt = mkMatches(m), mio = MK.yo && MK.yo.id === m.carnetId, mod = puede('mercado'), lg = m.equipo ? emblema(m.equipo) : null;
+  const det = [m.huevo && ['Huevo', ''], m.nivel && ['Nv.', m.nivel], m.sexo && [m.sexo === 'M' ? '♂ Macho' : '♀ Hembra', ''], m.naturaleza && [m.naturaleza, ''], m.habilidad && [m.habilidad, ''], m.objeto && ['Lleva', m.objeto]].filter(Boolean);
+  return `<article class="mk-c t-${esc(m.tipo)}${m.shiny ? ' shiny' : ''}${mt.length ? ' match' : ''}${m.estado === 'cerrada' ? ' cerrada' : ''}${m.estado === 'revisar' ? ' revisar' : ''}${m.vencida ? ' vencida' : ''}" id="${mkCod(m)}" style="--t1:${c1};--t2:${c2};--tc:${t[1]};--i:${Math.min(i, 14)}">
+    <header><span class="mk-tipo">${t[0]}</span><span class="mk-cat">${MK_CAT[m.categoria] || ''}</span><a class="mk-num" href="#${mkCod(m)}">${mkCod(m)}</a></header>
+    ${mt.length ? `<button type="button" class="mk-match" data-act="mk-match" data-id="${esc(m.id)}">¡Match! ${esc(mt.slice(0, 2).map(o => '@' + o.autor).join(', '))}${mt.length > 2 ? ' y ' + (mt.length - 2) + ' más' : ''} ${m.tipo === 'busca' ? 'lo tiene' : 'lo busca'}</button>` : ''}
+    <div class="mk-cosa">${pk ? `<a href="${esc(pkHref(pk.n))}" class="mk-nom">${esc(m.cosa)}</a>` : `<b class="mk-nom">${esc(m.cosa)}</b>`}${m.shiny ? '<span class="mk-shiny" title="Shiny">✦ Shiny</span>' : ''}${pk ? `<span class="eq-tt">${pk.t.map(tipoChip).join('')}</span>` : ''}</div>
+    ${det.length ? `<ul class="mk-det">${det.map(([a, b]) => `<li>${esc(a)}${b ? ' <b>' + esc(b) + '</b>' : ''}</li>`).join('')}</ul>` : ''}
+    ${m.cambio ? `<p class="mk-cambio"><span>${m.tipo === 'busca' ? 'Ofrece a cambio' : m.tipo === 'regala' ? 'Pide' : 'A cambio de'}</span>${esc(m.cambio)}</p>` : ''}
+    ${m.texto ? `<p class="mk-txt">${crTexto(m.texto)}</p>` : ''}
+    ${mod && m.motivos ? `<p class="mk-denuncias"><b>${esc(m.denuncias)} denuncia${m.denuncias === '1' ? '' : 's'}:</b> ${esc(m.motivos)}</p>` : ''}
+    <div class="mk-pie"><span class="mk-quien">${avatar(m.autor, lg ? colorEq(m.equipo) : '#7cc4e8', 26)}<span><b>${esc(m.autor)}</b>${m.equipo ? `<small>${esc(m.equipo)}</small>` : ''}</span></span><span class="mk-vence">${mkVence(m)}</span></div>
+    <div class="mk-acc">
+      ${m.estado === 'activa' && !m.vencida && !mio ? `<button type="button" class="btn sm sand" data-act="mk-quiero" data-id="${esc(m.id)}">${m.tipo === 'busca' ? 'Lo tengo' : 'Lo quiero'}</button>` : ''}
+      ${mio ? `<button type="button" class="btn sm" data-act="mk-editar" data-id="${esc(m.id)}">Editar</button>${m.estado === 'activa' && !m.vencida ? `<button type="button" class="btn sm" data-act="mk-cerrar" data-id="${esc(m.id)}">¡Cambiado!</button>` : ''}${m.estado !== 'revisar' && (m.vencida || m.estado === 'cerrada' || (new Date(m.vence) - Date.now()) < 3 * 864e5) ? `<button type="button" class="btn sm" data-act="mk-renovar" data-id="${esc(m.id)}">Renovar 7 días</button>` : ''}<button type="button" class="btn sm danger" data-act="mk-borrar" data-id="${esc(m.id)}">Borrar</button>` : ''}
+      ${mod && !mio ? `${m.estado === 'revisar' || Number(m.denuncias) ? `<button type="button" class="btn sm" data-act="mk-restaurar" data-id="${esc(m.id)}">Está bien</button>` : ''}<button type="button" class="btn sm danger" data-act="mk-sacar" data-id="${esc(m.id)}">Sacar</button>` : ''}
+      ${!mio && m.estado === 'activa' ? `<button type="button" class="link mk-denunciar" data-act="mk-denunciar" data-id="${esc(m.id)}">Denunciar</button>` : ''}
+    </div>
+  </article>`;
+}
+function renderMercado() {
+  const el = $('#mkLista'); if (!el) return;
+  MK.yo = mkYo();
+  const viejo = !Array.isArray(S.d.mercado) && MODO !== 'demo', mod = puede('mercado'), grupo = (S.d.config || {}).mercadoGrupo;
+  $('#mkBarra').innerHTML = `<div class="mk-yo">${MK.yo ? `${avatar(MK.yo.nombre, '#7cc4e8', 34)}<span>Publicás como <b>${esc(MK.yo.nombre)}</b></span><button type="button" class="link" data-act="mk-salir">Salir</button>` : '<span>Para publicar entrá con tu <b>carnet de entrenador</b>.</span>'}</div>
+    <div class="mk-botones">${MK.yo ? '<button type="button" class="btn sand mk-publicar" data-act="mk-publicar">+ Publicar oferta</button>' : `<button type="button" class="btn sand" data-act="mk-entrar">Entrar con mi carnet</button><a class="btn" href="${MULTIPAGINA ? '/carnets.html#crear' : '#entrenadores'}">Crear mi carnet</a>`}
+    ${grupo ? `<a class="btn mk-grupo" href="${esc(grupo)}" target="_blank" rel="noopener">Grupo de intercambios</a>` : ''}${mod ? '<button type="button" class="btn" data-act="mk-grupo-config">Enlace del grupo</button>' : ''}</div>`;
+  if (viejo) { el.innerHTML = `<p class="aviso-lleno">${esAdmin() ? 'Para activar el mercado pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo.' : 'El mercado abre muy pronto.'}</p>`; return; }
+  const todas = mkLista(), base = MK.solo === 'mias' ? (MK.mias || []) : mod && MK.solo === 'revisar' ? todas.filter(m => m.estado === 'revisar' || Number(m.denuncias) > 0) : todas.filter(mkVisible);
+  const q = wkNorm(MK.q);
+  const vis = base.filter(m => (MK.tipo === 'todos' || m.tipo === MK.tipo) && (MK.cat === 'todos' || m.categoria === MK.cat) && (!MK.shiny || m.shiny) && (MK.solo !== 'match' || mkMatches(m).length) && (!q || wkNorm([m.cosa, m.autor, m.equipo, m.cambio, m.texto, m.habilidad, m.objeto, mkCod(m)].join(' ')).includes(q)));
+  vis.sort((a, b) => (a.estado === 'cerrada') - (b.estado === 'cerrada') || (mkMatches(b).length > 0) - (mkMatches(a).length > 0) || String(b.fecha).localeCompare(String(a.fecha)));
+  const n = (f) => todas.filter(m => mkVisible(m) && f(m)).length;
+  const chip = (act, v, l, cnt, on) => `<button type="button" class="chip" data-act="${act}" data-f="${esc(v)}" aria-pressed="${on}">${esc(l)}${cnt != null ? `<b>${cnt}</b>` : ''}</button>`;
+  $('#filtrosMk').innerHTML = chip('mk-tipo', 'todos', 'Todo', n(() => true), MK.tipo === 'todos') + Object.entries(MK_TIPO).map(([k, [l]]) => chip('mk-tipo', k, l, n(m => m.tipo === k), MK.tipo === k)).join('')
+    + '<span class="mk-sep"></span>' + Object.entries(MK_CAT).map(([k, l]) => chip('mk-cat', k, l === 'Pokémon' ? 'Pokémon' : l + 's', n(m => m.categoria === k), MK.cat === k)).join('')
+    + '<span class="mk-sep"></span>' + chip('mk-shiny', '1', '✦ Shiny', null, MK.shiny) + chip('mk-solo', 'match', '¡Matches!', n(m => mkMatches(m).length > 0), MK.solo === 'match')
+    + (MK.yo ? chip('mk-solo', 'mias', 'Mis ofertas', null, MK.solo === 'mias') : '') + (mod ? chip('mk-solo', 'revisar', 'Denunciadas', todas.filter(m => m.estado === 'revisar' || Number(m.denuncias) > 0).length, MK.solo === 'revisar') : '');
+  el.innerHTML = vis.length ? vis.map((m, i) => mkCarta(m, i)).join('')
+    : `<div class="eq-vacio mk-vacio"><p><b>${todas.some(mkVisible) ? 'Ninguna oferta coincide.' : 'El mercado está vacío.'}</b> ${MK.yo ? 'Publicá lo que ofrecés o lo que buscás.' : 'Entrá con tu carnet y publicá la primera oferta.'}</p></div>`;
+  const h = location.hash.match(/^#(M-\d+)/), c = h && !MK.saltado && document.getElementById(h[1]);
+  if (c) { MK.saltado = h[1]; setTimeout(() => { const x = document.getElementById(MK.saltado); if (x) { x.scrollIntoView({ behavior: 'smooth', block: 'center' }); x.classList.add('marcada'); } }, 300); }
+  else if (MK.saltado && hay('#' + MK.saltado)) $('#' + MK.saltado).classList.add('marcada');
+}
+async function pintarMercado() {
+  const qh = location.hash.match(/^#q=([^&]+)/); if (qh) { MK.q = decodeURIComponent(qh[1]); const b = $('#buscarMk'); if (b) b.value = MK.q; }
+  renderMercado();
+  if (!EQ.dex) eqDex().then(l => { EQ.dex = l; renderMercado(); }).catch(() => { });
+}
+async function mkEntrar() {
+  if (!S.carnets) { toast('Cargando los carnets…'); await cargarCarnets(); }
+  const l = (S.carnets || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  if (!l.length) { toast('Todavía no hay carnets: creá el tuyo primero.', 'error'); return; }
+  formulario({
+    titulo: 'Entrar con mi carnet', boton: 'Entrar', texto: 'Tus ofertas quedan a nombre de tu carnet. Usá la clave que elegiste al crearlo.',
+    campos: [{ n: 'id', l: 'Tu carnet', t: 'select', opc: l.map(c => ({ v: c.id, l: c.nombre + (c.equipo ? ' · ' + c.equipo : '') + ' (N.° ' + c.numero + ')' })), req: true },
+      { n: 'clave', l: 'Clave del carnet', t: 'password', req: true }, { n: 'recordar', l: 'En este dispositivo', t: 'checks', opc: [{ v: 'si', l: 'Recordarme acá', d: 'No lo marques en una compu compartida.' }], v: [] }],
+    enviar: async v => {
+      await llamar('carnetVerificar', { id: v.id, clave: v.clave });
+      const c = l.find(x => x.id === v.id); mkGuardarYo({ id: c.id, nombre: c.nombre, equipo: c.equipo || '', clave: v.clave }, (v.recordar || []).includes('si'));
+      toast('Entraste como ' + c.nombre + '.'); renderMercado();
+    }
+  });
+}
+/** Las acciones del dueño mandan su carnet y su clave; el servidor las verifica cada vez. */
+async function mkAccion(a, p, msg) {
+  const yo = mkYo(); if (!yo && !/Denunciar/.test(a)) throw new Error('Entrá con tu carnet.');
+  const r = await llamar(a, Object.assign({}, p, yo ? { carnet: yo.id, clave: yo.clave } : {}));
+  if (S.token) await cargar(true); else if (r && r.mercado) { S.d.mercado = r.mercado; }
+  if (MK.solo === 'mias') await mkCargarMias();
+  if (msg) toast(msg);
+  renderMercado(); if (hay('[data-mk-pk]')) $$('[data-mk-pk]').forEach(mkEnFicha);
+  return r;
+}
+async function mkCargarMias() { const yo = mkYo(); if (!yo) return; try { MK.mias = ((await llamar('mercadoMias', { carnet: yo.id, clave: yo.clave })).mias || []).map(m => Object.assign(m, { vencida: new Date(m.vence) <= Date.now(), conWpp: !!m.wpp })); } catch (e) { toast(e.message, 'error'); if (/Clave incorrecta/.test(e.message)) { mkGuardarYo(null); MK.solo = ''; } } }
+function formMercado(m) {
+  m = m || {}; const nueva = !m.id;
+  if (!EQ.dex) eqDex().then(l => { EQ.dex = l; }).catch(() => { });
+  const cat = m.categoria || 'pokemon';
+  formulario({
+    titulo: nueva ? 'Nueva oferta' : 'Editar ' + mkCod(m), boton: nueva ? 'Publicar' : 'Guardar', dos: true,
+    texto: 'Solo cosas del juego, sin plata real. Vence a los 7 días y la podés renovar.',
+    campos: [
+      { n: 'tipo', l: '¿Qué hacés?', t: 'select', v: m.tipo || 'ofrece', opc: [{ v: 'ofrece', l: 'Ofrezco' }, { v: 'busca', l: 'Busco' }, { v: 'regala', l: 'Regalo' }] },
+      { n: 'categoria', l: '¿Qué es?', t: 'select', v: cat, opc: [{ v: 'pokemon', l: 'Un Pokémon' }, { v: 'objeto', l: 'Un objeto' }, { v: 'servicio', l: 'Un servicio (crianza, ayuda, etc.)' }] },
+      { n: 'cosa', l: 'Pokémon', v: m.cosa, req: true, max: 60, ancho: true, ph: 'Ej.: Riolu' },
+      { n: 'extras', l: 'Detalles', t: 'checks', ancho: true, v: [m.shiny && 'shiny', m.huevo && 'huevo'].filter(Boolean), opc: [{ v: 'shiny', l: '✦ Shiny' }, { v: 'huevo', l: 'Es un huevo' }] },
+      { n: 'nivel', l: 'Nivel', t: 'number', v: m.nivel, ph: '1 a 100' },
+      { n: 'sexo', l: 'Sexo', t: 'select', v: m.sexo || '', opc: [{ v: '', l: '—' }, { v: 'M', l: '♂ Macho' }, { v: 'H', l: '♀ Hembra' }] },
+      { n: 'naturaleza', l: 'Naturaleza', t: 'select', v: m.naturaleza || '', opc: [{ v: '', l: '—' }].concat(Core.MERCADO.naturalezas) },
+      { n: 'habilidad', l: 'Habilidad', v: m.habilidad, max: 40 },
+      { n: 'objeto', l: 'Objeto que lleva', v: m.objeto, max: 40 },
+      { n: 'cambio', l: 'A cambio de (opcional)', v: m.cambio, max: 120, ancho: true, ph: 'Ej.: un Ditto japonés, ofertas…' },
+      { n: 'texto', l: 'Detalles (opcional)', t: 'textarea', v: m.texto, max: 400, ancho: true, ph: 'Movimientos, IVs, horarios en los que estás conectado…' },
+      { n: 'wpp', l: 'Tu WhatsApp (opcional)', v: m.wpp || '', max: 20, ancho: true, ph: 'Con código de país, ej.: 5491122334455', ayuda: 'Si lo ponés, quien toque «Escribirle» va a ver tu número. Si lo dejás vacío, te contactan por el grupo de intercambios.' }
+    ],
+    enviar: async v => {
+      if (v.categoria === 'pokemon') { const pk = EQ.dex && eqBuscarPk(v.cosa); if (EQ.dex && !pk) throw new Error('No encuentro ese Pokémon en la Pokédex de Reloaded.'); if (pk) v.cosa = pk.n; }
+      const p = { tipo: v.tipo, categoria: v.categoria, cosa: v.cosa, shiny: v.extras.includes('shiny'), huevo: v.extras.includes('huevo'), nivel: v.nivel, sexo: v.sexo, naturaleza: v.naturaleza, habilidad: v.habilidad, objeto: v.objeto, cambio: v.cambio, texto: v.texto, wpp: v.wpp };
+      const r = await mkAccion(nueva ? 'mercadoPublicar' : 'mercadoEditar', Object.assign(nueva ? {} : { id: m.id }, p), nueva ? 'Oferta publicada.' : 'Oferta actualizada.');
+      const id = (r && r.resultado && r.resultado.id) || m.id, x = mkLista().find(y => y.id === id);
+      if (x && nueva && mkMatches(x).length) toast('¡Hay ' + mkMatches(x).length + ' match' + (mkMatches(x).length > 1 ? 'es' : '') + ' para tu oferta!');
+    }
+  });
+  // Campos que dependen de lo elegido: los detalles son solo para Pokémon; el nombre se autocompleta con la Pokédex o el catálogo.
+  const d = $('#dlgForm'), f = $('form', d), dl = document.createElement('datalist'); dl.id = 'mkOpciones'; f.appendChild(dl);
+  const cosa = $('#f-cosa'); cosa.setAttribute('list', 'mkOpciones');
+  const ajustar = () => {
+    const c = f.elements.categoria.value, esPk = c === 'pokemon', tipo = f.elements.tipo.value;
+    ['f-extras', 'f-nivel', 'f-sexo', 'f-naturaleza', 'f-habilidad', 'f-objeto'].forEach(id => { const e = document.getElementById(id); (e.closest('.campo') || e).hidden = !esPk; });
+    cosa.closest('.campo').firstChild.textContent = esPk ? 'Pokémon' : c === 'objeto' ? 'Objeto' : 'Servicio';
+    cosa.placeholder = esPk ? 'Ej.: Riolu' : c === 'objeto' ? 'Ej.: Restos' : 'Ej.: Crianza con movimientos huevo';
+    $('#f-cambio').closest('.campo').firstChild.textContent = tipo === 'busca' ? 'Ofrezco a cambio (opcional)' : tipo === 'regala' ? 'Pido (opcional)' : 'A cambio de (opcional)';
+    const ops = esPk ? (EQ.dex || []).map(x => x.n) : c === 'objeto' ? ((CAT.lista || wkCache('objcat3', 24 * 30) || []).map(x => x.n)) : [];
+    dl.innerHTML = ops.slice(0, 1500).map(n => `<option value="${esc(n)}">`).join('');
+  };
+  const habs = () => { const pk = EQ.dex && eqBuscarPk(cosa.value); const hl = document.getElementById('mkHabs') || Object.assign(document.createElement('datalist'), { id: 'mkHabs' }); f.appendChild(hl); $('#f-habilidad').setAttribute('list', 'mkHabs'); hl.innerHTML = pk ? (pk.hab || []).concat(pk.oc ? [pk.oc] : []).map(h => `<option value="${esc(h)}">`).join('') : ''; };
+  f.elements.categoria.addEventListener('change', ajustar); f.elements.tipo.addEventListener('change', ajustar); cosa.addEventListener('change', habs); cosa.addEventListener('input', habs);
+  ajustar(); habs();
+  if (f.elements.categoria.value === 'objeto' && !CAT.lista) wkCatalogo().then(() => ajustar()).catch(() => { });
+}
+function mkQuiero(m) {
+  const grupo = (S.d.config || {}).mercadoGrupo, msg = mkMensaje(m), d = $('#dlgForm');
+  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">${mkCod(m)} · ${esc(MK_TIPO[m.tipo][0])}</p><h2>${m.tipo === 'busca' ? 'Avisale que lo tenés' : 'Avisale a ' + esc(m.autor)}</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="dlg-cuerpo"><label class="campo" for="mkMsg">Tu mensaje (lo podés cambiar)<textarea id="mkMsg" rows="5">${esc(msg)}</textarea></label>
+      <div class="mk-contacto">
+        ${grupo ? `<button type="button" class="btn sand" data-act="mk-ir-grupo"><b>Mandarlo al grupo de intercambios</b><small>Se copia el mensaje y se abre el grupo: pegalo y mencioná a @${esc(m.autor)}</small></button>` : ''}
+        <button type="button" class="btn${grupo ? '' : ' sand'}" data-act="mk-compartir"><b>Compartir por WhatsApp</b><small>Elegís el chat o grupo donde mandarlo</small></button>
+        ${m.conWpp ? `<button type="button" class="btn" data-act="mk-wpp" data-id="${esc(m.id)}"><b>Escribirle a ${esc(m.autor)}</b><small>Eligió mostrar su WhatsApp</small></button>` : ''}
+      </div>
+      <p class="muted" style="font-size:13px">El intercambio se hace dentro de Reloaded Online. Nunca pagues con plata real ni pases tu cuenta.</p></div></div>`;
+  d.dataset.mk = m.id; abrir(d);
+}
+function mkEnFicha(caja) {
+  const n = caja.dataset.mkPk, l = mkLista().filter(m => mkVisible(m) && m.estado === 'activa' && m.categoria === 'pokemon' && wkClave(m.cosa) === wkClave(n));
+  if (!Array.isArray(S.d.mercado)) { caja.innerHTML = ''; return; }
+  const of = l.filter(m => m.tipo !== 'busca').length, bu = l.length - of, url = MULTIPAGINA ? '/mercado.html#q=' + encodeURIComponent(n) : '#q=' + encodeURIComponent(n);
+  caja.innerHTML = `<a class="mk-ficha${l.length ? ' hay' : ''}" href="${url}"${MULTIPAGINA ? '' : ' data-act="mk-ver-pk" data-n="' + esc(n) + '"'}><b>Mercado</b><span>${l.length ? `${of ? of + (of === 1 ? ' oferta' : ' ofertas') : ''}${of && bu ? ' · ' : ''}${bu ? bu + (bu === 1 ? ' persona lo busca' : ' personas lo buscan') : ''}` : 'Nadie lo ofrece ahora: publicalo vos'}</span><i aria-hidden="true">→</i></a>`;
+}
+
 // ----- Crianza: compatibilidad, grupos huevo, guía de la wiki y publicaciones de la comunidad -----
 const GH_CAT = { monstruo: 'Monstruo', agua1: 'Agua 1', agua2: 'Agua 2', agua3: 'Agua 3', bicho: 'Bicho', bicho1: 'Bicho', volador: 'Volador', tierra: 'Tierra', hada: 'Hada', planta: 'Planta', humanoide: 'Humanoide', mineral: 'Mineral', indeterminado: 'Indeterminado', dragon: 'Dragón', 'dragón': 'Dragón', especial: 'Especial', ninguno: 'Ninguno', legendario: 'Legendario', legendarios: 'Legendario' };
 const GH_NO = ['Ninguno', 'Legendario'];
@@ -3540,6 +3837,8 @@ window.addEventListener('hashchange', anclaHash);
 
 // ----- Carga perezosa: cada sección pide sus datos cuando se acerca a la pantalla -----
 { const pp = $('#pkPagina'); if (pp) pintarPokemonPagina(pp); }
+// Páginas generadas antes del mercado: suman el enlace en la barra y en el menú.
+$$('.nav, .menu-lista').forEach(n => { if (n.querySelector('[data-ir="mercado"]')) return; const c = n.querySelector('[data-ir="entrenadores"]'); if (!c) return; const a = document.createElement('a'); a.href = MULTIPAGINA ? '/mercado.html' : '#mercado'; a.dataset.ir = 'mercado'; a.textContent = n.classList.contains('nav') ? 'Mercado' : 'Mercado de intercambios'; c.after(a); });
 // Páginas generadas antes de los roles: su barra de admin trae data-solo-rol; la pasamos a permisos.
 $$('#adminbar [data-solo-rol]').forEach(e => { if (e.dataset.soloRol === 'editor') e.remove(); else e.removeAttribute('data-solo-rol'); });
 { const PERM_ACT = { 'nueva-noticia': 'noticias', 'nueva-guerra': 'guerra', 'nuevo-torneo': 'torneos', 'nuevo-combate': 'torneos' };
@@ -3743,6 +4042,7 @@ if (MODO !== 'demo' && hay('#gridCarnets')) try { const cc = JSON.parse(localSto
 if (quiereAdmin && !S.token) setTimeout(entrarAdmin, 300);
 setTimeout(rutaCarnet, 150);
 setTimeout(rutaWiki, 160);
+if (hay('#mkLista')) { pintarMercado(); $('#buscarMk').addEventListener('input', e => { MK.q = e.target.value.trim(); renderMercado(); }); }
 if (location.hash === '#catalogo' && hay('#catObj')) setTimeout(() => { objVista('cat'); if (!MULTIPAGINA) ir('objetos'); }, 200);
 setTimeout(rutaPokemon, 170);
 window.addEventListener('hashchange', () => { if (/^#admin\b/.test(location.hash) && !S.token) entrarAdmin(); });

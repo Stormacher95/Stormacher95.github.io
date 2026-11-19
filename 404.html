@@ -22,19 +22,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/estilos.css?v=0837c64005">
+<link rel="stylesheet" href="/estilos.css?v=ddcc090d17">
 </head>
 <body>
 <div class="adminbar" id="adminbar" hidden>
   <div class="wrap adminbar-in">
     <span class="adminbar-t"><i></i><span id="adminbarTitulo">Administración</span></span>
-    <div class="adminbar-acc" role="toolbar" aria-label="Acciones rápidas" data-solo-rol="admin">
-      <button type="button" data-act="nueva-noticia">Publicar noticia</button>
-      <button type="button" data-act="nueva-guerra">Registrar guerra</button>
-      <button type="button" data-act="nuevo-torneo">Nuevo torneo</button>
-      <button type="button" data-act="nuevo-combate">Registrar combate</button>
+    <div class="adminbar-acc" role="toolbar" aria-label="Acciones rápidas">
+      <button type="button" data-act="nueva-noticia" data-perm="noticias">Publicar noticia</button>
+      <button type="button" data-act="nueva-guerra" data-perm="guerra">Registrar guerra</button>
+      <button type="button" data-act="nuevo-torneo" data-perm="torneos">Nuevo torneo</button>
+      <button type="button" data-act="nuevo-combate" data-perm="torneos">Registrar combate</button>
     </div>
-    <div class="adminbar-fin"><button type="button" class="oscuro" data-act="nueva-noticia" data-solo-rol="editor" hidden><span class="ab-l">Publicar noticia</span><span class="ab-c">+ Noticia</span></button><button type="button" data-act="nueva-guerra" data-solo-rol="editor" hidden><span class="ab-l">Registrar guerra</span><span class="ab-c">+ Guerra</span></button><button type="button" class="oscuro" data-act="panel" data-solo-rol="admin">Panel</button><button type="button" data-act="salir">Salir</button></div>
+    <div class="adminbar-fin"><button type="button" class="oscuro" data-act="panel">Panel</button><button type="button" data-act="salir">Salir</button></div>
   </div>
 </div>
 <header class="top">
@@ -44,7 +44,7 @@
       <span><b>Reloaded Online</b><small>Comunidad de Pokémon Reloaded</small></span>
     </a>
     <nav class="nav" aria-label="Secciones">
-      <a href="/#sumate" data-ir="sumate">Empezá</a><a href="/teams.html" data-ir="teams">Teams</a><a href="/carnets.html" data-ir="entrenadores">Carnets</a><a href="/atlas.html" data-ir="atlas">Atlas</a><a href="/wiki.html" data-ir="wiki">Wiki</a><a href="/cronica.html" data-ir="cronica">Crónica</a><a href="/torneos.html" data-ir="torneos">Torneos</a><a href="/comunidad.html" data-ir="comunidad">Comunidad</a><a href="/reglas.html" data-ir="reglas">Reglas</a><a href="/comunidad.html#juego" data-ir="juego">El juego</a>
+      <a href="/#sumate" data-ir="sumate">Empezá</a><a href="/teams.html" data-ir="teams">Teams</a><a href="/carnets.html" data-ir="entrenadores">Carnets</a><a href="/mercado.html" data-ir="mercado">Mercado</a><a href="/atlas.html" data-ir="atlas">Atlas</a><a href="/wiki.html" data-ir="wiki">Wiki</a><a href="/cronica.html" data-ir="cronica">Crónica</a><a href="/torneos.html" data-ir="torneos">Torneos</a><a href="/comunidad.html" data-ir="comunidad">Comunidad</a><a href="/reglas.html" data-ir="reglas">Reglas</a><a href="/comunidad.html#juego" data-ir="juego">El juego</a>
     </nav>
     <div class="top-acc">
       <button class="btn sm menu-btn" id="btnMenu" type="button" aria-haspopup="dialog">Menú</button>
@@ -94,7 +94,7 @@
   <div class="dlg"><div class="dlg-cab"><h2>Menú</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <nav class="menu-lista" aria-label="Secciones">
-        <a href="/" data-ir="inicio">Inicio</a><a href="/#sumate" data-ir="sumate">Empezá a jugar</a><a href="/teams.html" data-ir="teams">Teams</a><a href="/carnets.html" data-ir="entrenadores">Carnets de entrenador</a><a href="/atlas.html" data-ir="atlas">Atlas de la Región Star</a><a href="/wiki.html" data-ir="wiki">Wiki de la región</a><a href="/wiki/pokedex.html" data-ir="pokedex">Pokédex</a><a href="/cronica.html" data-ir="cronica">Crónica y clasificación</a><a href="/torneos.html" data-ir="torneos">Torneos y PvP</a><a href="/comunidad.html" data-ir="comunidad">Comunidad</a><a href="/reglas.html" data-ir="reglas">Reglas</a><a href="/comunidad.html#juego" data-ir="juego">Sobre el juego</a>
+        <a href="/" data-ir="inicio">Inicio</a><a href="/#sumate" data-ir="sumate">Empezá a jugar</a><a href="/teams.html" data-ir="teams">Teams</a><a href="/carnets.html" data-ir="entrenadores">Carnets de entrenador</a><a href="/mercado.html" data-ir="mercado">Mercado de intercambios</a><a href="/atlas.html" data-ir="atlas">Atlas de la Región Star</a><a href="/wiki.html" data-ir="wiki">Wiki de la región</a><a href="/wiki/pokedex.html" data-ir="pokedex">Pokédex</a><a href="/cronica.html" data-ir="cronica">Crónica y clasificación</a><a href="/torneos.html" data-ir="torneos">Torneos y PvP</a><a href="/comunidad.html" data-ir="comunidad">Comunidad</a><a href="/reglas.html" data-ir="reglas">Reglas</a><a href="/comunidad.html#juego" data-ir="juego">Sobre el juego</a>
       <a href="/legal.html" data-ir="legal">Aviso legal y contacto</a>
       </nav>
       <div class="menu-acc"><a class="btn sand" href="https://reloadedonline.duckdns.org/" target="_blank" rel="noopener">Jugar online</a><a class="btn" href="https://chat.whatsapp.com/BRLTjIxYjFKGg16dBMsAJH" target="_blank" rel="noopener">Grupo de WhatsApp de Online</a></div>
@@ -123,6 +123,6 @@
 </dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="/app.js?v=0837c64005"></script>
+<script src="/app.js?v=ddcc090d17"></script>
 </body>
 </html>
