@@ -9,9 +9,16 @@ var Core = (function () {
   var LIDERES = { 'Team Aqua': 'Kaivel', 'Team Rekiem': 'omarito', 'Team Plasma': 'Racso', 'Team Rocket': 'Wilfresh', 'Team Delta': 'José Luís', 'Team Magma': 'Leonardo', 'Escuadrón Élite': 'Stormacher' };
   var CUPO = 30;
   // Regiones del mapa: cada zona pertenece a una y sus coordenadas son sobre el mapa de esa región.
-  var REGIONES = [{ id: 'star', nombre: 'Región Star' }, { id: 'jungla', nombre: 'La Jungla' }];
-  function region(v) { v = txt(v).toLowerCase(); for (var i = 0; i < REGIONES.length; i++) if (REGIONES[i].id === v) return v; return ''; }
-  function regionDe(t) { return region(t && t.region) || 'star'; }
+  // Las de fábrica; el admin puede agregar más desde la web (pestaña Regiones de la planilla).
+  var REGIONES = [{ id: 'star', nombre: 'Región Star', orden: '1', mapa: '', actualizado: '' }, { id: 'jungla', nombre: 'La Jungla', orden: '2', mapa: '', actualizado: '' }];
+  function listaRegiones(db) {
+    var l = db && db.regiones && db.regiones.length ? db.regiones : REGIONES;
+    return l.slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); });
+  }
+  function region(v, db) { v = txt(v).toLowerCase(); var l = listaRegiones(db); for (var i = 0; i < l.length; i++) if (l[i].id === v) return v; return ''; }
+  function regionDe(t, db) { return region(t && t.region, db) || 'star'; }
+  // Logos y mapas subidos se guardan como el id del archivo en Drive.
+  var ID_ARCHIVO = /^[A-Za-z0-9_-]{10,80}$/;
   // Pueblos que están en La Jungla: arrancan en esa región (en planillas viejas, solo si todavía no tenían punto en el mapa).
   var EN_JUNGLA = ['Pueblo Arcturus', 'Pueblo Wezen', 'Pueblo Régulo', 'Pueblo Procyon'];
   function regionInicial(t) { return EN_JUNGLA.indexOf(txt(t.nombre)) >= 0 && (t.x === '' || t.x == null) ? 'jungla' : 'star'; }
@@ -24,13 +31,14 @@ var Core = (function () {
     'Serena': '+DefEsp −Atq', 'Amable': '+DefEsp −Def', 'Grosera': '+DefEsp −Vel', 'Cauta': '+DefEsp −AtEsp', 'Rara': ''
   }; // a partir de esta cantidad de miembros el team figura como Lleno
   var TABLAS = {
-    equipos: ['id', 'nombre', 'emoji', 'lider', 'tipo', 'color', 'lore', 'orden', 'miembros'],
+    equipos: ['id', 'nombre', 'emoji', 'lider', 'tipo', 'color', 'lore', 'orden', 'miembros', 'logo'],
     territorios: ['id', 'nombre', 'tipo', 'estado', 'equipo', 'retador', 'ultimo', 'referencia', 'x', 'y', 'actualizado', 'region'],
     guerras: ['id', 'fecha', 'territorioId', 'territorio', 'accion', 'ganador', 'perdedor', 'resumen', 'nota'],
     torneos: ['id', 'nombre', 'fecha', 'formato', 'info', 'enlace', 'creado'],
     noticias: ['id', 'fecha', 'titulo', 'cuerpo'],
     combates: ['id', 'fecha', 'ganador', 'rival', 'equipoGanador', 'equipoRival', 'formato', 'nota'],
     grupos: ['id', 'nombre', 'enlace', 'miembros', 'actualizado', 'orden'],
+    regiones: ['id', 'nombre', 'orden', 'mapa', 'actualizado'],
     reglas: ['id', 'orden', 'titulo', 'texto', 'nota', 'destacada'],
     wiki: ['id', 'zona', 'resumen', 'notas', 'actualizado']
   };
@@ -172,6 +180,7 @@ var Core = (function () {
         { id: 'g-general', nombre: 'Grupo general', enlace: 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6', miembros: '0', actualizado: '', orden: '2' }
       ],
       equipos: equipos, territorios: territorios, guerras: guerras, torneos: [], combates: [],
+      regiones: REGIONES.map(function (r) { return { id: r.id, nombre: r.nombre, orden: r.orden, mapa: '', actualizado: '' }; }),
       noticias: [{ id: 'n-inicial', fecha: 'Parte territorial', titulo: 'La disputa por Star se intensifica',
         cuerpo: 'La Comisaría confirmó nuevos movimientos: Team Rekiem controla Ciudad Sirio; Team Delta tomó Ciudad Deneb, recuperada previamente del Team Flare; y el Escuadrón Élite resguarda el Bosque Místico. Tras los reportes de policías heridos, las autoridades piden mantener la calma y no involucrarse con organizaciones enemigas. El origen de Team Delta sigue sin esclarecerse.' }]
     };
@@ -231,6 +240,54 @@ var Core = (function () {
         return { cambios: ['equipos', 'territorios', 'guerras', 'combates'] };
       }
       case 'equipoBorrar': quitar(db.equipos, p.id); return { cambios: ['equipos'] };
+      case 'equipoLogo': {
+        x = porId(db.equipos, p.id) || falla('Ese team ya no existe.');
+        var lg = txt(p.logo, 80); if (lg && !ID_ARCHIVO.test(lg)) falla('Ese logo no es válido.');
+        x.logo = lg;
+        return { cambios: ['equipos'] };
+      }
+      case 'regionGuardar': {
+        if (!db.regiones || !db.regiones.length) db.regiones = semilla().regiones;
+        var rn = txt(p.nombre, 40); if (!rn) falla('Escribí el nombre de la región.');
+        for (i = 0; i < db.regiones.length; i++) if (db.regiones[i].id !== p.id && igual(db.regiones[i].nombre, rn)) falla('Ya hay una región con ese nombre.');
+        x = p.id ? porId(db.regiones, p.id) : null;
+        if (p.id && !x) falla('Esa región ya no existe.');
+        if (!x) {
+          var base = slug(rn) || 'region', nid = base, k = 2, ult = 0;
+          while (porId(db.regiones, nid)) nid = base + '-' + (k++);
+          db.regiones.forEach(function (r) { ult = Math.max(ult, Number(r.orden) || 0); });
+          x = { id: nid, orden: String(ult + 1), mapa: '' }; db.regiones.push(x);
+        }
+        x.nombre = rn; x.actualizado = ahora;
+        return { cambios: ['regiones'], resultado: { id: x.id } };
+      }
+      case 'regionMapa': {
+        if (!db.regiones || !db.regiones.length) db.regiones = semilla().regiones;
+        x = porId(db.regiones, p.id) || falla('Esa región ya no existe.');
+        var mp = txt(p.mapa, 80); if (mp && !ID_ARCHIVO.test(mp)) falla('Ese mapa no es válido.');
+        x.mapa = mp; x.actualizado = ahora;
+        return { cambios: ['regiones'] };
+      }
+      case 'regionMover': {
+        if (!db.regiones || !db.regiones.length) db.regiones = semilla().regiones;
+        var lr = listaRegiones(db), pos = -1;
+        for (i = 0; i < lr.length; i++) if (lr[i].id === p.id) pos = i;
+        if (pos < 0) falla('Esa región ya no existe.');
+        var dest = pos + (Number(p.dir) < 0 ? -1 : 1);
+        if (dest < 0 || dest >= lr.length) return { cambios: [] };
+        var mov = lr.splice(pos, 1)[0]; lr.splice(dest, 0, mov);
+        lr.forEach(function (r, j) { r.orden = String(j + 1); });
+        db.regiones = lr;
+        return { cambios: ['regiones'] };
+      }
+      case 'regionBorrar': {
+        if (p.id === 'star') falla('La Región Star es la principal y no se puede borrar.');
+        x = porId(db.regiones || [], p.id) || falla('Esa región ya no existe.');
+        var enUso = db.territorios.filter(function (z) { return regionDe(z, db) === x.id; }).length;
+        if (enUso) falla('Primero pasá ' + (enUso === 1 ? 'su zona' : 'sus ' + enUso + ' zonas') + ' a otra región (desde Editar zona).');
+        quitar(db.regiones, x.id);
+        return { cambios: ['regiones'] };
+      }
       case 'equipoMiembros': {
         x = porId(db.equipos, p.id) || falla('Ese team ya no existe.');
         var actual = cantidad(x.miembros);
@@ -317,10 +374,10 @@ var Core = (function () {
         for (i = 0; i < db.territorios.length; i++) if (db.territorios[i].id !== p.id && igual(db.territorios[i].nombre, zn)) falla('Esa zona ya está en el atlas.');
         x = p.id ? porId(db.territorios, p.id) : null;
         if (!x) { x = { id: 'z-' + slug(zn) + '-' + uid().slice(-3), estado: 'Neutral', equipo: '', retador: '', ultimo: 'Zona neutral', x: '', y: '', actualizado: ahora, region: 'star' }; db.territorios.push(x); }
-        var antes = x.nombre, rg = region(p.region);
+        var antes = x.nombre, rg = region(p.region, db);
         x.nombre = zn; x.tipo = txt(p.tipo, 30) || 'Zona'; x.referencia = txt(p.referencia, 120);
         // Si cambia de región, el punto que tenía era sobre el otro mapa: queda para volver a ubicarla.
-        if (rg && rg !== regionDe(x)) { x.x = ''; x.y = ''; }
+        if (rg && rg !== regionDe(x, db)) { x.x = ''; x.y = ''; }
         if (rg) x.region = rg; else if (!x.region) x.region = 'star';
         if (antes && antes !== zn) db.guerras.forEach(function (g) { if (g.territorioId === x.id) g.territorio = zn; });
         return { cambios: ['territorios', 'guerras'], resultado: { id: x.id } };
@@ -337,8 +394,8 @@ var Core = (function () {
           var px = Number(p.x), py = Number(p.y);
           if (!(px >= 0 && px <= 100 && py >= 0 && py <= 100)) falla('Posición fuera del mapa.');
           t.x = px.toFixed(2); t.y = py.toFixed(2);
-          // El punto queda en el mapa donde se tocó (Región Star o La Jungla).
-          if (region(p.region)) t.region = region(p.region);
+          // El punto queda en el mapa donde se tocó (Región Star, La Jungla o la que se haya agregado).
+          if (region(p.region, db)) t.region = region(p.region, db);
         }
         if (!t.region) t.region = 'star';
         return { cambios: ['territorios'] };
@@ -374,11 +431,12 @@ var Core = (function () {
       torneos: db.torneos, noticias: db.noticias.slice(0, admin ? 500 : 60), combates: db.combates.slice(0, admin ? 500 : 60),
       grupos: (db.grupos || []).slice().sort(function (a, b) { return (Number(a.orden) || 99) - (Number(b.orden) || 99); }),
       reglas: (db.reglas || []).slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); }),
-      wiki: db.wiki || []
+      wiki: db.wiki || [],
+      regiones: listaRegiones(db)
     };
   }
 
-  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, region: region, regionDe: regionDe, regionInicial: regionInicial };
+  return { aplicar: aplicar, vista: vista, semilla: semilla, TABLAS: TABLAS, ACCIONES: ACCIONES, ESTADOS: ESTADOS, CUPO: CUPO, LIDERES: LIDERES, TIPOS: TIPOS, NATURALEZAS: NATURALEZAS, limpiarCarnet: limpiarCarnet, cantidad: cantidad, txt: txt, REGIONES: REGIONES, listaRegiones: listaRegiones, region: region, regionDe: regionDe, ID_ARCHIVO: ID_ARCHIVO, regionInicial: regionInicial };
 })();
 // ===== FIN DEL NÚCLEO =====
 // Si alojás este HTML fuera de Google (GitHub Pages, etc.), pegá acá la URL /exec de tu Apps Script.
@@ -409,13 +467,14 @@ const almacen = { get(k) { try { return sessionStorage.getItem(k) || ''; } catch
 
 // ---------- Datos de demostración (solo cuando no hay Drive) ----------
 const Demo = {
-  k: 'reloaded-online-demo-v1', mem: null, mapa: '', mapaJungla: '',
+  k: 'reloaded-online-demo-v1', mem: null, mapas: {},
   db() { if (this.mem) return this.mem; try { const r = localStorage.getItem(this.k); if (r) return (this.mem = JSON.parse(r)); } catch (e) { } return (this.mem = Core.semilla()); },
   guardar() { try { localStorage.setItem(this.k, JSON.stringify(this.mem)); } catch (e) { } },
   vista(admin) {
     const v = JSON.parse(JSON.stringify(Core.vista(this.db(), admin)));
-    const star = { url: this.mapa || 'mapa-territorial-reloaded-online.png' };
-    v.config = { modo: 'demo', mapa: star, mapas: { star, jungla: this.mapaJungla ? { url: this.mapaJungla } : null }, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
+    const mapas = {};
+    (v.regiones || []).forEach(r => { mapas[r.id] = this.mapas[r.id] ? { url: this.mapas[r.id] } : r.id === 'star' ? { url: 'mapa-territorial-reloaded-online.png' } : null; });
+    v.config = { modo: 'demo', mapa: mapas.star, mapas, ahora: new Date().toISOString(), cupo: this.cupoDemo || Core.CUPO };
     return v;
   },
   api(a, p, tok) {
@@ -452,7 +511,8 @@ const Demo = {
     if (a === 'cupo') { const n = Math.floor(Number(p.valor)); if (!(n >= 1 && n <= 999)) throw new Error('El cupo tiene que ser un número entre 1 y 999.'); this.cupoDemo = n; return this.vista(true); }
     if (a === 'carnetClave') { const c = dbusca(p.id); c.clave = Math.random().toString(36).slice(2, 8); DemoC.guardar(dc); return { clave: c.clave }; }
     if (a === 'clave') throw new Error('En la demostración la clave siempre es "demo". Con Drive conectado se cambia de verdad.');
-    if (a === 'mapaSubir') { this[Core.region(p.region) === 'jungla' ? 'mapaJungla' : 'mapa'] = 'data:' + p.mime + ';base64,' + p.base64; return this.vista(true); }
+    if (a === 'mapaSubir') { const rg = Core.region(p.region, this.db()); if (!rg) throw new Error('Esa región ya no existe.'); this.mapas[rg] = 'data:' + p.mime + ';base64,' + p.base64; return this.vista(true); }
+    if (a === 'logoSubir') { const e = this.db().equipos.find(x => x.id === p.id); if (!e) throw new Error('Ese team ya no existe.'); e.logo = 'data:' + p.mime + ';base64,' + p.base64; this.guardar(); return this.vista(true); }
     Core.aplicar(this.db(), a, p, ctx); this.guardar(); return this.vista(true);
   }
 };
@@ -610,10 +670,16 @@ function renderNoticia() {
   requestAnimationFrame(paso);
 }
 
-// Mapas por región: Región Star y La Jungla. Cada zona se marca sobre el mapa de su región.
+// Mapas por región: las crea, renombra y ordena el admin (pestaña Regiones). Cada zona se marca sobre el mapa de su región.
 const MAPAS_BASE = { jungla: 'https://stormacher95.github.io/mapas/la-jungla.png' };
-const REG_TITULO = { star: 'la Región Star', jungla: 'La Jungla' };
-function nombreRegion(rg) { const r = Core.REGIONES.find(x => x.id === rg); return r ? r.nombre : 'Región Star'; }
+/** Regiones en orden. Con un Codigo.gs viejo (sin pestaña Regiones) quedan las dos de siempre. */
+function regionesLista() { return Core.listaRegiones({ regiones: (S.d && S.d.regiones) || [] }); }
+const regionesEditables = () => MODO === 'demo' || Array.isArray(S.d && S.d.regiones);
+const regionValida = rg => Core.region(rg, { regiones: regionesLista() });
+const regionDeZona = t => Core.regionDe(t, { regiones: regionesLista() });
+function nombreRegion(rg) { const r = regionesLista().find(x => x.id === rg); return r ? r.nombre : 'Región Star'; }
+/** "la Región Star", pero "La Jungla" o "Islas Cometa" tal cual. */
+function tituloRegion(rg) { const n = nombreRegion(rg); return /^regi[oó]n\s/i.test(n) ? 'la ' + n : n; }
 function mapaDe(rg) { const c = S.d.config || {}; return (c.mapas && c.mapas[rg]) || (rg === 'star' ? c.mapa : null) || null; }
 /** Imágenes a probar en orden: la de Drive (enlace directo y miniatura), la copia embebida y el mapa base de la web. */
 function fuentesMapa(rg) {
@@ -622,17 +688,19 @@ function fuentesMapa(rg) {
   if (MAPAS_BASE[rg]) f.push(MAPAS_BASE[rg]);
   return f;
 }
-function regionVecina(dir) { const ids = Core.REGIONES.map(r => r.id), i = Math.max(0, ids.indexOf(S.region)); return ids[(i + dir + ids.length) % ids.length]; }
-function cambiarRegion(rg) { if (!Core.region(rg) || rg === S.region) return; S.region = rg; renderMapa(); }
-function zonasRegion(rg) { return S.d.territorios.filter(t => Core.regionDe(t) === rg); }
+function regionVecina(dir) { const ids = regionesLista().map(r => r.id), i = Math.max(0, ids.indexOf(S.region)); return ids[(i + dir + ids.length) % ids.length]; }
+function cambiarRegion(rg) { if (!regionValida(rg) || rg === S.region) return; S.region = rg; renderMapa(); }
+function zonasRegion(rg) { return S.d.territorios.filter(t => regionDeZona(t) === rg); }
 function renderMapa() {
+  if (!regionValida(S.region)) S.region = 'star'; // la borraron o todavía no cargó la lista
+  const regs = regionesLista(), varias = regs.length > 1;
   const rg = S.region, fuentes = fuentesMapa(rg), key = rg + '|' + fuentes.map(f => typeof f === 'string' ? f : 'id:' + f.id).join('|');
   $$('[data-escena]').forEach(esc_ => {
     const img = $('.mapa-img', esc_), vacioEl = $('.vacio-mapa', esc_), grande = esc_.classList.contains('grande');
     esc_.dataset.region = rg;
     if (img.dataset.k !== key || !img.getAttribute('src')) {
       const otraRegion = img.dataset.k && img.dataset.k.split('|')[0] !== rg;
-      img.dataset.k = key; img.alt = 'Mapa territorial de ' + REG_TITULO[rg] + (grande ? ' ampliado' : ' con los emblemas de cada team');
+      img.dataset.k = key; img.alt = 'Mapa territorial de ' + tituloRegion(rg) + (grande ? ' ampliado' : ' con los emblemas de cada team');
       let i = 0;
       const sin = () => { img.hidden = true; vacioEl.hidden = false; img.removeAttribute('src'); img.classList.remove('llegando'); $('.pins', esc_).innerHTML = ''; };
       const prox = () => {
@@ -655,15 +723,16 @@ function renderMapa() {
     }).join('');
   });
   $$('[data-region-nombre]').forEach(e => { e.textContent = nombreRegion(rg); });
-  $$('[data-region-titulo]').forEach(e => { e.textContent = 'Mapa de ' + REG_TITULO[rg]; });
-  $$('.reg-puntos').forEach(e => { e.innerHTML = Core.REGIONES.map(r => `<i${r.id === rg ? ' class="on"' : ''}></i>`).join(''); });
-  $$('.reg-flecha').forEach(b => { const d = regionVecina(+b.dataset.dir); b.setAttribute('aria-label', 'Ver el mapa de ' + REG_TITULO[d]); b.title = nombreRegion(d); });
+  $$('[data-region-titulo]').forEach(e => { e.textContent = 'Mapa de ' + tituloRegion(rg); });
+  $$('.reg-puntos').forEach(e => { e.hidden = !varias; e.innerHTML = regs.map(r => `<i${r.id === rg ? ' class="on"' : ''}></i>`).join(''); });
+  $$('.reg-flecha').forEach(b => { b.hidden = !varias; const d = regionVecina(+b.dataset.dir); b.setAttribute('aria-label', 'Ver el mapa de ' + tituloRegion(d)); b.title = nombreRegion(d); });
   const zr = zonasRegion(rg), ubicadas = zr.filter(t => t.x !== '' && t.x != null).length, faltan = pendientesUbicar().length;
   let info = ubicadas ? esc(`${ubicadas} ${ubicadas === 1 ? 'zona marcada' : 'zonas marcadas'} en el mapa: cada emblema muestra qué team la controla y cambia solo al registrar una guerra.`)
-    : !zr.length && rg !== 'star' ? esc(`Todavía no hay zonas cargadas en ${REG_TITULO[rg]}.`)
+    : !zr.length && rg !== 'star' ? esc(`Todavía no hay zonas cargadas en ${tituloRegion(rg)}.`)
     : esc(puedeGuerra() ? 'Todavía no hay zonas marcadas en el mapa.' : 'Los emblemas muestran qué team controla cada parte de la región.');
   if (puedeGuerra() && faltan > 0) info += ` <button class="link" type="button" data-act="ubicar-pendientes">Ubicar zonas que faltan (${faltan})</button>`;
-  if (esAdmin() && rg !== 'star') info += ` <button class="link" type="button" data-act="nueva-zona">Agregar zona de ${REG_TITULO[rg]}</button>`;
+  if (esAdmin() && rg !== 'star') info += ` <button class="link" type="button" data-act="nueva-zona">Agregar zona de ${esc(tituloRegion(rg))}</button>`;
+  if (esAdmin() && !mapaDe(rg) && !MAPAS_BASE[rg]) info += ` <button class="link" type="button" data-act="region-mapa" data-id="${esc(rg)}">Subir el mapa de ${esc(tituloRegion(rg))}</button>`;
   // Un Codigo.gs viejo no guarda la región: avisar antes de que marquen zonas de La Jungla sobre la Star.
   if (puedeGuerra() && rg !== 'star' && MODO !== 'demo' && !(S.d.config && S.d.config.mapas)) info += ' <b>Para guardar zonas en este mapa hay que actualizar el Codigo.gs.</b>';
   if (hay('#pinsInfo')) $('#pinsInfo').innerHTML = info;
@@ -692,11 +761,11 @@ function renderAtlas() {
   $('#filtros').innerHTML = ['Todos', 'Controlada', 'En disputa', 'Punto Muerto', 'Neutral'].map(k => `<button type="button" class="chip" data-act="filtro" data-f="${k}" aria-pressed="${S.filtro === k}">${nombres[k]}<b>${cuenta[k] || 0}</b></button>`).join('');
   const q = S.q.trim().toLocaleLowerCase('es');
   const orden = { Controlada: 0, 'En disputa': 1, 'Punto Muerto': 2, Neutral: 3 };
-  const vis = z.filter(t => (S.filtro === 'Todos' || t.estado === S.filtro) && (!q || (t.nombre + ' ' + t.tipo + ' ' + t.equipo + ' ' + t.retador + ' ' + nombreRegion(Core.regionDe(t))).toLocaleLowerCase('es').includes(q)))
+  const vis = z.filter(t => (S.filtro === 'Todos' || t.estado === S.filtro) && (!q || (t.nombre + ' ' + t.tipo + ' ' + t.equipo + ' ' + t.retador + ' ' + nombreRegion(regionDeZona(t))).toLocaleLowerCase('es').includes(q)))
     .sort((a, b) => (orden[a.estado] - orden[b.estado]) || a.nombre.localeCompare(b.nombre, 'es'));
   $('#gridZonas').innerHTML = vis.map(t => `
     <button type="button" class="zona" data-act="zona" data-id="${esc(t.id)}" style="--c:${esc(colorZona(t))}">
-      <span class="zona-nom">${esc(t.nombre)}</span><span class="zona-tipo">${esc(t.tipo)}${Core.regionDe(t) !== 'star' ? ' · ' + esc(nombreRegion(Core.regionDe(t))) : ''}</span>
+      <span class="zona-nom">${esc(t.nombre)}</span><span class="zona-tipo">${esc(t.tipo)}${regionDeZona(t) !== 'star' ? ' · ' + esc(nombreRegion(regionDeZona(t))) : ''}</span>
       <span class="zona-est"><i></i>${esc(t.estado === 'Controlada' ? t.equipo : t.estado)}${t.x !== '' && t.x != null ? '<small>en el mapa</small>' : ''}</span>
     </button>`).join('');
   $('#zonasVacio').hidden = vis.length > 0 || S.cargando;
@@ -796,7 +865,7 @@ function fichaTeam(id) {
       <dl class="ficha"><div><dt>Líder</dt><dd>${esc(e.lider && e.lider !== '—' ? e.lider : 'Sin asignar')}</dd></div><div><dt>Miembros</dt><dd>${esAdmin() ? `<small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(m)}</small>${controlMiembros(e)}` : m + ' de ' + cupo() + (lleno ? ' · Lleno' : '')}</dd></div><div><dt>Zonas controladas</dt><dd>${zonas.length}</dd></div></dl>
       ${carnetsTeam.length ? `<div><h3 style="font-size:18px;margin-bottom:8px">Entrenadores con carnet</h3><div class="zchips">${carnetsTeam.map(c => `<button type="button" data-act="carnet" data-id="${esc(c.id)}" style="--c:${esc(e.color)}">${esc(c.nombre)}</button>`).join('')}</div></div>` : ''}
       ${zonas.length ? `<div><h3 style="font-size:18px;margin-bottom:8px">Territorio</h3><div class="zchips">${zonas.map(z => `<button type="button" data-act="zona" data-id="${esc(z.id)}" style="--c:${esc(e.color)}">${esc(z.nombre)}</button>`).join('')}</div></div>` : ''}
-      <div class="dlg-acc">${esAdmin() ? `<button class="btn danger" type="button" data-act="borrar-team" data-id="${esc(e.id)}">Quitar team</button><button class="btn" type="button" data-act="editar-team" data-id="${esc(e.id)}">Editar</button>` : ''}${lleno ? `<a class="btn" href="${WPP_GENERAL}" target="_blank" rel="noopener">Consultar en el grupo general</a>` : `<a class="btn sand" href="${WPP_GENERAL}" target="_blank" rel="noopener">Pedir ingreso por WhatsApp</a>`}</div>
+      <div class="dlg-acc">${esAdmin() ? `<button class="btn danger" type="button" data-act="borrar-team" data-id="${esc(e.id)}">Quitar team</button>${e.logo ? `<button class="btn" type="button" data-act="logo-quitar" data-id="${esc(e.id)}">Quitar logo</button>` : ''}<button class="btn" type="button" data-act="logo-team" data-id="${esc(e.id)}">${e.logo ? 'Cambiar logo' : 'Poner logo'}</button><button class="btn" type="button" data-act="editar-team" data-id="${esc(e.id)}">Editar</button>` : ''}${lleno ? `<a class="btn" href="${WPP_GENERAL}" target="_blank" rel="noopener">Consultar en el grupo general</a>` : `<a class="btn sand" href="${WPP_GENERAL}" target="_blank" rel="noopener">Pedir ingreso por WhatsApp</a>`}</div>
     </div></div>`;
   abrir(d);
 }
@@ -808,7 +877,7 @@ function fichaZona(id) {
   const opcRiv = [{ v: '', l: 'Sin rival / zona libre' }].concat(S.d.equipos.map(e => ({ v: e.nombre, l: e.nombre })));
   const enMapa = t.x !== '' && t.x != null;
   const d = $('#dlgZona');
-  d.innerHTML = `<div class="dlg" style="--c:${esc(c)}"><div class="dlg-cab"><p class="muted">${esc(t.tipo)} · ${esc(nombreRegion(Core.regionDe(t)))}</p><h2>${esc(t.nombre)}</h2><p style="margin-top:10px"><span class="pill" style="--c:${esc(c)}">${esc(t.estado === 'Controlada' ? 'Controlada por ' + t.equipo : t.estado)}</span></p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+  d.innerHTML = `<div class="dlg" style="--c:${esc(c)}"><div class="dlg-cab"><p class="muted">${esc(t.tipo)} · ${esc(nombreRegion(regionDeZona(t)))}</p><h2>${esc(t.nombre)}</h2><p style="margin-top:10px"><span class="pill" style="--c:${esc(c)}">${esc(t.estado === 'Controlada' ? 'Controlada por ' + t.equipo : t.estado)}</span></p><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
     <div class="dlg-cuerpo">
       <dl class="ficha"><div><dt>Último parte</dt><dd>${pintar(t.ultimo || 'Zona neutral')}</dd></div>${t.retador ? `<div><dt>Retador</dt><dd>${pintar(t.retador)}</dd></div>` : ''}<div><dt>Referencia en el mapa</dt><dd>${esc(t.referencia || 'Por confirmar')}</dd></div></dl>
       <div class="dlg-acc" style="justify-content:flex-start">${enMapa ? `<button class="btn sm" type="button" data-act="ver-en-mapa" data-id="${esc(t.id)}">Ver en el mapa</button>` : ''}<button class="btn sm sand" type="button" data-act="wiki" data-zona="${esc(t.nombre)}">Guía de la zona</button></div>
@@ -844,9 +913,17 @@ function formTeam(e) {
       { n: 'nombre', l: 'Nombre', v: e.nombre, req: true, max: 40 }, { n: 'emoji', l: 'Símbolo (emoji)', v: e.emoji || '✦', max: 8 },
       { n: 'lider', l: 'Líder', v: e.lider === '—' ? '' : e.lider, max: 40 }, { n: 'tipo', l: 'Tipo', v: e.tipo || 'Escuadrón', max: 30 },
       { n: 'color', l: 'Color', t: 'color', v: e.color || '#f4d38b' }, { n: 'miembros', l: 'Miembros (cupo ' + cupo() + ')', t: 'number', v: String(Core.cantidad(e.miembros)) },
-      { n: 'lore', l: 'Lore breve, sin spoilers', t: 'textarea', v: e.lore, max: 600, ancho: true }
+      { n: 'lore', l: 'Lore breve, sin spoilers', t: 'textarea', v: e.lore, max: 600, ancho: true },
+      { n: 'logo', l: e.logo ? 'Cambiar logo (opcional)' : 'Logo (opcional)', t: 'file', ancho: true, ayuda: e.logo ? 'Ya tiene logo: elegí otra imagen solo si lo querés reemplazar.' : 'PNG cuadrado con fondo transparente queda mejor. Se achica solo a 256 px.' }
     ],
-    enviar: async v => { await accion('equipoGuardar', Object.assign({ id: e.id || '' }, v), e.id ? 'Team actualizado' : 'Team creado'); if (e.id) fichaTeam(e.id); }
+    enviar: async v => {
+      const f = v.logo; delete v.logo;
+      if (f) await achicarImagen(f, 8); // valida la imagen antes de guardar el team
+      await accion('equipoGuardar', Object.assign({ id: e.id || '' }, v), f ? '' : e.id ? 'Team actualizado' : 'Team creado');
+      const id = e.id || (S.d.equipos.find(x => normNom(x.nombre) === normNom(Core.txt(v.nombre, 40))) || {}).id;
+      if (f && id) { try { await subirLogo(id, f); } catch (err) { toast('El team se guardó, pero el logo no: ' + err.message, 'error'); } }
+      if (id) fichaTeam(id);
+    }
   });
 }
 
@@ -855,8 +932,8 @@ function formZona(t) {
   formulario({
     titulo: t.id ? 'Editar ' + t.nombre : 'Nueva zona', texto: t.id ? '' : 'La zona entra como neutral. Después podés ubicarla en el mapa y registrar resultados.', boton: t.id ? 'Guardar cambios' : 'Agregar al atlas',
     campos: [{ n: 'nombre', l: 'Nombre de la ciudad, isla o zona', v: t.nombre, req: true, max: 60 }, { n: 'tipo', l: 'Tipo de lugar', v: t.tipo, ph: 'Ciudad, ruta, isla, cueva…', max: 30 }, { n: 'referencia', l: 'Referencia en el mapa', v: t.referencia, ph: 'Ej.: norte, costa sur', max: 120 },
-      { n: 'region', l: 'Región', t: 'select', v: t.id ? Core.regionDe(t) : S.region, opc: Core.REGIONES.map(r => ({ v: r.id, l: r.nombre })), ayuda: t.id && t.x !== '' && t.x != null ? 'Si la cambiás, la zona sale de este mapa y la ubicás de nuevo en el de la otra región.' : '' }],
-    enviar: async v => { const r = await llamar('zonaGuardar', Object.assign({ id: t.id || '' }, v)); if (r && r.equipos) S.d = r; S.region = Core.region(v.region) || S.region; render(); toast(t.id ? 'Zona actualizada' : 'Zona agregada al atlas'); fichaZona(t.id || (S.d.territorios.find(x => x.nombre === Core.txt(v.nombre, 60)) || {}).id); }
+      { n: 'region', l: 'Región', t: 'select', v: t.id ? regionDeZona(t) : S.region, opc: regionesLista().map(r => ({ v: r.id, l: r.nombre })), ayuda: t.id && t.x !== '' && t.x != null ? 'Si la cambiás, la zona sale de este mapa y la ubicás de nuevo en el de la otra región.' : '' }],
+    enviar: async v => { const r = await llamar('zonaGuardar', Object.assign({ id: t.id || '' }, v)); if (r && r.equipos) S.d = r; S.region = regionValida(v.region) || S.region; render(); toast(t.id ? 'Zona actualizada' : 'Zona agregada al atlas'); fichaZona(t.id || (S.d.territorios.find(x => x.nombre === Core.txt(v.nombre, 60)) || {}).id); }
   });
 }
 
@@ -938,12 +1015,141 @@ const DEX_URL = 'https://stormacher95.github.io/pokedex.json';
 // Emblemas de los teams (pertenecen a sus dueños; se usan solo para identificar a cada team en el mapa).
 const EMBLEMAS_URL = 'https://stormacher95.github.io/emblemas/';
 const EMBLEMAS = [[/rocket/, 'rocket'], [/magma/, 'magma'], [/aqua/, 'aqua'], [/galax|galactic/, 'galaxia'], [/plasma/, 'plasma'], [/flare/, 'flare'], [/skull/, 'skull'], [/re[qk]u?iem|rekiem/, 'rekiem'], [/elite/, 'elite'], [/delta/, 'delta']];
+const normNom = v => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+/** Imagen subida desde la web: id de Drive (con miniatura y la acción imagen de respaldo) o, en la demo, un data: URL. */
+function imagenSubida(v, ancho = 400) {
+  v = String(v || '');
+  if (/^data:image\//.test(v)) return { url: v };
+  if (Core.ID_ARCHIVO.test(v)) return { url: 'https://lh3.googleusercontent.com/d/' + v, alt: 'https://drive.google.com/thumbnail?id=' + v + '&sz=w' + ancho, id: v };
+  return null;
+}
+/** Logo de un team: el que subió el admin y, si no hay, el emblema conocido por el nombre. */
 function emblema(nombre) {
-  const n = String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const n = normNom(nombre);
+  const eq = n && (S.d.equipos || []).find(e => normNom(e.nombre) === n);
+  const propio = eq && imagenSubida(eq.logo);
+  if (propio) return Object.assign(propio, { propio: true });
   const e = EMBLEMAS.find(([re]) => re.test(n));
   return e ? { url: EMBLEMAS_URL + e[1] + '.png', cubre: e[1] === 'delta' } : null;
 }
-const imgEmblema = lg => `<img src="${esc(lg.url)}" alt=""${lg.cubre ? ' class="cubre"' : ''} loading="lazy" decoding="async" onerror="this.remove()">`;
+const imgEmblema = lg => `<img src="${esc(lg.url)}" alt=""${lg.cubre ? ' class="cubre"' : lg.propio ? ' class="propio"' : ''}${lg.alt ? ` data-alt="${esc(lg.alt)}"` : ''}${lg.id ? ` data-lid="${esc(lg.id)}"` : ''} loading="lazy" decoding="async" onerror="imgFallo(this)">`;
+/** Si una imagen de Drive no carga: prueba la miniatura, después la pide al Apps Script y, si nada anda, la saca. */
+function imgFallo(img) {
+  const alt = img.dataset.alt, lid = img.dataset.lid;
+  if (alt) { delete img.dataset.alt; img.src = alt; return; }
+  if (lid && MODO !== 'demo') { delete img.dataset.lid; llamar('imagen', { id: lid }).then(src => { img.src = src; }).catch(() => img.remove()); return; }
+  img.remove();
+}
+/** Achica una imagen en el navegador (lado mayor = max px) para que el logo pese poco. */
+function achicarImagen(file, max = 256) {
+  return new Promise((ok, ko) => {
+    if (!file || !/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return ko(new Error('La imagen tiene que ser PNG, JPG, WEBP o GIF.'));
+    if (file.size > 15 * 1024 * 1024) return ko(new Error('La imagen pesa más de 15 MB.'));
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      URL.revokeObjectURL(u);
+      const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+      const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(im, 0, 0, c.width, c.height);
+      let d = c.toDataURL('image/webp', 0.92); if (!/^data:image\/webp/.test(d)) d = c.toDataURL('image/png');
+      const m = /^data:([^;]+);base64,(.*)$/.exec(d);
+      ok({ mime: m[1], base64: m[2], url: d });
+    };
+    im.onerror = () => { URL.revokeObjectURL(u); ko(new Error('No pude abrir esa imagen.')); };
+    im.src = u;
+  });
+}
+/** Sube el logo ya achicado. Si el Codigo.gs es viejo, avisa qué hacer. */
+async function subirLogo(id, file) {
+  const lg = await achicarImagen(file, 256);
+  try { return await accion('logoSubir', { id, nombre: file.name, mime: lg.mime, base64: lg.base64 }, 'Logo actualizado'); }
+  catch (e) { throw new Error(regionesEditables() ? e.message : 'Para subir logos desde la web, pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo.'); }
+}
+function formLogo(e) {
+  if (!e) return;
+  formulario({
+    titulo: (e.logo ? 'Cambiar el logo de ' : 'Logo de ') + e.nombre, boton: 'Subir logo',
+    texto: 'Se guarda en tu carpeta de Drive y aparece en la tarjeta del team, en su ficha y en el mapa sobre las zonas que controla. Queda mejor un PNG cuadrado con fondo transparente.',
+    campos: [{ n: 'archivo', l: 'Imagen del logo (PNG, JPG, WEBP o GIF)', t: 'file', req: true, ayuda: 'Se achica sola a 256 px antes de subirla.' }],
+    enviar: async v => { if (!v.archivo) throw new Error('Elegí una imagen.'); await subirLogo(e.id, v.archivo); fichaTeam(e.id); }
+  });
+}
+
+// ---------- Mapas y regiones (admin) ----------
+function panelRegiones() {
+  const regs = regionesLista(), editable = regionesEditables(), d = $('#dlgForm');
+  const fila = (r, i) => {
+    const m = mapaDe(r.id), fuentes = fuentesMapa(r.id).filter(f => typeof f === 'string'), n = zonasRegion(r.id).length;
+    const prim = fuentes[0], alt = fuentes[1];
+    return `<li class="reg-item" style="--i:${i}">
+      <button type="button" class="reg-mini" data-act="region-ver" data-id="${esc(r.id)}" aria-label="Ver el mapa de ${esc(tituloRegion(r.id))}">${prim ? `<img src="${esc(prim)}" alt=""${alt ? ` data-alt="${esc(alt)}"` : ''}${m && m.id ? ` data-lid="${esc(m.id)}"` : ''} loading="lazy" onerror="imgFallo(this)">` : ''}<span>${prim ? '' : 'Sin mapa'}</span></button>
+      <div class="reg-txt"><b>${esc(r.nombre)}</b><small>${n ? n + (n === 1 ? ' zona' : ' zonas') : 'Sin zonas todavía'}${r.id === 'star' ? ' · principal' : ''}</small></div>
+      <div class="reg-acc">
+        ${editable ? `<button type="button" class="btn sm" data-act="region-mover" data-id="${esc(r.id)}" data-dir="-1" aria-label="Subir ${esc(r.nombre)}"${i === 0 ? ' disabled' : ''}>↑</button><button type="button" class="btn sm" data-act="region-mover" data-id="${esc(r.id)}" data-dir="1" aria-label="Bajar ${esc(r.nombre)}"${i === regs.length - 1 ? ' disabled' : ''}>↓</button><button type="button" class="btn sm" data-act="region-nombre" data-id="${esc(r.id)}">Renombrar</button>` : ''}
+        <button type="button" class="btn sm" data-act="region-mapa" data-id="${esc(r.id)}">${prim ? 'Cambiar mapa' : 'Subir mapa'}</button>
+        ${editable && r.id !== 'star' ? `<button type="button" class="btn sm danger" data-act="region-borrar" data-id="${esc(r.id)}">Borrar</button>` : ''}
+      </div></li>`;
+  };
+  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">Panel de administración</p><h2>Mapas y regiones</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div>
+    <div class="dlg-cuerpo">
+      <p class="muted">El orden de esta lista es el de las flechas del mapa. Cada región tiene su propio mapa y sus zonas se marcan encima.</p>
+      ${editable ? '' : '<p class="aviso-lleno">Para agregar, renombrar u ordenar regiones (y subir logos de teams) pegá el Codigo.gs nuevo en Apps Script y volvé a implementarlo. Mientras tanto podés cambiar los mapas.</p>'}
+      <ul class="reg-lista">${regs.map(fila).join('')}</ul>
+      <div class="dlg-acc">${editable ? '<button class="btn sand" type="button" data-act="region-nueva">+ Agregar región</button>' : ''}<button class="btn" type="button" data-cerrar>Listo</button></div>
+    </div></div>`;
+  abrir(d);
+}
+function formRegion(r) {
+  formulario({
+    titulo: r ? 'Renombrar ' + r.nombre : 'Nueva región', boton: r ? 'Guardar nombre' : 'Crear región',
+    texto: r ? 'El nombre nuevo aparece arriba del mapa, en las flechas y en las fichas de sus zonas.' : 'Aparece al final de las flechas del mapa. Después podés cargarle zonas y ubicarlas encima del mapa.',
+    campos: [{ n: 'nombre', l: 'Nombre (ej.: La Jungla)', v: r ? r.nombre : '', req: true, max: 40 }].concat(r ? [] : [{ n: 'archivo', l: 'Imagen del mapa (opcional, hasta 10 MB)', t: 'file' }]),
+    enviar: async v => {
+      if (v.archivo && v.archivo.size > 10 * 1024 * 1024) throw new Error('La imagen pesa más de 10 MB.');
+      const nom = Core.txt(v.nombre, 40);
+      await accion('regionGuardar', { id: r ? r.id : '', nombre: nom }, r ? 'Región renombrada' : '');
+      const nueva = r || regionesLista().find(x => normNom(x.nombre) === normNom(nom));
+      if (!r && nueva) {
+        if (v.archivo) {
+          $$('.mapa-img').forEach(i => { i.dataset.k = ''; });
+          try { await accion('mapaSubir', { region: nueva.id, nombre: v.archivo.name, mime: v.archivo.type, base64: await leerArchivo(v.archivo) }); }
+          catch (e) { toast('La región se creó, pero el mapa no se pudo subir: ' + e.message, 'error'); }
+        }
+        S.region = nueva.id; renderMapa(); toast(nom + ' ya está en el mapa');
+      }
+      panelRegiones();
+    }
+  });
+}
+function formMapaRegion(rg) {
+  rg = regionValida(rg) || 'star';
+  formulario({
+    titulo: 'Mapa de ' + tituloRegion(rg), boton: 'Subir mapa',
+    texto: 'La imagen se guarda en tu carpeta de Drive y reemplaza al mapa de esta región. Las zonas ya marcadas mantienen su posición.',
+    campos: [{ n: 'archivo', l: 'Imagen del mapa (PNG, JPG o WEBP, hasta 10 MB)', t: 'file', req: true }],
+    enviar: async v => {
+      const f = v.archivo; if (!f) throw new Error('Elegí una imagen.'); if (f.size > 10 * 1024 * 1024) throw new Error('La imagen pesa más de 10 MB.');
+      $$('.mapa-img').forEach(i => { i.dataset.k = ''; }); S.region = rg;
+      await accion('mapaSubir', { region: rg, nombre: f.name, mime: f.type, base64: await leerArchivo(f) }, 'Mapa de ' + tituloRegion(rg) + ' actualizado');
+      panelRegiones();
+    }
+  });
+}
+async function moverRegion(rg, dir) {
+  await accion('regionMover', { id: rg, dir });
+  panelRegiones();
+  const b = $(`#dlgForm [data-act="region-mover"][data-id="${CSS.escape(rg)}"][data-dir="${dir}"]`); if (b && !b.disabled) b.focus();
+}
+function borrarRegion(rg) {
+  const r = regionesLista().find(x => x.id === rg); if (!r) return;
+  const n = zonasRegion(rg).length;
+  if (n) { toast(`Primero pasá ${n === 1 ? 'su zona' : 'sus ' + n + ' zonas'} a otra región (abrí cada zona → Editar → Región).`, 'error'); return; }
+  confirmar('Borrar ' + r.nombre, 'La región deja de aparecer en el mapa. La imagen queda en tu carpeta de Drive.', 'Borrar región', async () => {
+    await accion('regionBorrar', { id: rg }, r.nombre + ' borrada');
+    if (S.region === rg) { S.region = 'star'; renderMapa(); }
+    panelRegiones();
+  });
+}
 const MI = {
   get() { try { return JSON.parse(localStorage.getItem('rlo-mi-carnet') || 'null'); } catch (e) { return null; } },
   set(v) { try { localStorage.setItem('rlo-mi-carnet', JSON.stringify(v)); } catch (e) { } },
@@ -1204,7 +1410,7 @@ function panelAdmin() {
       <div class="panel-stats"><div><b>${ctrl}/${z.length}</b><span>zonas con dueño</span></div><div><b>${S.d.guerras.length}</b><span>partes de guerra</span></div><div><b>${(S.carnets || []).length}</b><span>carnets</span></div><div><b>${ubic}</b><span>zonas en el mapa</span></div></div>
       <div><h3>Publicar</h3><div class="panel-btns">${b('nueva-noticia', 'Publicar noticia', 'Va a la portada')}${b('nueva-guerra', 'Registrar guerra', 'Conquista, defensa, disputa…')}${b('nuevo-torneo', 'Nuevo torneo', 'Aparece en el calendario')}${b('nuevo-combate', 'Registrar combate', 'Suma a la clasificación')}</div></div>
       <div><h3>Miembros por team</h3><div class="cupo-ctrl"><span><b>Cupo por team</b><small class="mm-estado" id="cupoEstado">Al llegar a este número, el team figura como Lleno.</small></span><span class="contador" data-cupo><button type="button" data-act="cupo" data-paso="-1" aria-label="Bajar el cupo">−</button><input type="number" inputmode="numeric" min="1" max="999" value="${cupo()}" data-cupo-input aria-label="Cupo de miembros por team"><button type="button" data-act="cupo" data-paso="1" aria-label="Subir el cupo">+</button></span></div><ul class="panel-miembros">${S.d.equipos.map(e => `<li style="--c:${esc(e.color)}"><span><b>${esc(e.emoji || '')} ${esc(e.nombre)}</b><small class="mm-estado" data-mm-estado="${esc(e.id)}">${textoCupo(Core.cantidad(e.miembros))}</small></span>${controlMiembros(e)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Escribí el número o usá − y +: se guarda solo.</p></div>
-      <div><h3>Mundo</h3><div class="panel-btns">${b('nuevo-team', 'Nuevo team', 'Nombre, color y lore')}${b('nueva-zona', 'Nueva zona', 'Se suma al atlas')}${b('mapa-subir', 'Cambiar mapa', 'Imagen nueva en tu Drive')}</div></div>
+      <div><h3>Mundo</h3><div class="panel-btns">${b('nuevo-team', 'Nuevo team', 'Nombre, color y lore')}${b('nueva-zona', 'Nueva zona', 'Se suma al atlas')}${b('regiones', 'Mapas y regiones', 'Agregar, renombrar y cambiar mapas')}</div></div>
       <div><h3>Miembros en WhatsApp</h3>${(S.d.grupos || []).length ? `<ul class="panel-miembros">${S.d.grupos.map(g => `<li style="--c:#25d366"><span><b>${esc(g.nombre)}</b><small class="mm-estado" data-gm-estado="${esc(g.id)}">${g.actualizado ? 'Actualizado ' + haceCuanto(g.actualizado) : 'Sin cargar todavía'}</small></span>${controlGrupo(g)}</li>`).join('')}</ul><p class="muted" style="font-size:13px;margin-top:8px">Mirá el número en la info del grupo de WhatsApp y escribilo: se muestra en la portada y en Comunidad.</p>` : '<p class="muted" style="font-size:13px">Pegá el Codigo.gs nuevo en Apps Script para activar el contador de WhatsApp.</p>'}</div>
       <div><h3>Comunidad</h3><div class="panel-btns">${b('mensajes', 'Mensajes' + (S.d.config && S.d.config.mensajes ? ' (' + S.d.config.mensajes + ')' : ''), S.d.config && S.d.config.mensajes ? 'Contacto y pedidos de retiro' : 'No hay mensajes nuevos')}</div></div>
       <div><h3>Cuenta</h3><div class="panel-btns">${b('planilla', 'Abrir planilla', 'Los datos en tu Drive')}${b('clave', 'Cambiar clave', 'Para entrar como admin')}${b('clave-editor', 'Clave del noticiero', S.d.config && S.d.config.editor ? 'Activa · cambiarla' : 'Noticias, zonas, reglas y crónica')}${S.d.config && S.d.config.editor ? b('quitar-editor', 'Quitar noticiero', 'Su clave deja de andar') : ''}${b('salir', 'Salir', 'Cerrar la sesión de admin')}</div></div>
@@ -1251,7 +1457,7 @@ function salirAdmin(vencida) {
 
 function ubicar(id, serie) {
   const t = S.d.territorios.find(x => x.id === id); if (!t) return;
-  cambiarRegion(Core.regionDe(t)); // se puede pasar a la otra región con las flechas antes de tocar el mapa
+  cambiarRegion(regionDeZona(t)); // se puede pasar a la otra región con las flechas antes de tocar el mapa
   S.ubicando = id; S.ubicarSerie = !!serie; document.body.classList.add('ubicando');
   $$('#ubicarNombre, #ubicarNombre2').forEach(b => { b.textContent = t.nombre; });
   const quedan = pendientesUbicar().length;
@@ -1278,7 +1484,7 @@ function cancelarUbicar() {
   $$('#avisoUbicar, #avisoUbicar2').forEach(a => { a.hidden = true; });
 }
 function marcarPin(id) {
-  const t = S.d.territorios.find(x => x.id === id); if (t) cambiarRegion(Core.regionDe(t));
+  const t = S.d.territorios.find(x => x.id === id); if (t) cambiarRegion(regionDeZona(t));
   cerrar($('#dlgZona')); cerrar($('#dlgTeam'));
   const donde = hay('#mapa') ? '#mapa' : '#dlgMapa';
   if (donde === '#mapa') ir('mapa'); else abrir($('#dlgMapa'));
@@ -1305,7 +1511,7 @@ document.addEventListener('click', async ev => {
     const id = S.ubicando, t = S.d.territorios.find(z => z.id === id), serie = S.ubicarSerie;
     if (serie) { S.ubicando = null; } else cancelarUbicar();
     try {
-      await accion('zonaUbicar', { id, x, y, region: S.region }, (t ? t.nombre : 'La zona') + ' quedó marcada en el mapa' + (t && Core.regionDe(t) !== S.region ? ' de ' + REG_TITULO[S.region] : ''));
+      await accion('zonaUbicar', { id, x, y, region: S.region }, (t ? t.nombre : 'La zona') + ' quedó marcada en el mapa' + (t && regionDeZona(t) !== S.region ? ' de ' + tituloRegion(S.region) : ''));
       if (serie) ubicarSiguiente(); else { cerrar($('#dlgMapa')); marcarPin(id); }
     } catch (e) { toast(e.message, 'error'); if (serie) ubicar(id, true); }
     return;
@@ -1372,11 +1578,15 @@ document.addEventListener('click', async ev => {
       case 'nuevo-combate': cerrar($('#dlgPanel')); formCombate(); break;
       case 'nuevo-team': cerrar($('#dlgPanel')); formTeam(); break;
       case 'nueva-zona': cerrar($('#dlgPanel')); formZona(); break;
-      case 'mapa-subir': cerrar($('#dlgPanel')); formulario({
-        titulo: 'Cambiar el mapa territorial', texto: 'La imagen se guarda en tu carpeta de Drive y reemplaza al mapa de esa región. Las zonas ya marcadas mantienen su posición.', boton: 'Subir mapa',
-        campos: [{ n: 'region', l: 'Región', t: 'select', v: S.region, opc: Core.REGIONES.map(r => ({ v: r.id, l: r.nombre })) }, { n: 'archivo', l: 'Imagen del mapa (PNG, JPG o WEBP, hasta 10 MB)', t: 'file', req: true }],
-        enviar: async v => { const f = v.archivo; if (!f) throw new Error('Elegí una imagen.'); if (f.size > 10 * 1024 * 1024) throw new Error('La imagen pesa más de 10 MB.'); const rg = Core.region(v.region) || 'star'; $$('.mapa-img').forEach(i => { i.dataset.k = ''; }); S.region = rg; await accion('mapaSubir', { region: rg, nombre: f.name, mime: f.type, base64: await leerArchivo(f) }, 'Mapa de ' + REG_TITULO[rg] + ' actualizado'); }
-      }); break;
+      case 'mapa-subir': case 'regiones': cerrar($('#dlgPanel')); panelRegiones(); break;
+      case 'region-nueva': formRegion(); break;
+      case 'region-nombre': formRegion(regionesLista().find(r => r.id === el.dataset.id)); break;
+      case 'region-mapa': formMapaRegion(el.dataset.id); break;
+      case 'region-mover': moverRegion(el.dataset.id, +el.dataset.dir); break;
+      case 'region-borrar': borrarRegion(el.dataset.id); break;
+      case 'region-ver': cerrar($('#dlgForm')); cambiarRegion(el.dataset.id); if (hay('#mapa')) ir('mapa'); else abrir($('#dlgMapa')); break;
+      case 'logo-team': formLogo(S.d.equipos.find(x => x.id === el.dataset.id)); break;
+      case 'logo-quitar': { const e = S.d.equipos.find(x => x.id === el.dataset.id); if (e) confirmar('Quitar el logo de ' + e.nombre, 'El team vuelve a mostrar su símbolo. La imagen queda en tu carpeta de Drive por si la querés usar de nuevo.', 'Quitar logo', async () => { await accion('equipoLogo', { id: e.id, logo: '' }, 'Logo quitado'); fichaTeam(e.id); }); break; }
       case 'planilla': {
         const u = S.d.config && S.d.config.hojaUrl;
         if (!u) { toast(MODO === 'demo' ? 'En la demostración no hay planilla: los datos están en este navegador.' : 'No encontré el enlace de la planilla.', 'error'); break; }
