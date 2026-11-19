@@ -471,7 +471,7 @@ if (location.hostname === 'stormacher95.github.io') {
   gc.async = true; gc.dataset.goatcounter = 'https://reloaded-online.goatcounter.com/count'; gc.src = 'https://gc.zgo.at/count.js';
   document.head.appendChild(gc);
 }
-const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
+const PAGINA_DE = { inicio: '/', mapa: '/#mapa', sumate: '/#sumate', explora: '/#explora', teams: '/teams.html', entrenadores: '/carnets.html', atlas: '/atlas.html', wiki: '/wiki.html', rutas: '/wiki/rutas.html', pokedex: '/wiki/pokedex.html', legendarios: '/wiki/legendarios.html', gimnasios: '/wiki/gimnasios.html', objetos: '/wiki/objetos.html', guias: '/wiki/guias.html', personajes: '/wiki/personajes.html', movimientos: '/wiki/movimientos.html', habilidades: '/wiki/habilidades.html', tipos: '/wiki/tipos.html', equipo: '/wiki/equipo.html', lugares: '/wiki/lugares.html', cronica: '/cronica.html', torneos: '/torneos.html', comunidad: '/comunidad.html', juego: '/comunidad.html#juego', creditos: '/comunidad.html#creditos', reglas: '/reglas.html', horario: '/reglas.html#horario', legal: '/legal.html' };
 const hay = s => !!document.querySelector(s);
 // Grupo general: ahí se piden los ingresos a los teams.
 const WPP_GENERAL = 'https://chat.whatsapp.com/Fqqo0nNf4CW9fMEpXaeVr6';
@@ -1794,9 +1794,12 @@ document.addEventListener('click', async ev => {
       case 'editar-zona': formZona(S.d.territorios.find(x => x.id === id)); break;
       case 'borrar-zona': cerrar($('#dlgZona')); borrar('Borrar zona', 'Se borra la zona del atlas junto con su historial. No se puede deshacer.', 'zonaBorrar', 'Zona borrada'); break;
       case 'editar-team': formTeam(S.d.equipos.find(x => x.id === id)); break;
+      case 'lug-filtro': LUG.f = el.dataset.f; renderLugares(); break;
+      case 'obj-vista': objVista(el.dataset.v); break;
+      case 'cat-clase': CAT.c = el.dataset.f; renderCatalogo(); break;
       case 'wiki': { const z = el.dataset.zona; if ($('#dlgZona').open) cerrar($('#dlgZona')); abrirWiki(z); break; }
       case 'wiki-filtro': WK.filtro = el.dataset.f; renderWiki(); break;
-      case 'wk-reintentar': el.closest('[data-wk-carga]').innerHTML = '<p class="wk-cargando"><i></i>Reintentando…</p>'; WK_CARGAS[el.dataset.carga](); break;
+      case 'wk-reintentar': { const caja = el.closest('[data-wk-carga]') || el.closest('#listaCat'); if (caja) caja.innerHTML = '<p class="wk-cargando"><i></i>Reintentando…</p>'; WK_CARGAS[el.dataset.carga](); break; }
       case 'dex-grupo': DEX.grupo = el.dataset.f; renderDex(); break;
       case 'leg-filtro': LEG.g = el.dataset.f; renderLeg(); break;
       case 'obj-area': OBJ.area = el.dataset.f; renderObj(); break;
@@ -2102,7 +2105,7 @@ async function wkGimnasio(wt) {
   return { nombre: j.parse.title, lider: wkLimpiar(p['nombre del líder'] || p['líder'] || p.lider || ''), tipo: cap([p.tipo1, p.tipo2].filter(Boolean).join('/')), medalla: wkLimpiar(p.medalla || ''), numero: wkLimpiar(p.numero || p['número'] || ''), ubic: wkLimpiar(p['ubicación'] || p.ubicacion || '') };
 }
 async function wkZona(nombre, conGym = true) {
-  const clave = 'z4:' + nombre + (conGym ? '' : ':s');
+  const clave = 'z5:' + nombre + (conGym ? '' : ':s');
   if (WK.mem[clave]) return WK.mem[clave];
   const guardado = wkCache(clave, 12); if (guardado) return (WK.mem[clave] = guardado);
   const POK = await wkPokes();
@@ -2121,7 +2124,10 @@ async function wkZona(nombre, conGym = true) {
     poke: wkSalvajes(wt, POK),
     objetos: secs.filter(s => /^objetos/i.test(s.titulo)).flatMap(s => wkTablaObjetos(s.texto, POK)).slice(0, 40),
     interes: secs.filter(s => /inter[eé]s|lugares|edificios/i.test(s.titulo)).flatMap(s => s.texto.split('\n').filter(l => /^\*/.test(l)).map(l => wkLimpiar(l.replace(/^\*+/, '')).slice(0, 160))).filter(Boolean).slice(0, 16),
-    gym: null
+    gym: null,
+    intro: (() => { const pl0 = wkPlantilla(wt), sin = pl0 ? wt.trimStart().slice(pl0.fin) : wt, h = sin.search(/^={2,4}/m), pre = h >= 0 ? sin.slice(0, h) : sin;
+      const p = pre.split(/\n\s*\n/).map(x => wkLimpiar(x.replace(/^[:*#]+\s*/gm, ''))).find(x => x.length > 40) || '';
+      return p.length > 420 ? p.slice(0, 400).replace(/\s+\S*$/, '') + '…' : p; })()
   };
   if (conGym) {
     try { const g = await wkGimnasio(wt); if (g && g.ubic && (wkNorm(g.ubic).includes(wkNorm(nombre)) || wkNorm(nombre).includes(wkNorm(g.ubic)) || wkNorm(g.ubic) === wkNorm(d.titulo))) d.gym = g; } catch (e) { d.gymFallo = true; }
@@ -2147,21 +2153,26 @@ function renderWiki() {
   }).join('');
   $('#wikiVacio').hidden = vis.length > 0 || !!$('#wikiPoke:not([hidden])');
 }
-function wkVivoHTML(v) {
+function wkVivoHTML(v, lug) {
   const filas = Object.entries(v.info);
   const grupos = []; v.poke.forEach(x => { let g = grupos.find(y => y.m === x.m); if (!g) grupos.push(g = { m: x.m, l: [] }); g.l.push(x); });
   const tabla = l => { const col = k => l.some(x => x[k]); return `<div style="overflow-x:auto"><table class="wk-tabla"><thead><tr><th>Pokémon</th>${col('niv') ? '<th>Nivel</th>' : ''}${col('prob') ? '<th>Prob.</th>' : ''}${col('hor') ? '<th>Horario</th>' : ''}</tr></thead><tbody>${l.map(x => `<tr><td>${pkA(x.n)}${x.nota ? `<br><small>${esc(x.nota)}</small>` : ''}</td>${col('niv') ? `<td>${esc(x.niv)}</td>` : ''}${col('prob') ? `<td>${esc(x.prob)}</td>` : ''}${col('hor') ? `<td>${esc(x.hor)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; };
   const tienda = v.objetos.filter(o => /comprar|tienda/i.test(o.d)), enc = v.objetos.filter(o => !/comprar|tienda/i.test(o.d));
   const lista = l => `<ul class="wk-lista">${l.map(o => `<li>${esc(o.n)}${o.d ? ` <small>· ${esc(o.d)}</small>` : ''}</li>`).join('')}</ul>`;
-  return `${filas.length ? `<div><h3>Ficha</h3><dl class="ficha">${filas.map(([k, x]) => `<div><dt>${esc(k)}</dt><dd>${esc(x)}</dd></div>`).join('')}</dl></div>` : ''}
+  return `${lug && v.intro ? `<p class="wk-resumen wk-intro">${esc(v.intro)}</p>` : ''}${filas.length ? `<div><h3>Ficha</h3><dl class="ficha">${filas.map(([k, x]) => `<div><dt>${esc(k)}</dt><dd>${esc(x)}</dd></div>`).join('')}</dl></div>` : ''}
     ${v.gym ? `<div><h3>Gimnasio</h3><div class="wk-gym">${v.gym.numero ? `<div><small>N.°</small><b>${esc(v.gym.numero)}</b></div>` : ''}<div><small>Líder</small><b>${esc(v.gym.lider || '—')}</b></div><div><small>Tipo</small><b>${esc(v.gym.tipo || '—')}</b></div><div><small>Medalla</small><b>${esc(v.gym.medalla || '—')}</b></div></div></div>` : ''}
-    <div><h3>Pokémon salvajes</h3>${grupos.length ? grupos.map(g => `${g.m ? `<p class="wk-metodo">${esc(g.m)}</p>` : ''}${tabla(g.l)}`).join('') : '<p class="muted">La wiki no lista Pokémon salvajes para esta zona.</p>'}</div>
+    ${grupos.length || !lug ? `<div><h3>Pokémon salvajes</h3>${grupos.length ? grupos.map(g => `${g.m ? `<p class="wk-metodo">${esc(g.m)}</p>` : ''}${tabla(g.l)}`).join('') : '<p class="muted">La wiki no lista Pokémon salvajes para esta zona.</p>'}</div>` : ''}
     ${enc.length || tienda.length ? `<div><h3>Objetos</h3>${enc.length ? lista(enc) : ''}${tienda.length ? `<details><summary>En la tienda (${tienda.length})</summary>${lista(tienda)}</details>` : ''}</div>` : ''}
     ${v.interes.length ? `<div><h3>Lugares de interés</h3><ul class="wk-lista">${v.interes.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}`;
 }
 function articuloWikiHTML(zona, enPagina) {
   const t = wkZonas().find(x => x.nombre === zona) || { nombre: zona, tipo: '', estado: 'Neutral' };
-  const w = wkTexto(zona), e = wkEstado(t), url = esc(wkUrl(WK.paginas[zona] || zona));
+  const w = wkTexto(zona), e = wkEstado(t), url = esc(wkUrl(WK.paginas[zona] || zona)), lug = !t.id && lugarDe(zona);
+  if (lug) return `<div class="wk-art">
+      <div class="wk-control lugar" style="--c:${lugGrupo(lug)[2]}"><span class="mini punto"></span><span>${esc(lugSub(lug))}</span><span class="acc"><a class="btn sm" data-wk-original href="${url}" target="_blank" rel="noopener">Wiki original ↗</a></span></div>
+      <div class="wk-art" data-wk-vivo><p class="wk-cargando"><i></i>Trayendo los datos de la wiki…</p></div>
+      <p class="wk-pie">Datos del lugar: <a data-wk-fuente href="${url}" target="_blank" rel="noopener">Wiki PokemonReloaded</a>, hecha por su comunidad de editores (licencia CC BY-SA).</p>
+    </div>`;
   return `<div class="wk-art">
       <div class="wk-control" style="--c:${esc(e.c)}">${e.lg ? `<span class="mini">${imgEmblema(e.lg)}</span>` : '<span class="mini punto"></span>'}<span>${t.estado === 'Controlada' ? 'Controlada por <b>' + esc(t.equipo) + '</b>' : '<b>' + esc(e.txt) + '</b>'} en la guerra de teams</span>
         <span class="acc">${t.id && S.d.territorios.some(x => x.id === t.id) ? `<button class="btn sm" type="button" data-act="wiki-a-zona" data-id="${esc(t.id)}">Ver en el atlas</button>` : ''}<a class="btn sm" data-wk-original href="${url}" target="_blank" rel="noopener">Wiki original ↗</a>${puede('wiki') ? `<button class="btn sm sand" type="button" data-act="wiki-editar" data-zona="${esc(zona)}">Editar resumen</button>` : ''}</span></div>
@@ -2175,7 +2186,7 @@ async function llenarWikiVivo(caja, zona, sigue) {
   try {
     const v = await wkZona(zona);
     if (!sigue()) return;
-    $('[data-wk-vivo]', caja).innerHTML = wkVivoHTML(v);
+    $('[data-wk-vivo]', caja).innerHTML = wkVivoHTML(v, !!lugarDe(zona) && !wkZonas().some(x => x.nombre === zona && x.id));
     $$('[data-wk-original],[data-wk-fuente]', caja).forEach(a => { a.href = v.url; });
   } catch (err) {
     if (!sigue()) return;
@@ -2190,7 +2201,7 @@ async function abrirWiki(zona, desdeRuta) {
   const d = $('#dlgWiki'), t = wkZonas().find(x => x.nombre === zona) || { tipo: '' };
   d.dataset.zona = zona;
   if (!desdeRuta) history.replaceState(null, '', '#wiki/' + wkSlug(zona));
-  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">Wiki · ${esc(t.tipo || 'Región Star')}</p><h2>${esc(zona)}</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div><div class="dlg-cuerpo">${articuloWikiHTML(zona, false)}</div></div>`;
+  d.innerHTML = `<div class="dlg"><div class="dlg-cab"><p class="muted">Wiki · ${esc(t.tipo || (lugarDe(zona) ? lugSub(lugarDe(zona)) : 'Región Star'))}</p><h2>${esc(zona)}</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">✕</button></div><div class="dlg-cuerpo">${articuloWikiHTML(zona, false)}</div></div>`;
   abrir(d);
   llenarWikiVivo(d, zona, () => d.open && d.dataset.zona === zona);
 }
@@ -2246,7 +2257,27 @@ async function wkAlEscribir() {
   b.addEventListener('focus', () => { wkPokes().catch(() => { }); }, { once: true });
   $('#dlgWiki').addEventListener('close', () => { if (/^#wiki\//.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); });
 })();
-const rutaWiki = () => { const m = location.hash.match(/^#wiki\/([\w-]+)/); if (!m) return; const z = wkZonas().find(x => wkSlug(x.nombre) === m[1]); if (z) abrirWiki(z.nombre, true); };
+const rutaWiki = () => { const m = location.hash.match(/^#wiki\/([\w-]+)/); if (!m) return; const z = wkZonas().find(x => wkSlug(x.nombre) === m[1]) || LUGARES.find(x => wkSlug(x.n) === m[1]); if (z) abrirWiki(z.nombre || z.n, true); };
+
+// ----- Islas y lugares: todo lo que no es una zona de la guerra (lista armada con las categorías de la wiki) -----
+const LUGARES = "Bosque Tormenta|Sb1;Cueva Magmática|Sc1;Cueva Oceánica|Sc1;Cueva Remolino|Sc1;Fábrica de Perfumes Venus|Sl0;Flygol|Su0;Isla Mercurio|Si1;Laboratorio Voltio|Sl1;Liga Hoenn|Sl0;Liga Sinnoh|Sl0;Liga Teselia|Sl0;Mansión Hollow|St1;Parque Caloris|Sl1;Santuario Celeste|St1;Torre Iris|St1;Universidad Pokémon|Sl0;Cafetería Primera Línea|Fl0;Cueva Retaguardia|Fc0;Cúpula de Eventos|Fl0;Fábrica del Frente|Fl0;Lotería del Frente|Fl0;Palacio del Frente|Fl0;Supervivencia del Frente|Fl0;Torneo del Frente|Fl0;Torre del Frente|Ft0;Zona del Frente|Fl0;Abismo Perdido|Ec1;Bosque Marchito|Eb1;Cementerio Matagot|Et1;Costa Capricornio|Ep1;Costa Tauro|Ep1;Cueva Aries|Ec1;Desierto Escorpio|Ev1;Isla Alma|Ei1;Isla Espíritu|Ei0;Laguna Roja|Ea1;Valle Aries|Ev1;Valle Espíritu|Ev1;Volcán Lamento|Em1;Volcán Tormento|Em1;Bosque Centauri|Lb1;Bosque Nero|Lb1;Isla Llanos|Li0;Monte León|Lm1;Playa Brújula|Lp1;Playa Géminis|Lp1;Playa Lyra|Lp1;Playa Vida|Lp1;Río Acuario|La1;Salto León|Lm1;Templo Passimian|Lt0;Valle de Llanos|Lv1;Costa Cetácea|Np1;Cueva Cetácea|Nc1;Cueva Orión|Nc1;Cueva Sextante|Nc1;Isla Nebulosa|Ni0;Lago Draco|Na1;Monte Fénix|Nm1;Monte Octante|Nm1;Monte Orión|Nm1;Monte Piscis|Nm1;Pantano Seísmo|Nl1;Río Heracles|Na1;Río Monoceros|Na1;Río Pegaso|Na1;Ruinas Andrómeda|Nt1;Ruta Andrómeda|Nl1;Valle Nébulo|Nv1;Bosque Hechizo|Ub1;Campo Blazar|Uv1;Campo Magnétar|Uv1;Campo Púlsar|Uv1;Costa Virgo|Up1;Cueva Elemental|Uc1;Cueva Magnetar|Uc1;Cueva Sagitario|Uc1;Lago Quasar|Ua1;Templo Scolipede|Ut1;Valle Supernova|Uv1;Isla Supernova|Ui0;Bosque Fugaz|Jb1;Castillo Rekiem|Jt0;Cueva Chuzo|Jc1;Cueva Paleo|Jc1;Laboratorio de Crianza|Jl0;Lago Lerna|Ja1;Pueblo Adhara|Ju0;Puerto Jungla|Jl1;Salón de Belleza|Jl0;Teatro Melody|Jl1;Bosque Mental|Ob1;Cueva Metal|Oc1;Paraíso Aether|Ol1;Puente Krono|Ol0;Río Hidra|Oa1;Barco Luz|Rl1;Bosque Spica Pasado|Rb0;Carril Bicis|Rl1;Cementerio Can|Rt1;Centro Comercial|Rl0;Centro de Investigación y Tecnología|Rl0;Cloaca Polar|Rc1;Cueva Ardiente|Rc1;Cueva Astilla|Rc1;Cueva Extravío|Rc1;Edificio Scorpio|Rl0;Escuela Pokémon de Pueblo Valde|Rl0;Facultad de Combate|Rl0;Granja Mu-mu|Rl0;Guardería Pokémon|Rl1;Guarida Aqua|Rl0;Guarida Flare|Rl0;Guarida Magma|Rl1;Guarida Rocket|Rl0;Instituto Meteorológico|Rl0;Laboratorio de Pokémon Extintos|Rl0;Lago Senn|Ra1;Liga Johto|Rl0;Pozo Talo|Rl1;Tienda Secreta|Rl0;Túnel Gaara|Rc1;Túnel Yucca|Rc1".split(';').filter(Boolean).map(x => { const [n, c] = x.split('|'); return { n, g: c[0], t: c[1], p: c[2] === '1' }; });
+const LUG_G = { R: ['Región Star', 'Gran Isla Estelar', '#f4d38b'], J: ['La Jungla', 'La Jungla', '#7fcf7b'], S: ['Archipiélago Solar', 'Archipiélago Solar', '#f0a35a'], L: ['Isla Llanos', 'Islas Cometa', '#7cc4e8'], E: ['Isla Espíritu', 'Islas Cometa', '#b48cf0'], N: ['Isla Nebulosa', 'Islas Cometa', '#5aa9ff'], U: ['Isla Supernova', 'Islas Cometa', '#ef6f8f'], C: ['Islas Cometa', 'Islas Cometa', '#93b9c3'], F: ['Frente de Batalla', 'Frente de Batalla', '#e8a33c'], O: ['Otros lugares', 'Otros lugares', '#93b9c3'] };
+const LUG_T = { c: 'Cueva', b: 'Bosque', p: 'Costa', m: 'Monte', a: 'Río o lago', v: 'Valle o campo', i: 'Isla', u: 'Pueblo', t: 'Ruinas o templo', l: 'Lugar' };
+const LUG_FILTROS = [['todos', 'Todos'], ['Gran Isla Estelar', 'Región Star'], ['Islas Cometa', 'Islas Cometa'], ['La Jungla', 'La Jungla'], ['Archipiélago Solar', 'Archipiélago Solar'], ['Frente de Batalla', 'Frente de Batalla'], ['Otros lugares', 'Otros']];
+const LUG = { q: '', f: 'todos' };
+const lugarDe = n => LUGARES.find(x => x.n === n);
+const lugGrupo = x => LUG_G[x.g] || LUG_G.O;
+const lugSub = x => { const [g, sup] = lugGrupo(x); return LUG_T[x.t] + (g === sup ? ' de ' + g : ' · ' + g); };
+function pintarLugares() { renderLugares(); const b = $('#buscarLug'); if (b && !b.dataset.ok) { b.dataset.ok = 1; b.addEventListener('input', () => { LUG.q = b.value.trim(); renderLugares(); }); } }
+function renderLugares() {
+  const el = $('#listaLug'); if (!el) return;
+  const q = wkNorm(LUG.q), vis = LUGARES.filter(x => (LUG.f === 'todos' || lugGrupo(x)[1] === LUG.f) && (!q || wkNorm(x.n + ' ' + lugSub(x)).includes(q)));
+  $('#filtrosLug').innerHTML = LUG_FILTROS.map(([id, l]) => `<button type="button" class="chip" data-act="lug-filtro" data-f="${esc(id)}" aria-pressed="${id === LUG.f}">${esc(l)}<b>${id === 'todos' ? LUGARES.length : LUGARES.filter(x => lugGrupo(x)[1] === id).length}</b></button>`).join('');
+  const grupos = []; vis.forEach(x => { const g = lugGrupo(x)[0]; let k = grupos.find(y => y.g === g); if (!k) grupos.push(k = { g, c: lugGrupo(x)[2], sup: lugGrupo(x)[1], l: [] }); k.l.push(x); });
+  const orden = Object.values(LUG_G).map(v => v[0]); grupos.sort((a, b) => orden.indexOf(a.g) - orden.indexOf(b.g));
+  el.innerHTML = grupos.length ? grupos.map(gr => `<div class="lug-g" style="--c:${gr.c}"><h3>${esc(gr.g)}${gr.sup !== gr.g ? `<small>${esc(gr.sup)}</small>` : ''}<b>${gr.l.length}</b></h3><div class="wk-grid">${gr.l.map((x, i) => `<${MULTIPAGINA ? `a href="/wiki/${wkSlug(x.n)}.html"` : 'button type="button" data-act="wiki"'} class="wk-card lug-c" data-zona="${esc(x.n)}" style="--c:${gr.c};--i:${Math.min(i, 12)}"><span class="wk-card-cab"><b>${esc(x.n)}</b></span><small class="lug-t"><i class="lug-ico t-${x.t}" aria-hidden="true"></i>${esc(LUG_T[x.t])}</small>${x.p ? '<span class="lug-p">Pokémon salvajes</span>' : ''}</${MULTIPAGINA ? 'a' : 'button'}>`).join('')}</div></div>`).join('')
+    : '<p class="vacio">Ningún lugar coincide con la búsqueda.</p>';
+}
 window.addEventListener('hashchange', rutaWiki);
 
 // ---------- Enciclopedia: Pokédex, legendarios, gimnasios, objetos y guías (en vivo de la Wiki PokemonReloaded) ----------
@@ -2291,10 +2322,10 @@ const wkFallo = (e, carga) => `<div class="wk-error">No se pudieron traer los da
 const GENS = [[1, 151, 'Kanto'], [152, 251, 'Johto'], [252, 386, 'Hoenn'], [387, 493, 'Sinnoh'], [494, 649, 'Teselia'], [650, 721, 'Kalos'], [722, 809, 'Alola'], [810, 905, 'Galar'], [906, 1025, 'Paldea']];
 const genDe = n => GENS.findIndex(([a, b]) => n >= a && n <= b) + 1;
 const DEX = { q: '', tipo: '', grupo: 'todos', gen: '' };
-const DEX_GRUPOS = [{ id: 'todos', l: 'Todos' }, { id: 'leg', l: 'Legendarios y singulares' }, { id: 'exc', l: 'Exclusivos de Reloaded' }, { id: 'forma', l: 'Formas regionales y especiales' }];
+const DEX_GRUPOS = [{ id: 'todos', l: 'Todos' }, { id: 'leg', l: 'Legendarios y singulares' }, { id: 'exc', l: 'Exclusivos de Reloaded' }, { id: 'forma', l: 'Formas regionales y especiales' }, { id: 'ini', l: 'Iniciales' }, { id: 'mega', l: 'Con megaevolución' }, { id: 'ue', l: 'Ultraentes' }, { id: 'par', l: 'Paradoja' }];
 async function wkDex() {
   if (WK.dex) return WK.dex;
-  const g = wkCache('dex1', 24 * 7); if (g) return (WK.dex = g);
+  const g = wkCache('dex2', 24 * 7); if (g) return (WK.dex = g);
   const [POK, dex] = await Promise.all([wkPokes(), cargarDex()]);
   if (!dex) throw new Error('No se pudo cargar la lista de especies.');
   const idx = new Map(dex.especies.map((e, i) => [wkClave(e[0]), i]));
@@ -2319,11 +2350,17 @@ async function wkDex() {
     });
   }
   const cat = c => wkCategoria(c).catch(() => []);
-  const [leg, exc] = await Promise.all([cat('Pokémon legendarios'), cat('Pokémon Exclusivos')]);
-  const L = new Set(leg.map(wkClave)), X = new Set(exc.map(wkClave));
-  lista.forEach(p => { if (L.has(wkClave(p.n))) p.leg = 1; if (X.has(wkClave(p.n)) || p.num > 1025) p.exc = 1; });
+  const [leg, exc, ini, ue1, ue2, par, megas] = await Promise.all(['Pokémon legendarios', 'Pokémon Exclusivos', 'Starters', 'Ultraente', 'Ultraentes', 'Pokémon paradoja', 'Megapiedras'].map(cat));
+  const set = l => new Set(l.map(wkClave)), L = set(leg), X = set(exc), I = set(ini), U = set(ue1.concat(ue2)), P = set(par), M = new Set();
+  // A quién megaevoluciona cada megapiedra (la ficha de la piedra lo dice: "…mega-evolucionar a [[Aerodactyl]]")
+  try { Object.entries(await wkVarias(megas)).forEach(([t, w]) => { const m = megaDe(t, w, POK); if (m) M.add(wkClave(m)); }); } catch (e) { }
+  lista.forEach(p => {
+    const k = wkClave(p.n);
+    if (L.has(k)) p.leg = 1; if (X.has(k) || p.num > 1025) p.exc = 1;
+    if (I.has(k)) p.ini = 1; if (U.has(k)) p.ue = 1; if (P.has(k)) p.par = 1; if (M.has(k) && !p.forma) p.mega = 1;
+  });
   lista.sort((a, b) => a.num - b.num || (a.forma || 0) - (b.forma || 0) || a.n.localeCompare(b.n, 'es'));
-  return (WK.dex = wkCache('dex1', 0, lista));
+  return (WK.dex = wkCache('dex2', 0, lista));
 }
 async function pintarDex() {
   const g = $('#gridDex'); if (!g) return;
@@ -2334,7 +2371,7 @@ function renderDex() {
   const g = $('#gridDex'); if (!g || !WK.dex) return;
   const q = wkNorm(DEX.q).replace(/^#/, ''), num = /^\d+$/.test(q) ? +q : 0;
   const vis = WK.dex.filter(p => (DEX.grupo === 'todos' || p[DEX.grupo]) && (!DEX.tipo || p.t.includes(DEX.tipo)) && (!DEX.gen || genDe(p.num) === +DEX.gen) && (!q || (num ? p.num === num : wkNorm(p.n).includes(q))));
-  $('#filtrosDex').innerHTML = DEX_GRUPOS.map(x => `<button type="button" class="chip" data-act="dex-grupo" data-f="${x.id}" aria-pressed="${x.id === DEX.grupo}">${esc(x.l)}<b>${x.id === 'todos' ? WK.dex.length : WK.dex.filter(p => p[x.id]).length}</b></button>`).join('');
+  $('#filtrosDex').innerHTML = DEX_GRUPOS.filter(x => x.id === 'todos' || x.id === DEX.grupo || WK.dex.some(p => p[x.id])).map(x => `<button type="button" class="chip" data-act="dex-grupo" data-f="${x.id}" aria-pressed="${x.id === DEX.grupo}">${esc(x.l)}<b>${x.id === 'todos' ? WK.dex.length : WK.dex.filter(p => p[x.id]).length}</b></button>`).join('');
   $('#cuentaDex').textContent = vis.length === WK.dex.length ? WK.dex.length + ' Pokémon en Reloaded. Tocá uno para ver su ficha.' : 'Mostrando ' + vis.length + ' de ' + WK.dex.length + ' Pokémon.';
   g.innerHTML = vis.length ? vis.map(p => `<a class="dex-c" href="${pkHref(p.n)}" data-poke="${esc(p.n)}" style="--c:${COLOR_TIPO[p.t[0]] || '#3d9ab8'}"><small>#${String(p.num).padStart(3, '0')}${p.forma ? ' · forma' : ''}</small><b>${esc(p.n)}</b><span class="dex-t">${p.t.map(tipoChip).join('')}${p.exc ? '<span class="pk-exc">Reloaded</span>' : ''}</span></a>`).join('') : '<p class="vacio">Ningún Pokémon coincide con la búsqueda.</p>';
 }
@@ -2671,6 +2708,98 @@ function renderObj() {
   $('#filtrosObj').innerHTML = [['todas', 'Todo']].concat(WK_OBJ_GUIAS.map(([a]) => [a, a])).map(([id, l]) => { const n = id === 'todas' ? WK.obj.length : WK.obj.filter(x => x.area === id).length; return n || id === 'todas' ? `<button type="button" class="chip" data-act="obj-area" data-f="${esc(id)}" aria-pressed="${id === OBJ.area}">${esc(l)}<b>${n}</b></button>` : ''; }).join('');
   const grupos = []; vis.forEach(x => { const k = x.area + '|' + x.zona; let g = grupos[grupos.length - 1]; if (!g || g.k !== k) grupos.push(g = { k, area: x.area, zona: x.zona, l: [] }); g.l.push(x); });
   el.innerHTML = grupos.length ? grupos.map(g => `<details class="obj-z"${q ? ' open' : ''}><summary><b>${esc(g.zona || g.area)}</b><small>${g.l.length} ${g.l.length === 1 ? 'objeto' : 'objetos'}${OBJ.area === 'todas' && g.zona ? ' · ' + esc(g.area) : ''}</small></summary><ul>${g.l.map(x => `<li><b>${esc(x.n)}</b><span>${esc(x.d)}</span></li>`).join('')}</ul>${g.zona && zonaConocida(g.zona) ? `<p class="obj-ir">Ver la zona: ${zonaA(g.zona)}</p>` : ''}</details>`).join('')
+    : '<p class="vacio">Ningún objeto coincide con la búsqueda.</p>';
+}
+
+// ----- Catálogo de objetos: qué hace cada uno y dónde se consigue (en vivo de la wiki) -----
+const OBJ_CLASES = [
+  { id: 'mega', l: 'Megapiedras', cats: ['Megapiedras'] },
+  { id: 'z', l: 'Cristales Z', cats: ['Cristales Z'] },
+  { id: 'evo', l: 'Evolutivos', cats: ['Piedras evolutivas', 'Objetos evolutivos'] },
+  { id: 'baya', l: 'Bayas', cats: ['Bayas'] },
+  { id: 'ball', l: 'Poké Balls', cats: ['Poké Balls'] },
+  { id: 'cura', l: 'Curativos', cats: ['Objetos curativos', 'Restaurador de Estados'] },
+  { id: 'equipo', l: 'Para equipar', cats: ['Equipables', 'Objetos potenciadores'] },
+  { id: 'clave', l: 'Objetos clave', cats: ['Objetos clave'] },
+  { id: 'otros', l: 'Otros', cats: [] }
+];
+const CAT = { c: 'todos', q: '', lista: null, cargando: null };
+function objVista(v) {
+  const cat = v === 'cat';
+  $('#tabObjZona').setAttribute('aria-selected', String(!cat)); $('#tabObjCat').setAttribute('aria-selected', String(cat));
+  $('#vistaObjZona').hidden = cat; $('#catObj').hidden = !cat;
+  if (cat) pintarCatalogo();
+  try { history.replaceState(null, '', location.pathname + location.search + (cat ? '#catalogo' : MULTIPAGINA ? '' : '#objetos')); } catch (e) { }
+}
+const OBJ_NO = /^(gu[ií]a|lista|localizaci|objetos?( |$)|megapiedras?$|cristal(es)? z$|bayas?$|pok[eé] ?balls?$|piedras? evolutivas?$|mt|mo\d|dt\d|disco)/i;
+/** Ficha corta de un objeto: clase, qué hace (primer párrafo), dónde se consigue y, si es megapiedra, a quién megaevoluciona. */
+function objFicha(titulo, wt) {
+  const i = wt.search(/\{\{\s*objeto\s*[|\n}]/i), pl = i >= 0 ? wkPlantilla(wt.slice(i)) : null, q = pl ? pl.params : {};
+  const cuerpo = pl ? wt.slice(i).trimStart().slice(pl.fin) : wt;
+  const corte = cuerpo.search(/^={2,4}/m), intro = corte >= 0 ? cuerpo.slice(0, corte) : cuerpo;
+  const parr = intro.split(/\n\s*\n/).map(x => wkLimpiar(x.replace(/^[:*#]+\s*/gm, ''))).filter(x => x.length > 20);
+  let ef = parr[0] || '';
+  if (ef.length > 300) ef = ef.slice(0, 280).replace(/\s+\S*$/, '') + '…';
+  const sec = wkSeccion(wt, /obtenci|ubicaci|d[oó]nde|localizaci|conseguir/i);
+  let donde = sec ? sec.split('\n').map(l => wkLimpiar(l.replace(/^[:*#]+\s*/, ''))).filter(x => x.length > 3 && !/^\{\||^\|/.test(x)).slice(0, 4).join(' · ') : '';
+  const compra = wkLimpiar(q.compra || ''); if (!donde && compra && !/^[\d.,\s$₽]+$/.test(compra)) donde = 'Se compra en ' + compra;
+  if (donde.length > 260) donde = donde.slice(0, 240).replace(/\s+\S*$/, '') + '…';
+  return { n: titulo, clase: wkLimpiar(q.clase || q.tipo || q.grupo || q.bolsillo || ''), ef, donde, mega: '', z: '', compra: /^[\d.,\s]+$/.test(compra) ? compra : '' };
+}
+/** A quién megaevoluciona una megapiedra: el Pokémon cuyo nombre arma la piedra (Charizardita X → Charizard), mejor si la ficha lo nombra. */
+function megaDe(titulo, wt, POK) {
+  const base = wkClave(titulo.replace(/\s+[xyz]$/i, '').replace(/ita$/i, ''));
+  const tx = wkNorm(wkLimpiar(wt).slice(0, 1200));
+  let mejor = '', score = 0;
+  POK.forEach(n => { if (/\s/.test(n)) return; const k = wkClave(n); let i = 0; while (i < k.length && i < base.length && k[i] === base[i]) i++; if (i < 4) return; const sc = i * 2 + (tx.includes(wkNorm(n)) ? 5 : 0) - Math.abs(k.length - base.length) * 0.1; if (sc > score) { score = sc; mejor = n; } });
+  return mejor;
+}
+async function wkCatalogo() {
+  if (CAT.lista) return CAT.lista;
+  const g = wkCache('objcat2', 24); if (g) return (CAT.lista = g);
+  const cat = c => wkCategoria(c).catch(() => []);
+  const nombres = [...new Set(OBJ_CLASES.flatMap(c => c.cats).concat(['Objetos', 'Objetos exclusivos', 'Objetos Exclusivos']))];
+  const res = await Promise.all(nombres.map(cat)), por = Object.fromEntries(nombres.map((n, i) => [n, new Set(res[i])]));
+  const todos = [...new Set(res.flat())].filter(t => !OBJ_NO.test(t));
+  if (!todos.length) throw new Error('La wiki no devolvió la lista de objetos.');
+  const [textos, POK] = await Promise.all([wkVarias(todos), wkPokes()]);
+  const lista = todos.filter(t => textos[t] != null).map(t => {
+    const f = objFicha(t, textos[t]);
+    f.c = (OBJ_CLASES.find(c => c.cats.some(k => por[k] && por[k].has(t))) || { id: 'otros' }).id;
+    if (f.c === 'mega') f.mega = megaDe(t, textos[t], POK);
+    if (f.c === 'otros' && !/\{\{\s*objeto/i.test(textos[t])) return null;
+    if (por['Objetos exclusivos'].has(t) || por['Objetos Exclusivos'].has(t)) f.exc = 1;
+    return f;
+  }).filter(Boolean).sort((a, b) => a.n.localeCompare(b.n, 'es'));
+  return (CAT.lista = wkCache('objcat2', 0, lista));
+}
+async function pintarCatalogo() {
+  const el = $('#catObj'); if (!el) return;
+  if (!el.dataset.ok) {
+    el.dataset.ok = 1;
+    el.innerHTML = `<div class="herr"><input class="buscar" id="buscarCat" type="search" placeholder="Buscá un objeto o un Pokémon (ej.: Restos, Lucario)" aria-label="Buscar en el catálogo" autocomplete="off"><label class="cat-exc"><input type="checkbox" id="soloExc"> Solo exclusivos de Reloaded</label></div><div class="chips" id="filtrosCat" role="group" aria-label="Clases de objetos"></div><div id="listaCat"><p class="wk-cargando"><i></i>Leyendo los objetos de la wiki… (la primera vez tarda unos segundos)</p></div>`;
+    $('#buscarCat').addEventListener('input', e => { CAT.q = e.target.value.trim(); renderCatalogo(); });
+    $('#soloExc').addEventListener('change', e => { CAT.exc = e.target.checked; renderCatalogo(); });
+  }
+  if (CAT.lista) return renderCatalogo();
+  if (!CAT.cargando) CAT.cargando = wkCatalogo().finally(() => { CAT.cargando = null; });
+  try { await CAT.cargando; renderCatalogo(); }
+  catch (e) { $('#listaCat').innerHTML = wkFallo(e, 'cat'); el.dataset.ok = ''; }
+}
+function renderCatalogo() {
+  const el = $('#listaCat'); if (!el || !CAT.lista) return;
+  const q = wkNorm(CAT.q), L = CAT.lista.filter(x => !CAT.exc || x.exc);
+  const vis = L.filter(x => (CAT.c === 'todos' || x.c === CAT.c) && (!q || wkNorm(x.n + ' ' + x.mega + ' ' + x.z + ' ' + x.ef + ' ' + x.clase).includes(q)));
+  $('#filtrosCat').innerHTML = [{ id: 'todos', l: 'Todos' }].concat(OBJ_CLASES).map(c => { const n = c.id === 'todos' ? L.length : L.filter(x => x.c === c.id).length; return n || c.id === 'todos' ? `<button type="button" class="chip" data-act="cat-clase" data-f="${c.id}" aria-pressed="${c.id === CAT.c}">${esc(c.l)}<b>${n}</b></button>` : ''; }).join('');
+  const clase = id => (OBJ_CLASES.find(c => c.id === id) || {}).l || '';
+  el.innerHTML = vis.length ? `<p class="dex-cuenta muted">${vis.length === L.length ? L.length + ' objetos en la wiki.' : 'Mostrando ' + vis.length + ' de ' + L.length + ' objetos.'}</p><div class="cat-g">${vis.slice(0, 240).map((x, i) => `<article class="cat-c c-${x.c}" style="--i:${Math.min(i, 16)}">
+      <header><b>${esc(x.n)}</b><span class="cat-cl">${esc(clase(x.c))}</span>${x.exc ? '<span class="pk-exc">Exclusivo</span>' : ''}</header>
+      ${x.mega ? `<p class="cat-mega">Megaevoluciona a ${pkA(x.mega)}</p>` : ''}
+      ${x.ef ? `<p class="cat-ef">${esc(x.ef)}</p>` : ''}
+      ${x.donde ? `<p class="cat-donde"><b>Dónde:</b> ${esc(x.donde)}</p>` : ''}
+      ${x.compra ? `<p class="cat-donde"><b>Precio:</b> ${esc(x.compra)}</p>` : ''}
+      <a class="cat-wk" href="${esc(wkUrl(x.n))}" target="_blank" rel="noopener">Ver en la wiki ↗</a>
+    </article>`).join('')}</div>${vis.length > 240 ? '<p class="muted">Hay más resultados: buscá por nombre para encontrarlos.</p>' : ''}`
     : '<p class="vacio">Ningún objeto coincide con la búsqueda.</p>';
 }
 
@@ -3166,12 +3295,12 @@ $$('#adminbar [data-solo-rol]').forEach(e => { if (e.dataset.soloRol === 'editor
 { const PERM_ACT = { 'nueva-noticia': 'noticias', 'nueva-guerra': 'guerra', 'nuevo-torneo': 'torneos', 'nuevo-combate': 'torneos' };
   $$('#adminbar .adminbar-acc [data-act]').forEach(b => { if (!b.dataset.perm && PERM_ACT[b.dataset.act]) b.dataset.perm = PERM_ACT[b.dataset.act]; }); }
 // Las páginas de la wiki generadas antes del analizador suman su pestaña acá (así no hay que volver a subir las 1.200 páginas).
-$$('.wk-nav').forEach(n => {
-  if (n.querySelector('[data-ir="equipo"]')) return;
-  const t = n.querySelector('[data-ir="tipos"]'); if (!t) return;
-  const a = document.createElement('a'); a.href = MULTIPAGINA ? '/wiki/equipo.html' : '#equipo'; a.dataset.ir = 'equipo'; a.textContent = 'Analizador'; t.after(a);
-});
-const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos, equipo: pintarEquipo };
+$$('.wk-nav').forEach(n => [['lugares', 'Islas y lugares', 'wiki'], ['equipo', 'Analizador', 'tipos']].forEach(([id, txt, tras]) => {
+  if (n.querySelector(`[data-ir="${id}"]`)) return;
+  const t = n.querySelector(`[data-ir="${tras}"]`); if (!t) return;
+  const a = document.createElement('a'); a.href = MULTIPAGINA ? PAGINA_DE[id] : '#' + id; a.dataset.ir = id; a.textContent = txt; t.after(a);
+}));
+const WK_CARGAS = { rutas: pintarRutas, dex: pintarDex, leg: pintarLeg, gym: pintarGym, obj: pintarObj, guias: pintarGuias, mov: pintarMov, hab: pintarHab, pj: pintarPj, tipos: pintarTipos, equipo: pintarEquipo, lugares: pintarLugares, cat: pintarCatalogo };
 (() => {
   const els = $$('[data-wk-carga]');
   const una = el => { if (el.dataset.cargado) return; el.dataset.cargado = '1'; WK_CARGAS[el.dataset.wkCarga](); };
@@ -3364,6 +3493,7 @@ if (MODO !== 'demo' && hay('#gridCarnets')) try { const cc = JSON.parse(localSto
 if (quiereAdmin && !S.token) setTimeout(entrarAdmin, 300);
 setTimeout(rutaCarnet, 150);
 setTimeout(rutaWiki, 160);
+if (location.hash === '#catalogo' && hay('#catObj')) setTimeout(() => { objVista('cat'); if (!MULTIPAGINA) ir('objetos'); }, 200);
 setTimeout(rutaPokemon, 170);
 window.addEventListener('hashchange', () => { if (/^#admin\b/.test(location.hash) && !S.token) entrarAdmin(); });
 if (MODO !== 'demo') setInterval(() => { if (!document.hidden && !$('dialog[open]') && !S.ubicando) cargar(true); }, 90000);
